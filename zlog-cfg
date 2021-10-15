@@ -1,0 +1,47 @@
+[global]
+strict init = false 
+buffer min = 1024
+buffer max = 2MB
+default format = "%d(%F %X).%us %-6V (%c:%F:%U:%L) - %m%n"
+file perms = 666
+fsync period = 1K
+
+[levels]
+
+[formats]
+null	=		"%n"
+print	=		"[%-10.3d(%F)]%n"
+file_format = "%d(%F %X).%us %-5V %c %m%n"
+console_format = "%d(%F %X).%us %c %5V - %m%n"
+
+[rules]
+
+BF_SYS.ERROR >stdout;console_format
+BF_SYS.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_LLD.ERROR >stdout;console_format
+BF_LLD.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_PIPE.ERROR >stdout;console_format
+BF_PIPE.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_DVM.ERROR >stdout;console_format
+BF_DVM.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_PORT.ERROR >stdout;console_format
+BF_PORT.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_API.ERROR >stdout;console_format
+BF_API.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_PAL.ERROR >stdout;console_format
+BF_PAL.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_PM.ERROR >stdout;console_format
+BF_PM.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+BF_BFRT.ERROR >stdout;console_format
+BF_BFRT.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
+*.ERROR	 >syslog , LOG_USER
+

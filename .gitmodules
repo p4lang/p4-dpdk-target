@@ -1,0 +1,7 @@
+[submodule "src/lld/dpdk/dpdk_src"]
+	path = src/lld/dpdk/dpdk_src
+	url = https://github.com/DPDK/dpdk.git
+	ignore = all
+[submodule "third-party/tdi"]
+	path = third-party/tdi
+	url = https://github.com/p4lang/tdi.git

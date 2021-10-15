@@ -1,0 +1,463 @@
+{
+  "tables" : [
+    {
+      "name" : "$PORT",
+      "id" : 4278255617,
+      "table_type" : "PortConfigure",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$DEV_PORT",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "dev_port"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32"
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$PORT_NAME",
+            "repeated" : false,
+            "annotations" : [
+              {
+                "name" : "$bfrt_port_type_class",
+                "value" : "port_name"
+              },
+              {
+                "name" : "$bfrt_field_imp_level",
+                "value" : "2"
+              }
+            ],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 2,
+            "name" : "$PORT_TYPE",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+              "choices" : ["BF_DPDK_TAP",
+                           "BF_DPDK_LINK",
+                           "BF_DPDK_SOURCE",
+                           "BF_DPDK_SINK"]
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 3,
+            "name" : "$PORT_DIR",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+              "choices" : ["PM_PORT_DIR_DEFAULT",
+                           "PM_PORT_DIR_TX_ONLY",
+                           "PM_PORT_DIR_RX_ONLY"]
+            }
+          }
+        },
+	{
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 4,
+            "name" : "$MTU",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+              "default_value" : 1500
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 5,
+            "name" : "$PIPE",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 6,
+            "name" : "$PORT_IN_ID",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 7,
+            "name" : "$PORT_OUT_ID",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+              "default_value" : 0
+            }
+          }
+        },
+	{
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 8,
+            "name" : "$MEMPOOL",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 9,
+            "name" : "$PCIE_BDF",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 10,
+            "name" : "$FILE_NAME",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 11,
+            "name" : "$DEV_ARGS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 12,
+            "name" : "$DEV_HOTPLUG_ENABLED",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+              "default_value" : 0
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : ["port_status_notif_cb"]
+    },
+    {
+      "name" : "$PORT_STAT",
+      "id" : 4278255618,
+      "table_type" : "PortStat",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$DEV_PORT",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "dev_port"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32"
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$Input_Packets",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 2,
+            "name" : "$Input_Bytes",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 3,
+            "name" : "$Input_Empty_Polls",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 4,
+            "name" : "$Output_Packets",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 5,
+            "name" : "$Output_Bytes",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : ["poll_intvl_ms"]
+    },
+    {
+      "name" : "$PORT_HDL_INFO",
+      "id" : 4278255619,
+      "table_type" : "PortHdlInfo",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$CONN_ID",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "port_hdl_conn_id"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32",
+            "default_value" : 0
+          }
+        },
+        {
+          "id" : 2,
+          "name" : "$CHNL_ID",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "port_hdl_chnl_id"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32",
+            "default_value" : 0
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$DEV_PORT",
+            "repeated" : false,
+            "annotations" : [
+              {
+                "name" : "$bfrt_port_type_class",
+                "value" : "dev_port"
+              }
+            ],
+            "type" : {
+              "type" : "uint32"
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : []
+    },
+    {
+      "name" : "$PORT_FP_IDX_INFO",
+      "id" : 4278255620,
+      "table_type" : "PortFpIdxInfo",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$FP_IDX",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "fp_port"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32",
+            "default_value" : 0
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$DEV_PORT",
+            "repeated" : false,
+            "annotations" : [
+              {
+                "name" : "$bfrt_port_type_class",
+                "value" : "dev_port"
+              }
+            ],
+            "type" : {
+              "type" : "uint32"
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : []
+    },
+    {
+      "name" : "$PORT_STR_INFO",
+      "id" : 4278255621,
+      "table_type" : "PortStrInfo",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$PORT_NAME",
+          "repeated" : false,
+          "annotations" : [
+            {
+              "name" : "$bfrt_port_type_class",
+              "value" : "port_name"
+            }
+          ],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "string"
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$DEV_PORT",
+            "repeated" : false,
+            "annotations" : [
+              {
+                "name" : "$bfrt_port_type_class",
+                "value" : "dev_port"
+              }
+            ],
+            "type" : {
+              "type" : "uint32"
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : []
+    }
+  ]
+}
