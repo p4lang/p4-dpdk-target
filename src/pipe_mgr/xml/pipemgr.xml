@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CLISH_MODULE xmlns="http://clish.sourceforge.net/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://clish.sourceforge.net/XMLSchema
+  http://clish.sourceforge.net/XMLSchema/clish.xsd">
+
+<!-- access commands -->
+<VIEW name="root-view">
+  <COMMAND name="access" help="Access hardware registers">
+    <ACTION builtin="access_cmd"/>
+  </COMMAND>
+</VIEW>
+
+<!-- ucli commands -->
+<VIEW name="root-view">
+  <COMMAND name="ucli" help="UCLI commands">
+    <ACTION builtin="ucli_cmd"/>
+  </COMMAND>
+</VIEW>
+
+<!-- version command -->
+<VIEW name="root-view">
+  <COMMAND name="version" help="Display the SDE version">
+    <ACTION builtin="version_cmd"/>
+  </COMMAND>
+</VIEW>
+
+<!-- enter pipe manage view -->
+<VIEW name="root-view">
+  <COMMAND name="pipemgr" help="Pipe manager commands"
+    view="pipemgr-view" viewid="device_id=${device_id}">
+    <PARAM name="device" help="Device ID" optional="true"
+      mode="subcommand" ptype="SUBCOMMAND">
+      <PARAM name="device_id" help="Device ID" ptype="UINT8" default="0"/>
+    </PARAM>
+  </COMMAND>
+</VIEW>
+
+<!--pipe manager view top level commands -->
+<VIEW name="pipemgr-view"
+  prompt="pipemgr:${device_id}&gt; ">
+  <COMMAND name="end" help="End pipe manager sub-commands" view="root-view"/>
+  <COMMAND name="show" help="Show commands"/>
+</VIEW>
+
+<!--show tcam commands -->
+<VIEW name="pipemgr-view">
+  <COMMAND name="show tcams" help="Show all TCAM tables">
+    <ACTION builtin="pipemgr_show_tcams"/>
+  </COMMAND>
+  <COMMAND name="show tcam" help="Show TCAM table">
+    <PARAM name="tcam_handle" help="TCAM Handle" ptype="UINT">
+      <PARAM name="tcam_entries" help="Display entries" optional="true"
+        ptype="SUBCOMMAND" mode="switch">
+        <PARAM name="entries" help="Display all entries"
+          optional="true" mode="subcommand" ptype="SUBCOMMAND"/>
+        <PARAM name="entry" help="Display a specific entry"
+          optional="true" mode="subcommand" ptype="SUBCOMMAND">
+          <PARAM name="entry_handle" help="Entry handle" ptype="UINT"/>
+        </PARAM>
+      </PARAM>
+    </PARAM>
+    <ACTION builtin="pipemgr_show_tcams"/>
+  </COMMAND>
+</VIEW>
+
+<PLUGIN name="pipemgr"/>
+
+</CLISH_MODULE>

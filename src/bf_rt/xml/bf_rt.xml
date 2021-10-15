@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CLISH_MODULE xmlns="http://clish.sourceforge.net/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://clish.sourceforge.net/XMLSchema
+  http://clish.sourceforge.net/XMLSchema/clish.xsd">
+
+<!-- bfrt_cli commands -->
+<VIEW name="root-view">
+
+  <COMMAND name="bfrt_python" help="bfrt_cli commands">
+    <PARAM name="py_file" help="Python File to Run" optional="true" ptype="STRING"/>
+    <PARAM name="interactive" help="Load interactive mode when file provided" optional="true" ptype="BOOL"/>
+    <ACTION builtin="bfrt_cli_cmd"/>
+  </COMMAND>
+
+  <COMMAND name="run_file"
+      help="Run the file like a script">
+      <PARAM name="filename"
+             help="The filename to be executed"
+             ptype="STRING"/>
+      <PARAM name="stop_on_error"
+             help="Stop the script if execution ever encounters error"
+             optional="true"
+             default="true"
+             ptype="BOOL"/>
+      <ACTION builtin="run_file_cmd"/>
+  </COMMAND>
+
+</VIEW>
+
+<PLUGIN name="bf_rt"/>
+
+</CLISH_MODULE>

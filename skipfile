@@ -1,0 +1,7 @@
+-/usr/local/include/google/*
+-/usr/include/c++/*
+-*third-party/google/*
+-*third-party/googletest/*
+-*src/avago/*
+-*include/avago/*
+-*src/comira/*

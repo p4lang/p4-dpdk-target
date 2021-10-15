@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CLISH_MODULE xmlns="http://clish.sourceforge.net/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://clish.sourceforge.net/XMLSchema
+  http://clish.sourceforge.net/XMLSchema/clish.xsd">
+
+<!-- bfrt_cli commands -->
+<VIEW name="root-view">
+  <COMMAND name="debug_python" help="Python access hardware registers">
+    <PARAM name="py_file" help="Python File to Run" optional="true" ptype="STRING"/>
+    <ACTION builtin="debug_cli_cmd"/>
+  </COMMAND>
+</VIEW>
+
+<PLUGIN name="debug"/>
+
+</CLISH_MODULE>

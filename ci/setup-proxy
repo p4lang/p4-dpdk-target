@@ -1,0 +1,34 @@
+#!/bin/bash -xe
+
+cat ~/.bashrc
+cat ~/.ssh/config
+
+echo $http_proxy
+echo $https_proxy
+echo $ftp_proxy
+echo $socks_proxy
+echo $no_proxy
+echo $ALL_PROXY
+
+cat >> ~/.bashrc <<EOF
+export http_proxy="http://proxy-dmz.intel.com:911"
+export https_proxy="http://proxy-dmz.intel.com:912"
+export ftp_proxy="ftp://proxy-dmz.intel.com:21"
+export socks_proxy="proxy-dmz.intel.com:1080"
+export no_proxy="intel.com,*.intel.com,localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
+export ALL_PROXY='socks5://proxy-us.intel.com'
+EOF
+
+cat >> ~/.ssh/config <<EOF
+Host github.com
+  proxycommand nc -x proxy-dmz.intel.com:1080 %h %p
+  Port 22
+  User git
+  StrictHostKeyChecking no
+EOF
+
+git config --global http.proxy http://proxy-dmz.intel.com:911
+git config --global https.proxy https://proxy-dmz.intel.com:912
+git config --global user.email "nobody@nowhere"
+git config --global user.name "Jenkins"
+
