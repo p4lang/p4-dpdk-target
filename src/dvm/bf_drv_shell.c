@@ -24,7 +24,7 @@
 #include <getopt.h>
 
 #include <osdep/p4_sde_osdep.h>
-#include <target_utils/bf_utils.h>
+#include <target_utils/target_utils.h>
 #include <target_utils/uCli/ucli.h>
 #include <target_utils/uCli/ucli_argparse.h>
 #include <target_utils/uCli/ucli_node.h>
@@ -41,9 +41,9 @@ static ucli_status_t bf_drv_ucli_ucli__version(ucli_context_t *uc) {
              bf_syslib_get_internal_version());
 
   aim_printf(&uc->pvs,
-             "bf-utils: %s (Internal:%s)\n",
-             bf_utils_get_version(),
-             bf_utils_get_internal_version());
+             "target-utils: %s (Internal:%s)\n",
+             target_utils_get_version(),
+             target_utils_get_internal_version());
 
   aim_printf(&uc->pvs,
              "bf-drivers: %s (Internal:%s)\n",
