@@ -19,8 +19,8 @@
 
 #include "../dal_mat.h"
 #include "../../../core/pipe_mgr_log.h"
-#include "../../../../lld/dpdk/lld_dpdk_lib.h"
-#include "../../../../lld/dpdk/infra/dpdk_infra.h"
+#include <lld_dpdk_lib.h>
+#include <infra/dpdk_infra.h>
 #include "../../infra/pipe_mgr_dbg.h"
 #include "pipe_mgr_dpdk_int.h"
 #include "pipe_mgr_dpdk_ctx_util.h"
@@ -85,8 +85,7 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 			goto cleanup;
 		}
 
-		action_id = rte_swx_get_action_id(meta->pipe->ctl,
-				action->name);
+		action_id = get_action_id(meta->pipe, action->name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -184,8 +183,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			return BF_UNEXPECTED;
 		}
 
-		action_id = rte_swx_get_action_id(meta->pipe->ctl,
-				act_fmt->action_name);
+		action_id = get_action_id(meta->pipe, act_fmt->action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -303,7 +301,6 @@ int dal_dpdk_table_metadata_get(struct pipe_mgr_mat_ctx *mat_ctx,
 	struct pipe_mgr_match_key_fields *match_fields;
 	struct pipe_mgr_dpdk_stage_table *stage_table;
 	struct dal_dpdk_table_metadata *meta;
-	struct rte_swx_ctl_pipeline *ctl;
 	int status = BF_SUCCESS;
 
 	if (adt_table)
@@ -331,17 +328,8 @@ int dal_dpdk_table_metadata_get(struct pipe_mgr_mat_ctx *mat_ctx,
 		goto error;
 	}
 
-	if (!meta->pipe->ctl) {
-		LOG_ERROR("dpdk pipeline %s ctl is null",
-				pipeline_name);
-		status = BF_OBJECT_NOT_FOUND;
-		goto error;
-	}
-
-	ctl = meta->pipe->ctl;
 	/* get dpdk table id */
-
-	meta->table_id = rte_swx_get_table_id(ctl, table_name);
+	meta->table_id = get_table_id(meta->pipe, table_name);
 	if (meta->table_id == UINT32_MAX) {
 		LOG_ERROR("dpdk table id get for table %s failed",
 				 table_name);
@@ -426,6 +414,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	struct pipe_mgr_profile *profile = NULL;
 	struct rte_swx_table_entry *entry = NULL;
 	struct rte_swx_ctl_pipeline *ctl = NULL;
+	struct pipeline *pipe = NULL;
 	int status = BF_SUCCESS;
 
 	LOG_TRACE("Entering %s", __func__);
@@ -469,7 +458,7 @@ int dal_table_ent_add(u32 sess_hdl,
 			return BF_OBJECT_NOT_FOUND;
 		}
 	}
-
+	pipe = stage_table->table_meta->pipe;
 	ctl = stage_table->table_meta->pipe->ctl;
 	if (!ctl) {
 		LOG_ERROR("dpdk pipeline %s ctl is null",
@@ -502,7 +491,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	if (act_data_spec->pipe_action_datatype_bmap ==
 			PIPE_SEL_GRP_HDL_TYPE) {
 		/* encode the action set_group_id and group id */
-		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->name, ctl,
+		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->name, pipe,
 				act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_group_id"
@@ -512,7 +501,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	} else if (act_data_spec->pipe_action_datatype_bmap ==
 			PIPE_ACTION_DATA_HDL_TYPE) {
 		/* encode the action set_member_id*/
-		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->name, ctl,
+		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->name, pipe,
 				act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_member_id"
@@ -533,7 +522,7 @@ int dal_table_ent_add(u32 sess_hdl,
 		}
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_add(ctl, mat_ctx->name,
+	status = rte_swx_ctl_pipeline_table_entry_add(pipe->ctl, mat_ctx->name,
 						      entry);
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");

@@ -21,6 +21,7 @@ bf_rt/bf_rt_python/bfrtcli.py
 endif # end IS_BFRT_ENABLED
 
 libdriver_la_CFLAGS = $(AM_CFLAGS) $(BF_DRIVERS_CFLAGS) -Wno-absolute-value -Wno-deprecated-declarations
+libdriver_la_CFLAGS += -I$(srcdir)/lld/dpdk
 libdriver_la_CXXFLAGS = $(AM_CXXFLAGS) $(BF_DRIVERS_CXXFLAGS)
 libdvm_la_CFLAGS = $(libdriver_la_CFLAGS)
 liblld_la_CFLAGS = $(libdriver_la_CFLAGS) -fPIC -DPIC

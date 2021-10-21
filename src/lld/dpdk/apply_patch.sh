@@ -18,8 +18,7 @@
 apply_patch()
 {
 	local PATCH_FILES=(
-		0001-add-ctl-wrapper-api.patch
-		002-fix-out-of-bounds-check-label.patch
+		0001-fix-out-of-bounds-check-label.patch
 	)
 
 	DPDK_PATH=${PWD}
