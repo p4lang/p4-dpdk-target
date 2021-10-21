@@ -23,8 +23,8 @@
 #include "pipe_mgr_dpdk_ctx_util.h"
 
 #include "../dal_mat.h"
-#include "../../../../lld/dpdk/lld_dpdk_lib.h"
-#include "../../../../lld/dpdk/infra/dpdk_infra.h"
+#include <lld_dpdk_lib.h>
+#include <infra/dpdk_infra.h>
 #include "pipe_mgr_dpdk_int.h"
 
 int pipe_mgr_dpdk_encode_match_key_and_mask(
@@ -144,7 +144,7 @@ int pipe_mgr_dpdk_encode_adt_action_data(
 }
 
 int pipe_mgr_dpdk_encode_sel_action(char *table_name,
-		struct rte_swx_ctl_pipeline *ctl,
+		struct pipeline *pipe,
 		struct pipe_action_spec *act_data_spec,
 		struct rte_swx_table_entry *entry)
 {
@@ -158,8 +158,7 @@ int pipe_mgr_dpdk_encode_sel_action(char *table_name,
 		(sizeof(action_name) - strlen(action_name) -1));
 	strcat(action_name, "_set_group_id");
 
-	entry->action_id = rte_swx_get_action_id(ctl,
-			action_name);
+	entry->action_id = get_action_id(pipe, action_name);
 	if (entry->action_id == UINT64_MAX) {
 		LOG_ERROR("dpdk action id get failed for action %s",
 				action_name);
@@ -178,7 +177,7 @@ int pipe_mgr_dpdk_encode_sel_action(char *table_name,
 }
 
 int pipe_mgr_dpdk_encode_member_id(char *table_name,
-		struct rte_swx_ctl_pipeline *ctl,
+		struct pipeline *pipe,
 		struct pipe_action_spec *act_data_spec,
 		struct rte_swx_table_entry *entry)
 {
@@ -192,8 +191,7 @@ int pipe_mgr_dpdk_encode_member_id(char *table_name,
 		(sizeof(action_name) - strlen(action_name) -1));
 	strcat(action_name, "_set_member_id");
 
-	entry->action_id = rte_swx_get_action_id(ctl,
-			action_name);
+	entry->action_id = get_action_id(pipe, action_name);
 	if (entry->action_id == UINT64_MAX) {
 		LOG_ERROR("dpdk action id get failed for action %s",
 				action_name);

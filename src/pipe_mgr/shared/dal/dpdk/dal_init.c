@@ -18,8 +18,8 @@
 #include "../dal_init.h"
 #include "../../infra/pipe_mgr_int.h"
 #include "../../../core/pipe_mgr_log.h"
-#include "../../../../lld/dpdk/lld_dpdk_port.h"
-#include "../../../../lld/dpdk/infra/dpdk_infra.h"
+#include <lld_dpdk_port.h>
+#include <infra/dpdk_infra.h>
 #include "../../pipe_mgr_shared_intf.h"
 #include "pipe_mgr_dpdk_int.h"
 #include "pipe_mgr_dpdk_ctx_util.h"

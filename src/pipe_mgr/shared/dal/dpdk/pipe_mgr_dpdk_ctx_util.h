@@ -23,6 +23,7 @@
 #ifndef __PIPE_MGR_DPDK_CTX_UTIL_H__
 #define __PIPE_MGR_DPDK_CTX_UTIL_H__
 
+#include <infra/dpdk_infra.h>
 #include "pipe_mgr_dpdk_int.h"
 #include "../../infra/pipe_mgr_int.h"
 
@@ -43,11 +44,11 @@ int pipe_mgr_dpdk_encode_adt_action_data(
 		u8 *action_data_bits,
 		struct rte_swx_table_entry *entry);
 int pipe_mgr_dpdk_encode_sel_action(char *table_name,
-		struct rte_swx_ctl_pipeline *ctl,
+		struct pipeline *pipe,
 		struct pipe_action_spec *act_data_spec,
 		struct rte_swx_table_entry *entry);
 int pipe_mgr_dpdk_encode_member_id(char *table_name,
-		struct rte_swx_ctl_pipeline *ctl,
+		struct pipeline *pipe,
 		struct pipe_action_spec *act_data_spec,
 		struct rte_swx_table_entry *entry);
 #endif

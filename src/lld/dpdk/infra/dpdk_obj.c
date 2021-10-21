@@ -706,3 +706,71 @@ void table_entry_free(struct rte_swx_table_entry *entry)
 	free(entry->action_data);
 	free(entry);
 }
+
+uint64_t
+get_action_id(struct pipeline *pipe, const char *action_name)
+{
+	uint64_t i;
+	int ret;
+	struct rte_swx_ctl_action_info action;
+	struct rte_swx_ctl_pipeline_info pipe_info = {0};
+
+	if (action_name == NULL || pipe == NULL || pipe->p == NULL) {
+		printf("%s failed at %d\n",__func__, __LINE__);
+		goto action_error;
+	}
+	ret = rte_swx_ctl_pipeline_info_get(pipe->p, &pipe_info);
+	if (ret < 0) {
+		printf("%s failed at %d for pipeinfo \n",__func__, __LINE__);
+		goto action_error;
+	}
+	for (i = 0; i < pipe_info.n_actions; i++) {
+		memset(&action, 0, sizeof(action));
+		ret = rte_swx_ctl_action_info_get (pipe->p, i, &action);
+		if (ret < 0) {
+			printf("%s failed at %d for actioninfo\n",
+				__func__, __LINE__);
+			break;
+		}
+		if (!strncmp(action_name, action.name, RTE_SWX_CTL_NAME_SIZE))
+			return i;
+	}
+action_error:
+	printf("%s failed at %d end\n",__func__, __LINE__);
+	return UINT64_MAX;
+}
+
+uint32_t
+get_table_id(struct pipeline *pipe, const char *table_name)
+{
+	uint32_t i;
+	int ret;
+	struct rte_swx_ctl_table_info table;
+	struct rte_swx_ctl_pipeline_info pipe_info = {0};
+
+	if (table_name == NULL || pipe == NULL || pipe->p == NULL) {
+		printf("%s failed at %d\n",__func__, __LINE__);
+		goto table_error;
+	}
+
+	ret = rte_swx_ctl_pipeline_info_get(pipe->p, &pipe_info);
+	if (ret < 0) {
+		printf("%s failed at %d for pipeinfo\n",__func__, __LINE__);
+		goto table_error;
+	}
+	for (i = 0; i < pipe_info.n_tables; i++) {
+		memset(&table, 0, sizeof(table));
+		ret = rte_swx_ctl_table_info_get (pipe->p, i, &table);
+		if (ret < 0) {
+			printf("%s failed at %d for tableinfo\n",
+				__func__, __LINE__);
+			break;
+		}
+		if (!strncmp(table_name, table.name, RTE_SWX_CTL_NAME_SIZE))
+			return i;
+	}
+table_error:
+	printf("%s failed at %d end\n",__func__, __LINE__);
+	return UINT32_MAX;
+}
+

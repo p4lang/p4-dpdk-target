@@ -214,4 +214,8 @@ int
 thread_main(void *arg);
 
 void table_entry_free(struct rte_swx_table_entry *entry);
+uint64_t
+get_action_id(struct pipeline *pipe, const char *action_name);
+uint32_t
+get_table_id(struct pipeline *pipe, const char *table_name);
 #endif /* _INCLUDE_DPDK_INFRA_H_ */
