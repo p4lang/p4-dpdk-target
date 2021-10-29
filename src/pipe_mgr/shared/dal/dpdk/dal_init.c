@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <osdep/p4_sde_osdep.h>
+#include <port_mgr/dpdk/bf_dpdk_port_if.h>
 
 #include "../dal_init.h"
 #include "../../infra/pipe_mgr_int.h"
@@ -69,6 +70,13 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		LOG_ERROR("dpdk pipeline %s get failed",
 				profile->pipeline_name);
 		return BF_OBJECT_NOT_FOUND;
+	}
+
+	status = port_mgr_sink_create(profile->pipeline_name);
+	if (status) {
+		LOG_ERROR("sink creation Error %d at line %u: %s\n.",
+			status, __LINE__, __func__);
+		return BF_INTERNAL_ERROR;
 	}
 
 	status = rte_swx_pipeline_build_from_spec(pipe->p,

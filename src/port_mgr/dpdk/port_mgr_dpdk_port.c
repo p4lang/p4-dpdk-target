@@ -25,6 +25,13 @@
 #include "lld/dpdk/lld_dpdk_port.h"
 #include "port_mgr/port_mgr.h"
 
+/*
+ * port info
+ * FIXME: fix when supporting multiple pipelines
+ */
+static int last_port_id;
+static bool is_last_port_sink;
+
 bf_status_t port_mgr_port_add(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 			      port_attributes_t *port_attrib)
 {
@@ -37,13 +44,18 @@ bf_status_t port_mgr_port_add(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 	if (status != BF_SUCCESS)
 		return status;
 
+	last_port_id = (last_port_id < dev_port) ? dev_port:last_port_id;
+	if (port_attrib->port_type == BF_DPDK_SINK)
+		is_last_port_sink = 1;
+	else
+		is_last_port_sink = 0;
+
 	/* Add the Port Info to Hash Map */
 	status = port_mgr_set_port_info(dev_port, port_attrib);
 	if (status != BF_SUCCESS)
 		return status;
 
 	port_mgr_log_trace("Exiting %s", __func__);
-
 	return status;
 }
 
@@ -73,5 +85,38 @@ bf_status_t port_mgr_port_all_stats_get(bf_dev_id_t dev_id,
 
 	port_mgr_log_trace("Exiting %s", __func__);
 
+	return status;
+}
+
+/* create a sink port from pipeline enable for first time */
+bf_status_t port_mgr_sink_create(const char *pipe_name) {
+	port_attributes_t port_attrib = {0};
+	bf_status_t status = BF_SUCCESS;
+	int port_id;
+
+	port_mgr_log_trace("Entering %s", __func__);
+
+	if (is_last_port_sink) {
+		port_mgr_log_trace("Last port is already sink port %s", __func__);
+		return status;
+	}
+	port_id = last_port_id + 1;
+	port_attrib.port_type = BF_DPDK_SINK;
+	strcpy(port_attrib.port_name, "sink");
+	strcpy(port_attrib.sink.file_name, "none");
+	strncpy(port_attrib.pipe_name, pipe_name, PIPE_NAME_LEN);
+	port_attrib.port_out_id = port_id;
+
+	/* Invoke LLD DPDK API to Add Port */
+	status = lld_dpdk_port_add(port_id, &port_attrib);
+	if (status != BF_SUCCESS)
+		return status;
+
+	/* Add the Port Info to Hash Map */
+	status = port_mgr_set_port_info(port_id, &port_attrib);
+	if (status != BF_SUCCESS)
+		return status;
+
+	port_mgr_log_trace("Exiting %s", __func__);
 	return status;
 }

@@ -126,6 +126,11 @@ typedef enum {
 	BF_DPDK_NUM_COUNTERS,		/*!< Total Number of Counters */
 } port_counters_t;
 
+/**
+ * Create a sink port if required
+ * @return Status of the API call.
+ */
+bf_status_t port_mgr_sink_create(const char *pipe_name);
 #ifdef __cplusplus
 }
 #endif /* C++ */
