@@ -52,7 +52,7 @@ endif
 
 dpdk_lib != find $(prefix) -name librte_eal.so | xargs dirname
 libbf_switchd_lib_la_LDFLAGS += -Wl,-rpath-link,$(dpdk_lib)
-libbf_switchd_lib_la_LIBADD += -ltargetsys -ltarget_utils -ldriver -lstdc++ -ldpdk_infra -lclish -lcjson
+libbf_switchd_lib_la_LIBADD += -ltarget_sys -ltarget_utils -ldriver -lstdc++ -ldpdk_infra -lclish -lcjson
 
 if !IS_STATIC_LINKED_LIB
 bf_switchd_DEPENDENCIES = libbf_switchd_lib.la

@@ -37,8 +37,8 @@ static ucli_status_t bf_drv_ucli_ucli__version(ucli_context_t *uc) {
 
   aim_printf(&uc->pvs,
              "bf-syslibs: %s (Internal:%s)\n",
-             bf_syslib_get_version(),
-             bf_syslib_get_internal_version());
+             target_syslib_get_version(),
+             target_syslib_get_internal_version());
 
   aim_printf(&uc->pvs,
              "target-utils: %s (Internal:%s)\n",
