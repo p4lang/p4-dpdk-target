@@ -4,8 +4,7 @@ KDIR := /lib/modules/$(shell uname -r)/build
 versiondir = $(datadir)
 nobase_dist_version_DATA = VERSION
 
-SUBDIRS = include src doc
-SUBDIRS += bf_switchd
+SUBDIRS = third-party include src doc bf_switchd
 
 target_sysdir = $(datadir)/target_sys
 dist_target_sys_DATA = \
