@@ -5,3 +5,9 @@
 [submodule "third-party/tdi"]
 	path = third-party/tdi
 	url = https://github.com/p4lang/tdi.git
+[submodule "third-party/target-syslibs"]
+	path = third-party/target-syslibs
+	url = https://github.com/p4lang/target-syslibs.git
+[submodule "third-party/target-utils"]
+	path = third-party/target-utils
+	url = https://github.com/p4lang/target-utils.git

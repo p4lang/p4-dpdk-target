@@ -262,5 +262,6 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  include/Makefile
                  bf_switchd/Makefile
-		 src/lld/dpdk/Makefile])
+		 src/lld/dpdk/Makefile
+		 third-party/Makefile])
 AC_OUTPUT
