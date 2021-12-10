@@ -46,12 +46,6 @@ bf_status_t port_mgr_dev_add(bf_dev_id_t dev_id,
 
 bf_status_t port_mgr_dev_remove(bf_dev_id_t dev_id)
 {
-	/*
-	 * TODO: Check if this is right function
-	 *       for Port Mgr Cleanup
-	 */
 	port_mgr_log_trace("Entering %s", __func__);
-	port_mgr_cleanup();
-	port_mgr_log_trace("Exiting %s", __func__);
 	return BF_SUCCESS;
 }
