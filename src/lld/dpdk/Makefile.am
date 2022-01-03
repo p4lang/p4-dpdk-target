@@ -7,7 +7,9 @@ all:
 	cp infra/build/dpdk_infra.so $(libdir)/libdpdk_infra.so
 install:
 	echo "Nothing to be done in install"
-clean:
-	cd dpdk_src && rm -rf build $(libdir)/librte*
-	$(MAKE) -C infra clean
+uninstall:
 	rm -rf $(libdir)/libdpdk_infra.so
+	rm -rf $(libdir)/librte*
+clean:
+	cd dpdk_src && rm -rf build
+	$(MAKE) -C infra clean
