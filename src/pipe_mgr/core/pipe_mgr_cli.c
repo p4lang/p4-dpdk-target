@@ -46,7 +46,7 @@ CLISH_PLUGIN_SYM(version_cmd) {
   }
 
   char c = fgetc(fptr);
-  while (c != EOF) {
+  while (!feof(fptr)) {
     bfshell_printf(clish_context, "%c", c);
     c = fgetc(fptr);
   }
