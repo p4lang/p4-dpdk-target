@@ -1,8 +1,13 @@
 all:
 	$(shell ./apply_patch.sh > /dev/null 2>&1)
 	stat dpdk_src/build > /dev/null 2>&1 || \
-	(cd dpdk_src && meson -Dprefix=$(prefix) build && \
-	cd build && ninja -j48 && ninja install)
+	(cd dpdk_src && meson -Dcpu_instruction_set=generic -Dprefix=$(prefix) build && \
+	cd build && sed -e 's/RTE_CPUFLAG_AVX512BW\,//' -i rte_build_config.h && \
+	sed -e 's/RTE_CPUFLAG_AVX512CD\,//' -i rte_build_config.h && \
+	sed -e 's/RTE_CPUFLAG_AVX512DQ\,//' -i rte_build_config.h && \
+	sed -e 's/RTE_CPUFLAG_AVX512F\,//' -i rte_build_config.h && \
+	sed -e 's/RTE_CPUFLAG_AVX512VL\,//' -i rte_build_config.h && \
+	ninja -j48 && ninja install)
 	$(MAKE) -C infra install_dir=$(prefix)
 	cp infra/build/dpdk_infra.so $(libdir)/libdpdk_infra.so
 install:
