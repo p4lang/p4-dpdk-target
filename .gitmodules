@@ -4,7 +4,7 @@
 	ignore = dirty
 [submodule "third-party/tdi"]
 	path = third-party/tdi
-	url = https://github.com/p4lang/tdi.git
+	url = https://github.com/weiqiand/tdi.git
 	ignore = dirty
 [submodule "third-party/target-utils"]
 	path = third-party/target-utils
