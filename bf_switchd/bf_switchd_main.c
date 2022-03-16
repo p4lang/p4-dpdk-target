@@ -194,7 +194,10 @@ static void bf_switchd_parse_options(bf_switchd_context_t *ctx,
         printf(" --conf-file=configuration file for bf_switchd\n");
         printf(" --tcp-port-base=TCP port base to be used for DMA sim\n");
         printf(" --skip-p4 Skip loading P4 program\n");
-        printf(" --skip-hld Skip high level drivers\n");
+        printf(
+            " --skip-hld Skip high level drivers. WARNING - this option can\n"
+            " be used only for debuging!\n");
+        printf("    Must not be used during normal switch operation\n");
         printf(
             "   p:pipe_mgr, m:mc_mgr, k:pkt_mgr, r:port_mgr, t:traffic_mgr\n");
         printf(" --skip-port-add Skip adding ports\n");
@@ -225,6 +228,12 @@ static void bf_switchd_init_sig_set(sigset_t *set) {
   sigaddset(set, SIGTERM);
   sigaddset(set, SIGUSR1);
 }
+
+void sig_int_handler(int signum) {
+  printf("Received signal %d (%s)\n", signum, strsignal(signum));
+  printf("Please type Ctrl+\\ for quit from switchd cli\n");
+}
+
 static void *bf_switchd_nominated_signal_thread(void *arg) {
   (void)arg;
   sigset_t set;
@@ -232,6 +241,8 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
   int s, signum;
 
   bf_switchd_init_sig_set(&set);
+
+  signal(SIGINT, sig_int_handler);
 
   s = pthread_detach(pthread_self());
   if (s != 0) {
@@ -246,7 +257,13 @@ static void *bf_switchd_nominated_signal_thread(void *arg) {
       perror("sigwait");
       continue;
     }
+    printf("Received signal %d (%s)\n", signum, strsignal(signum));
     switch (signum) {
+      case SIGQUIT:
+      case SIGTERM:
+        printf("Quiting switchd.\n");
+        exit(0);
+        break;
       case SIGUSR1:
 #ifdef COVERAGE_ENABLED
         extern void __gcov_flush(void);
