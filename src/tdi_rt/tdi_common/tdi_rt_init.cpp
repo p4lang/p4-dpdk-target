@@ -210,6 +210,7 @@ Device::Device(const tdi_dev_id_t &device_id,
     if (status) {
       LOG_ERROR("%s:%d Failed to parse context.json", __func__, __LINE__);
     }
+    tdi_info_map_.insert({program_config.prog_name_, std::move(tdi_info)});
   }
 }
 
