@@ -71,7 +71,6 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
       kv.second.first->tableContextInfoSet(
           std::move(rt_table_context_info));
     }
-
     // TODO: tables present in context.json but not in tdi.json
     // parseGhostTables();
   }
@@ -1037,6 +1036,11 @@ void ContextInfoParser::applyMaskOnContextJsonHandle(T *handle,
     // figure out the pipeline_name
     std::string pipeline_name = "";
     pipeline_name = table_pipeline_name.at(name);
+    LOG_ERROR("%s:%d pipeline_name %s %s",
+              __func__,
+              __LINE__,
+	      pipeline_name.c_str(),
+              name.c_str());
     *handle |= context_json_handle_mask_map.at(pipeline_name);
   } catch (const std::exception &e) {
     LOG_ERROR("%s:%d Exception caught %s for %s",
@@ -1044,7 +1048,7 @@ void ContextInfoParser::applyMaskOnContextJsonHandle(T *handle,
               __LINE__,
               e.what(),
               name.c_str());
-    std::rethrow_exception(std::current_exception());
+    //std::rethrow_exception(std::current_exception());
   }
 }
 

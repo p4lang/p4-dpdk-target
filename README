@@ -131,6 +131,7 @@ Note:- Make sure that your yum repository proxy and environment proxies are set 
     git submodule update --init --recursive --force
     ./autogen.sh
     ./configure --prefix=$SDE_INSTALL
+    ./configure --prefix=$SDE_INSTALL --with-generic-flags=yes (For TDI build)
     make -j
     make install
 

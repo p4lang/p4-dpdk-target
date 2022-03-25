@@ -37,7 +37,7 @@
 #include <tdi_rt/tdi_rt_defs.h>
 
 #include "tdi_rt_table.hpp"
-
+#include "../tdi_port/dpdk/tdi_port_table_impl.hpp"
 /**
  * @brief Namespace for TDI
  */
@@ -100,12 +100,21 @@ class TableFactory : public tdi::pna::TableFactory {
       LOG_ERROR("%s:%d No table info received", __func__, __LINE__);
       return nullptr;
     }
-    auto table_type = table_info->tableTypeGet();
+    auto table_type = static_cast<tdi_rt_table_type_e>(table_info->tableTypeGet());
+    LOG_DBG("%s:%d table info received type 0x%x name %s", __func__, __LINE__,
+		    (int)table_type, table_info->nameGet().c_str());
     switch(table_type) {
       case TDI_RT_TABLE_TYPE_MATCH_DIRECT:
         return std::unique_ptr<tdi::Table>(new MatchActionTable(table_info));
+      case TDI_RT_TABLE_TYPE_PORT_CFG:
+	LOG_DBG("%s:%d table info received for PORT_CFG", __func__, __LINE__);
+        return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(table_info));
+      case TDI_RT_TABLE_TYPE_PORT_STAT:
+	LOG_DBG("%s:%d table info received for PORT_STAT", __func__, __LINE__);
+        return std::unique_ptr<tdi::Table>(new tdi::PortStatTable(table_info));
       default:
-        return nullptr;
+        LOG_DBG("%s:%d table info received for other", __func__, __LINE__);
+	return nullptr;
     }
     return nullptr;
   };
