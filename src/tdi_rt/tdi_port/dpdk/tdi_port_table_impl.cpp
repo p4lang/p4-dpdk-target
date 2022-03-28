@@ -78,7 +78,7 @@ tdi_status_t PortCfgTable::entryAdd(const Session & session,
 // need passing flags class type without identify
 // - for silencing warning about unused paramter.
 tdi_status_t PortCfgTable::entryAdd(const Session & /*session*/,
-                                    const Target &/*dev_tgt*/,
+                                    const Target & dev_tgt,
                                     const TableKey &key,
                                     const TableData &data) const {
   const PortCfgTableKey &port_key =
@@ -131,6 +131,8 @@ tdi_status_t PortCfgTable::entryAdd(const Session & /*session*/,
 
   port_attrib.port_type = portTypeMap.at(strData.at(PORT_TYPE_ID));
   port_attrib.port_dir = portDirMap.at(strData.at(PORT_DIR_ID));
+  strncpy(port_attrib.port_name, strData.at(PORT_NAME_ID).c_str(),
+          PORT_NAME_LEN - 1);
   port_attrib.port_name[PORT_NAME_LEN - 1] = '\0';
 
   if (strData.find(MEMPOOL_ID) != strData.end()) {

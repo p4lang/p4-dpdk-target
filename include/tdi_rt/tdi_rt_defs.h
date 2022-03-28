@@ -51,10 +51,14 @@ extern "C" {
     TDI_RT_TABLE_TYPE_LPF,
     /** WRED table*/
     TDI_RT_TABLE_TYPE_WRED,
+    /** PVS*/
+    TDI_RT_TABLE_TYPE_PVS,
     /** Port Metadata table.*/
     TDI_RT_TABLE_TYPE_PORT_METADATA,
     /** Dynamic Hashing configuration table*/
     TDI_RT_TABLE_TYPE_DYN_HASH_CFG,
+    /** SNAPSHOT_CFG*/
+    TDI_RT_TABLE_SNAPSHOT_CFG,
     /** Port Configuration */
     TDI_RT_TABLE_TYPE_PORT_CFG,
     /** Port Stats */

@@ -33,7 +33,7 @@ class PortCfgTableKey : public TableKey {
                        const uint8_t *value,
                        const size_t &size);
 
-  //tdi_status_t getValue(const tdi_id_t &field_id, tdi::KeyFieldValue *field_value) const override final;
+  tdi_status_t getValue(const tdi_id_t &field_id, tdi::KeyFieldValue *field_value) const override final;
   //tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
@@ -63,6 +63,9 @@ class PortStatTableKey : public TableKey {
   tdi_status_t setValue(const tdi_id_t &field_id,
                        const uint8_t *value,
                        const size_t &size);
+
+  tdi_status_t getValue(const tdi_id_t &field_id,
+                        KeyFieldValue *field_value) const override final;
 
   tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
 

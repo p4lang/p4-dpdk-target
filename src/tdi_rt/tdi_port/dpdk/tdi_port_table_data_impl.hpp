@@ -65,7 +65,7 @@ class PortCfgTableData : public TableData {
 
   // unexposed API
   const std::unordered_set<tdi_id_t> &getActiveDataFields() const {
-    return activeFields;
+    return active_fields_;
   }
   const std::unordered_map<tdi_id_t, bool> &getBoolFieldDataMap() const {
     return boolFieldData;
@@ -94,7 +94,7 @@ class PortCfgTableData : public TableData {
   std::unordered_map<tdi_id_t, bool> boolFieldData;
   std::unordered_map<tdi_id_t, uint32_t> u32FieldData;
   std::unordered_map<tdi_id_t, std::string> strFieldData;
-  std::unordered_set<tdi_id_t> activeFields;
+  std::unordered_set<tdi_id_t> active_fields_;
 };
 
 class PortStatTableData : public TableData {
@@ -154,7 +154,7 @@ class PortStatTableData : public TableData {
   // unexposed API
   void setAllValues(const uint64_t *stats);
   const std::vector<tdi_id_t> &getActiveDataFields() const {
-    return activeFields;
+    return active_fields_;
   }
   const uint64_t *getU64FieldData() const { return u64FieldDataArray; }
   const uint32_t &getAllStatsBoundry() const { return AllStatsBoundry; }
@@ -170,10 +170,10 @@ class PortStatTableData : public TableData {
                                   uint64_t *value,
                                   uint8_t *value_ptr,
                                   const size_t &s) const;
-  bool all_fields_set;
+  //bool all_fields_set;
   std::set<tdi_id_t> fieldPresent;
   uint64_t u64FieldDataArray[BF_PORT_NUM_COUNTERS];
-  std::vector<tdi_id_t> activeFields;
+  std::vector<tdi_id_t> active_fields_;
   const uint32_t AllStatsBoundry = 20;
 };
 

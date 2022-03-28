@@ -67,7 +67,8 @@ typedef struct tdi_info_action_info_ {
 class PortCfgTable : public Table {
  public:
   PortCfgTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
-      LOG_ERROR("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
+    mapInit();
+    LOG_ERROR("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
   };
 #if 0
   PortCfgTable(const std::string &program_name,

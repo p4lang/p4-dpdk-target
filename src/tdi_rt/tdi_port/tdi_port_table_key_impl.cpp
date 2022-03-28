@@ -116,6 +116,9 @@ tdi_status_t PortCfgTableKey::reset() {
 
 tdi_status_t PortCfgTableKey::setValue(const tdi_id_t &field_id,
                                        const tdi::KeyFieldValue &field_value) {
+  // need to reinterpret_cast template class for KeyFieldValueExact
+  auto port_value = reinterpret_cast<const tdi::KeyFieldValueExact<const uint64_t >&>(field_value);
+  //auto port_value = (const tdi::KeyFieldValueExact<const uint64_t>) field_value;
   // Get the key_field from the table
   const KeyFieldInfo *key_field;
   const Table *table = nullptr;
@@ -128,7 +131,7 @@ tdi_status_t PortCfgTableKey::setValue(const tdi_id_t &field_id,
   if (status != TDI_SUCCESS) {
     return status;
   }
-  //dev_port_ = field_value.value;
+  dev_port_ = port_value.value_;
   return TDI_SUCCESS;
 }
 
@@ -165,7 +168,7 @@ tdi_status_t PortCfgTableKey::setValue(const tdi_id_t &field_id,
   dev_port_ = val;
   return TDI_SUCCESS;
 }
-/*
+
 tdi_status_t PortCfgTableKey::getValue(const tdi_id_t &field_id,
                                        tdi::KeyFieldValue *field_value) const {
   const Table *table = nullptr;
@@ -173,15 +176,17 @@ tdi_status_t PortCfgTableKey::getValue(const tdi_id_t &field_id,
   if (status != TDI_SUCCESS) {
     return status;
   }
-  uint64_t value;
+  uint64_t value=0;
   status = getKeyIdxValue<PortCfgTableKey>(*this, *table, field_id, &value);
-  field_value=reinterpret_cast<tdi::KeyFieldValue *>(&KeyFieldValueExact<uint64_t>(value));
+  auto keyFieldValue = reinterpret_cast<tdi::KeyFieldValueExact<uint64_t>*>(field_value);
+  keyFieldValue->value_=value;
+
   if (status != TDI_SUCCESS) {
     return status;
   }
   return status;
 }
-*/
+
 /*
 tdi_status_t PortCfgTableKey::getValue(const tdi_id_t &field_id,
                                           uint64_t *value) const {
@@ -212,6 +217,7 @@ tdi_status_t PortStatTableKey::reset() {
 
 tdi_status_t PortStatTableKey::setValue(const tdi_id_t &field_id,
                                        const tdi::KeyFieldValue &field_value) {
+  auto port_value = reinterpret_cast<const tdi::KeyFieldValueExact<const uint64_t >&>(field_value);
   // Get the key_field from the table
   const KeyFieldInfo *key_field;
   const Table *table = nullptr;
@@ -224,7 +230,7 @@ tdi_status_t PortStatTableKey::setValue(const tdi_id_t &field_id,
   if (status != TDI_SUCCESS) {
     return status;
   }
-  //dev_port_ = field_value.value;
+  dev_port_ = port_value.value_;
   return TDI_SUCCESS;
 }
 /*
@@ -278,6 +284,24 @@ tdi_status_t PortStatTableKey::setValue(const tdi_id_t &field_id,
   val = be32toh(val);
   dev_port_ = val;
   return TDI_SUCCESS;
+}
+
+tdi_status_t PortStatTableKey::getValue(const tdi_id_t &field_id,
+                                        KeyFieldValue *field_value) const {
+  const Table *table = nullptr;
+  auto status = this->tableGet(&table);
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+  uint64_t value=0;;
+  status = getKeyIdxValue<PortStatTableKey>(*this, *table, field_id, &value);
+  auto keyFieldValue = reinterpret_cast<tdi::KeyFieldValueExact<uint64_t>*>(field_value);
+  keyFieldValue->value_=value;
+
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+  return status;
 }
 
 tdi_status_t PortStatTableKey::getValue(const tdi_id_t &field_id,

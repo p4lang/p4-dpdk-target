@@ -133,7 +133,7 @@ tdi_status_t PortCfgTableData::reset(const std::vector<tdi_id_t> &fields) {
   boolFieldData.clear();
   u32FieldData.clear();
   strFieldData.clear();
-  activeFields.clear();
+  active_fields_.clear();
   return this->set_active_fields(fields);
 }
 
@@ -148,7 +148,7 @@ tdi_status_t PortCfgTableData::set_active_fields(
     this->all_fields_set_ = true;
   } else {
     for (const auto &field : fields) {
-      if (activeFields.find(field) != activeFields.end()) {
+      if (active_fields_.find(field) != active_fields_.end()) {
         LOG_ERROR(
             "%s:%d ERROR Field id %d specified multiple times for data "
             "allocate",
@@ -157,7 +157,7 @@ tdi_status_t PortCfgTableData::set_active_fields(
             field);
         return BF_INVALID_ARG;
       }
-      activeFields.insert(field);
+      active_fields_.insert(field);
     }
     all_fields_set_ = false;
   }
@@ -177,8 +177,8 @@ bool PortCfgTableData::checkFieldActive(const tdi_id_t &field_id,
     return false;
   }
   if (all_fields_set_) return true;
-  auto elem1 = activeFields.find(field_id);
-  if (elem1 == activeFields.end()) {
+  auto elem1 = active_fields_.find(field_id);
+  if (elem1 == active_fields_.end()) {
     LOG_ERROR("ERROR: %s:%d Inactive field id %d for table %s",
               __func__,
               __LINE__,
@@ -492,7 +492,7 @@ tdi_status_t PortStatTableData::reset(
     const std::vector<tdi_id_t> &fields) {
   fieldPresent.clear();
   std::memset(u64FieldDataArray, 0, sizeof(u64FieldDataArray));
-  activeFields.clear();
+  active_fields_.clear();
   return this->set_active_fields(fields);
 }
 
@@ -520,7 +520,7 @@ tdi_status_t PortStatTableData::set_active_fields(
         return BF_INVALID_ARG;
       }
     }
-    activeFields = fields;
+    active_fields_ = fields;
     all_fields_set_ = false;
   }
   return BF_SUCCESS;
