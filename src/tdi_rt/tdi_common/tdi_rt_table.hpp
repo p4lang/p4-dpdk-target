@@ -30,9 +30,46 @@ namespace tdi {
 namespace pna {
 namespace rt {
 
-class MatchActionTable : public tdi::Table {
-  public:
-  MatchActionTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+class MatchActionDirect : public tdi::Table {
+ public:
+  MatchActionDirect(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+  };
+  bool actionIdApplicable() const override { return false; };
+};
+
+class MatchActionIndirect : public tdi::Table {
+ public:
+  MatchActionIndirect(const tdi::TableInfo *table_info)
+      : tdi::Table(table_info) {
+    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+  };
+};
+
+class ActionProfile : public tdi::Table {
+ public:
+  ActionProfile(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+  };
+};
+
+class Selector : public tdi::Table {
+ public:
+  Selector(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+  };
+};
+
+class CounterIndirect : public tdi::Table {
+ public:
+  CounterIndirect(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+  };
+};
+
+class MeterIndirect : public tdi::Table {
+ public:
+  MeterIndirect(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
     LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
   };
 };

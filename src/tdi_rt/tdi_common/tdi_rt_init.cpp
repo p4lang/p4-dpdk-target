@@ -136,33 +136,31 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
           profile_name, context_json_path, binary_path, pipe_scope);
     }
     tdi_p4_json_vect.push_back(dev_profile->p4_programs[i].bfrt_json_file);
-    program_config_vec.emplace_back(
-        prog_name, tdi_p4_json_vect, p4_pipelines);
+    program_config_vec.emplace_back(prog_name, tdi_p4_json_vect, p4_pipelines);
   }
   if (num_valid_p4_programs == 0) {
     // If there is no p4_program, load TDI fixed tables only with a fixed
     // fake p4 program name "$SHARED".
     std::vector<tdi::P4Pipeline> dummy;
     std::string prog_name = "$SHARED";
-    program_config_vec.emplace_back(
-        prog_name, tdi_fixed_json_path_vec, dummy);
+    program_config_vec.emplace_back(prog_name, tdi_fixed_json_path_vec, dummy);
   }
   return program_config_vec;
 }
 
-} // anonymous
+}  // namespace
 
 tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
                             bf_dev_family_t dev_family,
                             bf_device_profile_t *dev_profile,
                             bf_dev_init_mode_t warm_init_mode) {
   auto &dev_mgr_obj = DevMgr::getInstance();
-  
+
   LOG_ERROR("%s:%d TDI Device Add called for dev : %d : warm init mode : %d",
-          __func__,
-          __LINE__,
-          dev_id,
-          warm_init_mode);
+            __func__,
+            __LINE__,
+            dev_id,
+            warm_init_mode);
   // Load fixed tdi json files.
   // Fixed tdi json files would be present in both fixed tdi info obj and
   // p4 tdi info obj
@@ -193,8 +191,11 @@ Device::Device(const tdi_dev_id_t &device_id,
     : tdi::pna::Device(
           device_id, arch_type, device_config, mgr_type_list, cookie) {
   // Parse tdi json for every program
-  for (const auto& program_config: device_config) {
-    LOG_ERROR("%s:%d parsing %s", __func__, __LINE__, program_config.prog_name_.c_str());
+  for (const auto &program_config : device_config) {
+    LOG_ERROR("%s:%d parsing %s",
+              __func__,
+              __LINE__,
+              program_config.prog_name_.c_str());
     auto tdi_info_mapper = std::unique_ptr<tdi::TdiInfoMapper>(
         new tdi::pna::rt::TdiInfoMapper());
     auto table_factory = std::unique_ptr<tdi::TableFactory>(

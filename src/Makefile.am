@@ -50,6 +50,7 @@ endif # end IS_BFRT_ENABLED
 tdirt_sources = \
 tdi_rt/tdi_common/tdi_rt_init.cpp \
 tdi_rt/tdi_common/tdi_context_info.cpp \
+tdi_rt/tdi_common/tdi_pipe_mgr_intf.cpp \
 tdi_rt/c_frontend/tdi_rt_init_c.cpp \
 tdi_rt/tdi_port/tdi_port_table_key_impl.cpp \
 tdi_rt/tdi_port/dpdk/tdi_port_table_data_impl.cpp \

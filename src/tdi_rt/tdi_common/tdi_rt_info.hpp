@@ -45,9 +45,7 @@ namespace tdi {
 
 namespace tdi_json {
 namespace values {
-namespace rt {
-
-}  // namespace pna
+namespace rt {}  // namespace rt
 }  // namespace values
 }  // namespace tdi_json
 
@@ -69,6 +67,7 @@ const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"PortHdlInfo", TDI_RT_TABLE_TYPE_PORT_HDL_INFO},
     {"PortStrInfo", TDI_RT_TABLE_TYPE_PORT_STR_INFO},
     {"PortFpIdxInfo", TDI_RT_TABLE_TYPE_PORT_FRONT_PANEL_IDX_INFO},
+    {"DevConfigure", TDI_RT_TABLE_TYPE_DEV_CFG},
 };
 }
 namespace pna {
@@ -77,15 +76,12 @@ namespace rt {
 
 class TdiInfoMapper : public tdi::pna::TdiInfoMapper {
  public:
-
   TdiInfoMapper() {
     // table types
     for (const auto &kv: rt_table_type_map) {
-      tableEnumMapAdd(kv.first,
-                    static_cast<tdi_table_type_e>(kv.second));
+      tableEnumMapAdd(kv.first, static_cast<tdi_table_type_e>(kv.second));
     }
   }
-
 };
 
 /**
@@ -105,7 +101,18 @@ class TableFactory : public tdi::pna::TableFactory {
 		    (int)table_type, table_info->nameGet().c_str());
     switch(table_type) {
       case TDI_RT_TABLE_TYPE_MATCH_DIRECT:
-        return std::unique_ptr<tdi::Table>(new MatchActionTable(table_info));
+        return std::unique_ptr<tdi::Table>(new MatchActionDirect(table_info));
+      case TDI_RT_TABLE_TYPE_MATCH_INDIRECT:
+      case TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR:
+        return std::unique_ptr<tdi::Table>(new MatchActionIndirect(table_info));
+      case TDI_RT_TABLE_TYPE_ACTION_PROFILE:
+        return std::unique_ptr<tdi::Table>(new ActionProfile(table_info));
+      case TDI_RT_TABLE_TYPE_SELECTOR:
+        return std::unique_ptr<tdi::Table>(new Selector(table_info));
+      case TDI_RT_TABLE_TYPE_COUNTER:
+        return std::unique_ptr<tdi::Table>(new CounterIndirect(table_info));
+      case TDI_RT_TABLE_TYPE_METER:
+        return std::unique_ptr<tdi::Table>(new MeterIndirect(table_info));
       case TDI_RT_TABLE_TYPE_PORT_CFG:
 	LOG_DBG("%s:%d table info received for PORT_CFG", __func__, __LINE__);
         return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(table_info));
