@@ -30,40 +30,6 @@ class TdiInfo;
  * PortStatTable
  */
 
-typedef struct key_size_ {
-  size_t bytes;
-  size_t bits;
-} key_size_t;
-
-typedef uint32_t pipe_tbl_hdl_t;
-typedef uint32_t pipe_act_fn_hdl_t;
-
-/* Struct to keep info regarding a reference to a table */
-typedef struct tdi_table_ref_info_ {
-  std::string name;
-  tdi_id_t id;
-  pipe_tbl_hdl_t tbl_hdl;
-  // A flag to indicate if the reference is indirect. TRUE when it is, FALSE
-  // when the refernece is direct
-  bool indirect_ref;
-} tdi_table_ref_info_t;
-
-/* Structure to keep action info */
-typedef struct tdi_info_action_info_ {
-  tdi_id_t action_id;
-  std::string name;
-  pipe_act_fn_hdl_t act_fn_hdl;
-  // Map of table_data_fields
-  std::map<tdi_id_t, std::unique_ptr<DataFieldInfo>> data_fields;
-  // Map of table_data_fields with names
-  std::map<std::string, DataFieldInfo *> data_fields_names;
-  // Size of the action data in bytes
-  size_t dataSz;
-  // Size of the action data in bits (not including byte padding)
-  size_t dataSzbits;
-  std::set<Annotation> annotations{};
-} tdi_info_action_info_t;
-
 class PortCfgTable : public Table {
  public:
   PortCfgTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
@@ -146,7 +112,7 @@ class PortCfgTable : public Table {
 class PortStatTable : public Table {
  public:
   PortStatTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
-    LOG_ERROR("Creating PortStatTable table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating PortStatTable table for %s", table_info->nameGet().c_str());
   };
 
   tdi_status_t entryGet(const Session &session,
