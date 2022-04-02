@@ -32,7 +32,8 @@ class TdiInfo;
 
 class PortCfgTable : public Table {
  public:
-  PortCfgTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+  PortCfgTable(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info) :
+               tdi::Table(tdi_info, table_info) {
     mapInit();
     LOG_ERROR("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
   };
@@ -111,7 +112,8 @@ class PortCfgTable : public Table {
 
 class PortStatTable : public Table {
  public:
-  PortStatTable(const tdi::TableInfo *table_info) : tdi::Table(table_info) {
+  PortStatTable(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info) :
+                tdi::Table(tdi_info, table_info) {
     LOG_DBG("Creating PortStatTable table for %s", table_info->nameGet().c_str());
   };
 

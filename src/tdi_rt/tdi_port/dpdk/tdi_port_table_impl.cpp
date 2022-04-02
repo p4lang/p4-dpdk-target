@@ -284,7 +284,7 @@ tdi_status_t PortCfgTable::entryAdd(const Session & /*session*/,
   }
 
   tdi_id_t dev_id=0;
-  //dev_tgt.getValue(TDI_TARGET_CORE, &dev_id);
+  dev_tgt.getValue(TDI_TARGET_CORE, &dev_id);
   status = portMgr->portMgrPortAdd(dev_id,
                                    dev_port,
                                    &port_attrib);
@@ -475,9 +475,9 @@ tdi_status_t PortStatTable::entryGet_internal(
 
   memset(stats, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
 
-  // wdai: temp set with dev_id = 0
   uint32_t dev_id = 0;
-  //dev_tgt.getValue(TDI_TARGET_CORE, &dev_id);
+  //From the target to get dev_id
+  dev_tgt.getValue(TDI_TARGET_DEVICE, &dev_id);
   status = portMgr->portMgrPortAllStatsGet(dev_id, dev_port, stats);
   //status = portMgr->portMgrPortAllStatsGet(dev_id, dev_port, stats);
   if (status != BF_SUCCESS) {

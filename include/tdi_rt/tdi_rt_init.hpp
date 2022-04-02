@@ -81,7 +81,8 @@ class Device : public tdi::pna::Device {
     return TDI_SUCCESS;
   }
   virtual tdi_status_t createTarget(
-      std::unique_ptr<tdi::Target> * /*target*/) const override final {
+      std::unique_ptr<tdi::Target> * target) const override final {
+    *target=std::unique_ptr<tdi::Target>(new tdi::pna::Target(this->device_id_, 0, PNA_DIRECTION_ALL));
     return TDI_SUCCESS;
   }
   virtual tdi_status_t createFlags(
