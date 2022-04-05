@@ -77,9 +77,7 @@ class Device : public tdi::pna::Device {
          void *cookie);
 
   virtual tdi_status_t createSession(
-      std::shared_ptr<tdi::Session> * /*session*/) const override final {
-    return TDI_SUCCESS;
-  }
+      std::shared_ptr<tdi::Session>* session) const override final;
   virtual tdi_status_t createTarget(
       std::unique_ptr<tdi::Target> * target) const override final {
     *target=std::unique_ptr<tdi::Target>(new tdi::pna::Target(this->device_id_, 0, PNA_DIRECTION_ALL));

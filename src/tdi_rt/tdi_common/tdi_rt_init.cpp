@@ -38,6 +38,7 @@ extern "C" {
 #include "tdi_rt_info.hpp"
 #include "tdi_context_info.hpp"
 #include "tdi_pipe_mgr_intf.hpp"
+#include "tdi_session_impl.hpp"
 
 namespace tdi {
 namespace pna {
@@ -181,6 +182,16 @@ tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
 tdi_status_t tdi_device_remove(bf_dev_id_t dev_id) {
   auto &dev_mgr_obj = tdi::DevMgr::getInstance();
   return dev_mgr_obj.deviceRemove(dev_id);
+}
+
+tdi_status_t Device::createSession(std::shared_ptr<tdi::Session>* session) const {
+  auto session_t = std::make_shared<TdiSessionImpl>();
+  tdi_status_t status = session_t->sessionCreateInternal();
+
+  *session = session_t;
+  if (status != TDI_SUCCESS)
+    *session = nullptr;
+  return status;
 }
 
 Device::Device(const tdi_dev_id_t &device_id,
