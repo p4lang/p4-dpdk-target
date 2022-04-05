@@ -48,7 +48,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include <tdi/common/tdi_defs.h>
 #include <dvm/bf_drv_intf.h>
 
 #ifdef __cplusplus
