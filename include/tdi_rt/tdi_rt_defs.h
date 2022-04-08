@@ -189,6 +189,18 @@ extern "C" {
     TDI_RT_TABLE_TYPE_TM_L1_NODE_SCHED_SHAPING,
     TDI_RT_TABLE_TYPE_INVALID_TYPE
   };
+  
+enum tdi_rt_flags_e {
+  TDI_RT_FLAGS_FROM_HW = TDI_FLAGS_DEVICE,
+  TDI_RT_FLAGS_MOD_INC,
+};
+enum tdi_rt_mgr_type_e {
+  TDI_RT_MGR_TYPE_PIPE_MGR = TDI_MGR_TYPE_BEGIN,
+};
+
+enum tdi_rt_target_e {
+  TDI_RT_TARGET_PARSER_ID = TDI_TARGET_DEVICE,
+};
 
 enum tdi_rt_attributes_type_e {
   /** Pipe scope of all entries. Applicable to all Match Action

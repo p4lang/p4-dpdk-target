@@ -47,9 +47,6 @@ libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt \
                                                 -I$(srcdir)/tdi_rt/tdi_port/dpdk
 endif # end IS_BFRT_ENABLED
 
-#tdi_rt/tdi_p4/tdi_p4_table_impl.cpp \
-#tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
-#tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp
 
 tdirt_sources = \
 tdi_rt/tdi_common/tdi_rt_init.cpp \
@@ -61,7 +58,10 @@ tdi_rt/c_frontend/tdi_rt_init_c.cpp \
 tdi_rt/tdi_port/tdi_port_table_key_impl.cpp \
 tdi_rt/tdi_port/dpdk/tdi_port_table_data_impl.cpp \
 tdi_rt/tdi_port/tdi_table_data_utils.cpp \
-tdi_rt/tdi_port/dpdk/tdi_port_table_impl.cpp
+tdi_rt/tdi_port/dpdk/tdi_port_table_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp
 
 bfrt_sources = \
 bf_rt/bf_rt_common/bf_rt_info_impl.cpp \
