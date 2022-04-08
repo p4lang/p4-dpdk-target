@@ -35,25 +35,8 @@ class PortCfgTable : public Table {
   PortCfgTable(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info) :
                tdi::Table(tdi_info, table_info) {
     mapInit();
-    LOG_ERROR("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
   };
-#if 0
-  PortCfgTable(const std::string &program_name,
-                   tdi_id_t id,
-                   std::string name,
-                   const size_t &size)
-      : Table(program_name,
-                     id,
-                     name,
-                     size,
-                     TableType::PORT_CFG,
-                     std::set<TableApi>{
-                         TableApi::ADD,
-                         TableApi::DELETE,
-                     }) {
-    mapInit();
-  };
-#endif
 
   tdi_status_t entryAdd(const Session & /*session*/,
                         const Target &dev_tgt,
@@ -105,9 +88,9 @@ class PortCfgTable : public Table {
   std::map<std::string, bf_pm_port_dir_e> portDirMap;
   
   tdi_status_t entryAdd(const Session & /*session*/,
-                                      const Target & /*dev_tgt*/,
-                                      const TableKey &key,
-                                      const TableData &data) const;
+                        const Target & /*dev_tgt*/,
+                        const TableKey &key,
+                        const TableData &data) const;
 };
 
 class PortStatTable : public Table {
@@ -135,7 +118,7 @@ class PortStatTable : public Table {
 
   tdi_status_t dataReset(TableData *data) const override final;
   tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
-                        TableData *data) const override final;
+                         TableData *data) const override final;
 #if 0
   // Attribute APIs
   tdi_status_t attributeAllocate(

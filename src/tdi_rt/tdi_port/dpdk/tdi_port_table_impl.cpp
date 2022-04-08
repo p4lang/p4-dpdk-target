@@ -65,6 +65,7 @@ tdi_status_t PortCfgTable::entryAdd(const Session & session,
                                     const TableKey &key,
                                     const TableData &data) const {
   tdi_status_t status = BF_SUCCESS;
+  // the call entryAdd without flags parameter method.
   status = this->entryAdd(session, dev_tgt, key, data);
   if (BF_SUCCESS != status) {
       LOG_ERROR("%s:%d %s: Error in adding an port",
@@ -299,9 +300,9 @@ tdi_status_t PortCfgTable::entryAdd(const Session & /*session*/,
 }
 
 tdi_status_t PortCfgTable::entryDel(const Session & /*session*/,
-                                        const Target &dev_tgt,
-                                        const Flags & /*flags*/,
-                                        const TableKey &key) const {
+                                    const Target &dev_tgt,
+                                    const Flags & /*flags*/,
+                                    const TableKey &key) const {
   return BF_SUCCESS;
 }
 
