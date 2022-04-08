@@ -35,10 +35,13 @@ extern "C" {
 #include <memory>
 
 /* tdi_includes */
+#include "tdi_session_impl.hpp"
 #include <tdi/common/tdi_utils.hpp>
 #include <tdi/common/tdi_defs.h>
 
 namespace tdi {
+namespace pna {
+namespace rt {
 
 class IPipeMgrIntf {
  public:
@@ -786,7 +789,6 @@ class IPipeMgrIntf {
                                                 char **tbl_list,
                                                 int *num_tbls) = 0;
 
-
   virtual tdi_status_t pipeMgrTblHdlPipeMaskGet(tdi_dev_id_t dev_id,
                                                const std::string &prog_name,
                                                const std::string &pipeline_name,
@@ -811,6 +813,24 @@ class PipeMgrIntf : public IPipeMgrIntf {
   };
   PipeMgrIntf() = default;
   // Library init API
+  static IPipeMgrIntf *getInstance(const tdi::Session &session) {
+    auto pipe_mgr_intf = PipeMgrIntf::getInstance();
+    const TdiSessionImpl &sess = static_cast<const TdiSessionImpl &>(session);
+    if (sess.isInBatch() && !sess.isInPipeBatch()) {
+      auto status = pipe_mgr_intf->pipeMgrBeginBatch(sess.handleGet(static_cast<tdi_mgr_type_e>(0)));
+      if (status != TDI_SUCCESS) {
+        LOG_ERROR("%s:%d Failed to grab pipe_mgr batch %s",
+                  __func__,
+                  __LINE__,
+                  bf_err_str(status));
+      } else {
+        sess.setPipeBatch(true);
+      }
+    }
+    return pipe_mgr_intf;
+  }
+
+  // To be used only with API that are not session bound.
   static IPipeMgrIntf *getInstance() {
     if (instance.get() == nullptr) {
       pipe_mgr_intf_mtx.lock();
@@ -1519,6 +1539,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                         char **tbl_list,
                                         int *num_tbls);
 
+
   tdi_status_t pipeMgrTblHdlPipeMaskGet(tdi_dev_id_t dev_id,
                                        const std::string &prog_name,
                                        const std::string &pipeline_name,
@@ -1534,6 +1555,8 @@ class PipeMgrIntf : public IPipeMgrIntf {
   PipeMgrIntf &operator=(const PipeMgrIntf &rhs) = delete;
 };
 
-}  // tdi
+}  // namespace rt
+}  // namespace pna
+}  // namespace tdi
 
 #endif  // _TDI_PIPE_MGR_INTERFACE_HPP

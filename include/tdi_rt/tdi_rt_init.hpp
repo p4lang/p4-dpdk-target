@@ -60,41 +60,6 @@ namespace pna {
 namespace rt {
 
 /**
- * @brief Class which encapsulates static info of a device eg.
- * Arch type,
- * Mgrs it was started with, State information, TdiInfo of all
- * programs, Pipeline profile information.
- *
- * Static info means that none of this can be changed after
- * device add happens.
- */
-class Device : public tdi::pna::Device {
- public:
-  Device(const tdi_dev_id_t &device_id,
-         const tdi_arch_type_e &arch_type,
-         const std::vector<tdi::ProgramConfig> &device_config,
-         const std::vector<tdi_mgr_type_e> mgr_type_list,
-         void *cookie);
-
-  virtual tdi_status_t createSession(
-      std::shared_ptr<tdi::Session>* session) const override final;
-  virtual tdi_status_t createTarget(
-      std::unique_ptr<tdi::Target> * target) const override final {
-    *target=std::unique_ptr<tdi::Target>(new tdi::pna::Target(this->device_id_, 0, PNA_DIRECTION_ALL));
-    return TDI_SUCCESS;
-  }
-  virtual tdi_status_t createFlags(
-      const uint64_t & /*flags_val*/,
-      std::unique_ptr<tdi::Flags> * /*flags*/) const override final {
-    return TDI_SUCCESS;
-  }
-
- private:
-  // This is where the real state map wil go
-  // std::map<std::string, std::shared_ptr<DeviceState>> tdi_dev_state_map_;
-};
-
-/**
  * @brief Class to manage initialization of TDI <br>
  * <B>Creation: </B> Cannot be created
  */

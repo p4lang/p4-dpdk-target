@@ -27,6 +27,8 @@
 #include <tdi/common/tdi_session.hpp>
 
 namespace tdi {
+namespace pna {
+namespace rt {
 
 class TdiSessionImpl : public tdi::Session {
  public:
@@ -60,12 +62,19 @@ class TdiSessionImpl : public tdi::Session {
 
   // Hidden
   tdi_status_t sessionCreateInternal();
+  const bool &isInBatch() const { return in_batch_; }
+  const bool &isInPipeBatch() const { return in_pipe_mgr_batch_; }
+  void setPipeBatch(const bool batch) const { in_pipe_mgr_batch_ = batch; }
 
  private:
+  mutable bool in_batch_;
+  mutable bool in_pipe_mgr_batch_;
   tdi_id_t session_handle_;      // Pipe mgr session handle
   bool valid_;
 };
 
+}
+}
 }  // tdi
 
 #endif  // _TDI_SESSION_IMPL_HPP

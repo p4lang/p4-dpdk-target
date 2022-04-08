@@ -53,11 +53,54 @@ struct fileOpenFailException : public std::exception {
   const char *what() const throw() { return "File not found"; }
 };
 
-tdi_status_t parseContextJson(const TdiInfo *tdi_info,
-                              const tdi_dev_id_t &dev_id,
-                              const ProgramConfig &program_config) {
+fieldDestination RtDataFieldContextInfo::getDataFieldDestination(
+    const std::set<DataFieldType> &fieldTypes) {
+  for (const auto &fieldType : fieldTypes) {
+    switch (fieldType) {
+      case DataFieldType::ACTION_PARAM:
+      case DataFieldType::ACTION_PARAM_OPTIMIZED_OUT:
+      case DataFieldType::ACTION_MEMBER_ID:
+      case DataFieldType::SELECTOR_GROUP_ID:
+      case DataFieldType::COUNTER_INDEX:
+      case DataFieldType::REGISTER_INDEX:
+      case DataFieldType::METER_INDEX:
+        return fieldDestination::ACTION_SPEC;
+        break;
+      case DataFieldType::COUNTER_SPEC_BYTES:
+      case DataFieldType::COUNTER_SPEC_PACKETS:
+        return fieldDestination::DIRECT_COUNTER;
+        break;
+      case DataFieldType::TTL:
+        return fieldDestination::TTL;
+      case DataFieldType::ENTRY_HIT_STATE:
+        return fieldDestination::ENTRY_HIT_STATE;
+      case DataFieldType::METER_SPEC_CIR_PPS:
+      case DataFieldType::METER_SPEC_PIR_PPS:
+      case DataFieldType::METER_SPEC_CBS_PKTS:
+      case DataFieldType::METER_SPEC_PBS_PKTS:
+      case DataFieldType::METER_SPEC_CIR_KBPS:
+      case DataFieldType::METER_SPEC_PIR_KBPS:
+      case DataFieldType::METER_SPEC_CBS_KBITS:
+      case DataFieldType::METER_SPEC_PBS_KBITS:
+        return fieldDestination::DIRECT_METER;
+      case DataFieldType::REGISTER_SPEC:
+      case DataFieldType::REGISTER_SPEC_HI:
+      case DataFieldType::REGISTER_SPEC_LO:
+        return fieldDestination::DIRECT_REGISTER;
+      default:
+        return fieldDestination::INVALID;
+        break;
+    }
+  }
+  return fieldDestination::INVALID;
+}
+
+tdi_status_t ContextInfoParser::parseContextJson(
+    const TdiInfo *tdi_info,
+    const tdi_dev_id_t &dev_id,
+    const ProgramConfig &program_config) {
   // create contextInfoParser.
-  auto contextInfoParser = ContextInfoParser(tdi_info, program_config, dev_id);
+  ContextInfoParser contextInfoParser(tdi_info, program_config, dev_id);
 
   // run through tables
   for (const auto &kv : contextInfoParser.tableInfo_contextJson_map) {
@@ -70,7 +113,6 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
 
       tdi_id_t table_id = rt_table_context_info->tableIdGet();
       pipe_tbl_hdl_t tbl_hdl = rt_table_context_info->tableHdlGet();
-//      tdi_rt_table_type_e table_type = rt_table_context_info->tableTypeGet();
 
       if (tbl_hdl != 0) {
         contextInfoParser.applyMaskOnContextJsonHandle(&tbl_hdl, kv.first);
@@ -116,7 +158,7 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
   }
 
   // Now link MatchAction tables to action profile tables
-  for (const auto &each : tdi_info->tableMap) {
+  for (const auto &each : tdi_info->tableMapGet()) {
     auto table_name = each.first;
     const auto &tdi_table = each.second;
     if (tdi_table == nullptr) {
@@ -130,15 +172,18 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
     const auto tdi_table_info = tdi_table->tableInfoGet();
     const auto context_tbl = static_cast<const RtTableContextInfo *>(
         tdi_table_info->tableContextInfoGet());
+    const auto mat_context_tbl =
+        static_cast<const MatchActionTableContextInfo *>(
+            tdi_table_info->tableContextInfoGet());
 
     for (const auto &action_table_res_pair :
          context_tbl->tableGetRefNameVec("action_data_table_refs")) {
-      auto elem = tdi_info->tableMap.find(action_table_res_pair.name);
-      if (elem != tdi_info->tableMap.end()) {
+      auto elem = tdi_info->tableMapGet().find(action_table_res_pair.name);
+      if (elem != tdi_info->tableMapGet().end()) {
         // Direct addressed tables will not be present in bf-rt.json and we
         // don't need direct to link match-action tables to direct addressed
         // action tables
-        context_tbl->actProfTbl_ = elem->second.get();
+        mat_context_tbl->actProfTbl_ = elem->second.get();
       }
     }
 
@@ -151,7 +196,7 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
           ctx_json["bound_to_action_data_table_handle"];
       contextInfoParser.applyMaskOnContextJsonHandle(&act_prof_tbl_hdl,
                                                      table_name);
-      context_tbl->act_prof_id_ =
+      mat_context_tbl->act_prof_id_ =
           contextInfoParser.handleToIdMap[act_prof_tbl_hdl];
     }
     // For MatchActionIndirect_Selector tables, store the selector table id
@@ -164,12 +209,12 @@ tdi_status_t parseContextJson(const TdiInfo *tdi_info,
       pipe_tbl_hdl_t sel_tbl_hdl =
           ctx_json["selection_table_refs"][0]["handle"];
       contextInfoParser.applyMaskOnContextJsonHandle(&sel_tbl_hdl, table_name);
-      context_tbl->selector_tbl_id_ =
+      mat_context_tbl->selector_tbl_id_ =
           contextInfoParser.handleToIdMap[sel_tbl_hdl];
-      auto elem = tdi_info->tableMap.find(static_cast<std::string>(
+      auto elem = tdi_info->tableMapGet().find(static_cast<std::string>(
           ctx_json["selection_table_refs"][0]["name"]));
-      if (elem != tdi_info->tableMap.end()) {
-        context_tbl->selectorTbl_ = elem->second.get();
+      if (elem != tdi_info->tableMapGet().end()) {
+        mat_context_tbl->selectorTbl_ = elem->second.get();
       }
     }
   }
@@ -184,14 +229,14 @@ ContextInfoParser::ContextInfoParser(const TdiInfo *tdi_info,
   // tableInfo_contextJson_map
 
   const TableInfo *tdi_table_info;
-  for (const auto &kv : tdi_info->tableMap) {
+  for (const auto &kv : tdi_info->tableMapGet()) {
     tdi_table_info = (kv.second)->tableInfoGet();
     tableInfo_contextJson_map[kv.first] =
         std::make_pair(tdi_table_info, nullptr);
   }
 
   // (II): Parse all the context.json for the non-fixed tdi table entries now
-  std::vector<tdi::Cjson> context_json_files;
+
   for (const auto &p4_pipeline : program_config.p4_pipelines_) {
     std::ifstream file_context(p4_pipeline.context_path_);
     if (file_context.fail()) {
@@ -237,7 +282,7 @@ ContextInfoParser::ContextInfoParser(const TdiInfo *tdi_info,
     // Get the mask which needs to be applied on all the handles parsed from
     // the context json/s
     tdi_id_t context_json_handle_mask;
-    IPipeMgrIntf *pipe_mgr_obj = tdi::PipeMgrIntf::getInstance();
+    IPipeMgrIntf *pipe_mgr_obj = PipeMgrIntf::getInstance();
     pipe_mgr_obj->pipeMgrTblHdlPipeMaskGet(dev_id,
                                            program_config.prog_name_,
                                            p4_pipeline.name_,
@@ -269,7 +314,6 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
     const tdi_dev_id_t &dev_id,
     const std::string &prog_name) {
   // TODO: to avoid compilation errors
-  (void)dev_id;
   (void)prog_name;
 
   std::string table_name = tdi_table_info->nameGet();
@@ -289,7 +333,6 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
       RtTableContextInfo::makeTableContextInfo(table_type);
 
   table_context_info->pipe_tbl_hdl = table_hdl;
-  table_context_info->setIsTernaryTable(dev_id);
 
   // update table_context_info.
   table_context_info->table_name_ = table_name;
@@ -357,12 +400,15 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
   if (table_type == TDI_RT_TABLE_TYPE_MATCH_DIRECT ||
       table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT ||
       table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR) {
+    auto mat_context_info =
+        static_cast<MatchActionTableContextInfo *>(table_context_info.get());
+    mat_context_info->isTernaryTableSet(dev_id);
     // If static entries node is present then check the array size,
     // else check if it is an ALPM or ATCAM table and then check for static
     // entries accordingly
     if (table_context["static_entries"].exists()) {
       if (table_context["static_entries"].array_size() > 0) {
-        table_context_info->is_const_table_ = true;
+        mat_context_info->is_const_table_ = true;
       }
     }  // if table_context["static_entries"].exists()
 
@@ -580,13 +626,6 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
         actionInfo_contextJson_map.end()) {
       actionInfo_contextJson_map[action_name].second = action;
     } else {
-      if (table_type == TDI_RT_TABLE_TYPE_PORT_METADATA) {
-        // This is an acceptable case for phase0 tables for the action spec is
-        // not published in the tdi json but it is published in the context
-        // json. Hence add it to the map
-        actionInfo_contextJson_map[action_name] =
-            std::make_pair(nullptr, action);
-      } else {
         LOG_WARN(
             "%s:%d Action %s present in context json but not in tdi json \
                  for table %s",
@@ -594,8 +633,6 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
             __LINE__,
             action_name.c_str(),
             table_name.c_str());
-        continue;
-      }
     }
   }
 
@@ -631,20 +668,23 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
 
     // Phase0 tables doesn't have action_info in tdi.
     // so phase0_action_context_info is used as place holder.
-    if (tdi_action_info == nullptr) {
-      table_context_info->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
-          0;
-      table_context_info->phase0_action_context_info_ =
-          std::move(action_context_info);
-    } else {
-      table_context_info->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
+    if (tdi_action_info != nullptr) {
+      auto mat_context_info =
+          static_cast<MatchActionTableContextInfo *>(table_context_info.get());
+      mat_context_info->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
           tdi_action_info->idGet();
       tdi_action_info->actionContextInfoSet(std::move(action_context_info));
     }
   }
 
   // Update action function resource usage map.
-  table_context_info->setActionResources(dev_id);
+  if (table_type == TDI_RT_TABLE_TYPE_MATCH_DIRECT ||
+      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT ||
+      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR) {
+    auto mat_context_info =
+        static_cast<MatchActionTableContextInfo *>(table_context_info.get());
+    mat_context_info->actionResourcesSet(dev_id);
+  }
 
   // populate_depends_on_refs(bfrtTable.get(), table_bfrt);
   return table_context_info;
@@ -666,6 +706,8 @@ ContextInfoParser::parseKeyFieldContext(
                    (tdi_key_field_info->sizeGet() + 7) / 8,
                    parent_field_byte_size);
   key_field_context_info->start_bit_ = start_bit;
+  key_field_context_info->is_match_priority_ =
+      tdi_key_field_info->nameGet() == "$MATCH_PRIORITY";
   key_field_context_info->field_offset_ = field_offset;
   key_field_context_info->parent_field_full_byte_size_ = parent_field_byte_size;
 
@@ -719,6 +761,7 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 0,
                                 &is_register_data_field);
 
+      data_field_context_info->offset_ = offset;
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
@@ -738,7 +781,7 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 action_id,
                                 0,
                                 &is_register_data_field);
-
+      data_field_context_info->offset_ = offset;
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
@@ -863,8 +906,7 @@ void ContextInfoParser::parseKeyHelper(
       static_cast<tdi_rt_table_type_e>(tdi_table_info->tableTypeGet());
   if (table_type == TDI_RT_TABLE_TYPE_MATCH_DIRECT ||
       table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT ||
-      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR ||
-      table_type == TDI_RT_TABLE_TYPE_PORT_METADATA) {
+      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR) {
     // For these tables we have context json key nodes. Hence use the context
     // json key node to fill the helper maps.
     is_context_json_node = true;
@@ -964,8 +1006,8 @@ tdi_status_t ContextInfoParser::setGhostTableHandles(Cjson &table_context,
         continue;
       }
       // Get hold of the resource table and set the ghost_pipe_hdl
-      const auto &ele = tdi_info->tableMap.find(ref_info.name);
-      if (ele == tdi_info->tableMap.end()) {
+      const auto &ele = tdi_info->tableMapGet().find(ref_info.name);
+      if (ele == tdi_info->tableMapGet().end()) {
         // This indicates that the resource table for which the compiler
         // generated this ghost itself doesn't exist, which sounds really
         // wrong. Hence assert
@@ -1078,8 +1120,7 @@ size_t ContextInfoParser::getStartBit(const Cjson *context_json_key_field,
       static_cast<tdi_rt_table_type_e>(table_type_s);
   if (table_type == TDI_RT_TABLE_TYPE_MATCH_DIRECT ||
       table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT ||
-      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR ||
-      table_type == TDI_RT_TABLE_TYPE_PORT_METADATA) {
+      table_type == TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR) {
     // For these tables we have context json key nodes. Hence use the context
     // json key node to get the start bit
     is_context_json_node = true;
@@ -1333,9 +1374,6 @@ bool ContextInfoParser::isParamActionParam(
   } else if (table_type == TDI_RT_TABLE_TYPE_ACTION_PROFILE) {
     return isActionParam_actProf(
         tdi_table_info, action_handle, parameter_name, use_p4_params_node);
-  } else if (table_type == TDI_RT_TABLE_TYPE_PORT_METADATA) {
-    // Phase0 can have only action params as data
-    return true;
   }
   return false;
 }
@@ -1469,9 +1507,64 @@ DataFieldType getDataFieldTypeFrmRes(tdi_rt_table_type_e table_type) {
   return DataFieldType::INVALID;
 }
 
-void MatchActionDirectTableContextInfo::setIsTernaryTable(
+tdi_status_t MatchActionTableContextInfo::resourceInternalGet(
+    const DataFieldType &field_type, tdi_table_ref_info_t *tbl_ref) const {
+  // right now we return the first ref info back only since
+  // we do not have provision for multiple refs
+  switch (field_type) {
+    case (DataFieldType::COUNTER_INDEX):
+    case (DataFieldType::COUNTER_SPEC_BYTES):
+    case (DataFieldType::COUNTER_SPEC_PACKETS): {
+      auto vec = tableGetRefNameVec("statistics_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+
+    case (DataFieldType::REGISTER_SPEC):
+    case (DataFieldType::REGISTER_SPEC_HI):
+    case (DataFieldType::REGISTER_SPEC_LO):
+    case (DataFieldType::REGISTER_INDEX): {
+      auto vec = tableGetRefNameVec("stateful_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+
+    case (DataFieldType::METER_INDEX):
+    case (DataFieldType::METER_SPEC_CIR_PPS):
+    case (DataFieldType::METER_SPEC_PIR_PPS):
+    case (DataFieldType::METER_SPEC_CBS_PKTS):
+    case (DataFieldType::METER_SPEC_PBS_PKTS):
+    case (DataFieldType::METER_SPEC_CIR_KBPS):
+    case (DataFieldType::METER_SPEC_PIR_KBPS):
+    case (DataFieldType::METER_SPEC_CBS_KBITS):
+    case (DataFieldType::METER_SPEC_PBS_KBITS): {
+      auto vec = tableGetRefNameVec("meter_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+    default:
+      LOG_ERROR("%s:%d %s ERROR: Wrong dataFieldType provided",
+                __func__,
+                __LINE__,
+                tableNameGet().c_str());
+      return TDI_OBJECT_NOT_FOUND;
+  }
+  return TDI_OBJECT_NOT_FOUND;
+}
+
+// Derived class methods implementation
+void MatchActionTableContextInfo::isTernaryTableSet(
     const tdi_dev_id_t &dev_id) {
-  auto status = tdi::PipeMgrIntf::getInstance()->pipeMgrTblIsTern(
+  auto status = PipeMgrIntf::getInstance()->pipeMgrTblIsTern(
       dev_id, pipe_tbl_hdl, &this->is_ternary_table_);
   if (status != PIPE_SUCCESS) {
     LOG_ERROR("%s:%d %s Unable to find whether table is ternary or not",
@@ -1481,21 +1574,9 @@ void MatchActionDirectTableContextInfo::setIsTernaryTable(
   }
 }
 
-void MatchActionIndirectTableContextInfo::setIsTernaryTable(
+void MatchActionTableContextInfo::actionResourcesSet(
     const tdi_dev_id_t &dev_id) {
-  auto status = tdi::PipeMgrIntf::getInstance()->pipeMgrTblIsTern(
-      dev_id, pipe_tbl_hdl, &this->is_ternary_table_);
-  if (status != PIPE_SUCCESS) {
-    LOG_ERROR("%s:%d %s Unable to find whether table is ternary or not",
-              __func__,
-              __LINE__,
-              tableNameGet().c_str());
-  }
-}
-
-void MatchActionDirectTableContextInfo::setActionResources(
-    const tdi_dev_id_t &dev_id) {
-  auto *pipeMgr = tdi::PipeMgrIntf::getInstance();
+  auto *pipeMgr = PipeMgrIntf::getInstance();
   for (auto const &i : this->act_fn_hdl_to_id_) {
     bool has_cntr, has_meter, has_lpf, has_wred, has_reg;
     has_cntr = has_meter = has_lpf = has_wred = has_reg = false;
@@ -1521,36 +1602,6 @@ void MatchActionDirectTableContextInfo::setActionResources(
     this->act_uses_dir_reg_[i.second] = has_reg;
   }
 }
-
-void MatchActionIndirectTableContextInfo::setActionResources(
-    const tdi_dev_id_t &dev_id) {
-  auto *pipeMgr = tdi::PipeMgrIntf::getInstance();
-  for (auto const &i : this->act_fn_hdl_to_id_) {
-    bool has_cntr, has_meter, has_lpf, has_wred, has_reg;
-    has_cntr = has_meter = has_lpf = has_wred = has_reg = false;
-    tdi_status_t sts =
-        pipeMgr->pipeMgrGetActionDirectResUsage(dev_id,
-                                                this->pipe_tbl_hdl,
-                                                i.first,
-                                                &has_cntr,
-                                                &has_meter,
-                                                &has_lpf,
-                                                &has_wred,
-                                                &has_reg);
-    if (sts) {
-      LOG_ERROR("%s:%d %s Cannot fetch action resource information, %d",
-                __func__,
-                __LINE__,
-                this->tableNameGet().c_str(),
-                sts);
-      continue;
-    }
-    this->act_uses_dir_cntr_[i.second] = has_cntr;
-    this->act_uses_dir_meter_[i.second] = has_meter || has_lpf || has_wred;
-    this->act_uses_dir_reg_[i.second] = has_reg;
-  }
-}
-
 
 }  // namespace rt
 }  // namespace pna

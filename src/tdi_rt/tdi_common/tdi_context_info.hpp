@@ -44,6 +44,7 @@ extern "C" {
 #include <tdi/common/tdi_table.hpp>
 #include <tdi/common/tdi_table_data.hpp>
 #include <tdi/common/tdi_table_key.hpp>
+#include <tdi/common/tdi_utils.hpp>
 
 #include <tdi_rt/tdi_rt_defs.h>
 
@@ -144,6 +145,17 @@ enum DataFieldType {
   DYN_HASH_CFG_LENGTH,
   DYN_HASH_CFG_ORDER,
 };
+enum class fieldDestination {
+  ACTION_SPEC,
+  DIRECT_COUNTER,
+  DIRECT_METER,
+  DIRECT_LPF,
+  DIRECT_WRED,
+  DIRECT_REGISTER,
+  TTL,
+  ENTRY_HIT_STATE,
+  INVALID
+};
 
 /* Struct to keep info regarding a reference to a table */
 typedef struct tdi_table_ref_info_ {
@@ -158,10 +170,6 @@ typedef struct tdi_table_ref_info_ {
 // Map of reference_type -> vector of ref_info structs
 using table_ref_map_t =
     std::map<std::string, std::vector<tdi_table_ref_info_t>>;
-
-tdi_status_t parseContextJson(const TdiInfo *tdi_info,
-                              const tdi_dev_id_t &dev_id,
-                              const ProgramConfig &program_config);
 
 class ContextInfoParser {
  public:
@@ -196,7 +204,7 @@ class ContextInfoParser {
       uint32_t oneof_index,
       bool *is_register_data_field = nullptr);
 
-  friend tdi_status_t parseContextJson(const TdiInfo *tdi_info,
+  static tdi_status_t parseContextJson(const TdiInfo *tdi_info,
                                        const tdi_dev_id_t &dev_id,
                                        const ProgramConfig &program_config);
 
@@ -282,6 +290,8 @@ class ContextInfoParser {
 
   // Map to store table_name <-> pipeline_name
   std::map<std::string, std::string> table_pipeline_name;
+  std::vector<tdi::Cjson> context_json_files;
+
   // class_end
 };
 class RtTableContextInfo : public TableContextInfo {
@@ -300,9 +310,6 @@ class RtTableContextInfo : public TableContextInfo {
 
   key_size_t keySizeGet() const { return key_size_; };
 
-  const std::map<pipe_act_fn_hdl_t, tdi_id_t> &actFnHdlToIdGet() const {
-    return act_fn_hdl_to_id_;
-  };
   size_t maxDataSzGet() const { return maxDataSz_; };
   size_t maxDataSzBitsGet() const { return maxDataSzbits_; };
 
@@ -315,8 +322,66 @@ class RtTableContextInfo : public TableContextInfo {
     return TDI_NOT_SUPPORTED;
   }
 
-  virtual void setActionResources(const tdi_dev_id_t & /*dev_id*/) { return; };
-  void getActionResources(const tdi_id_t action_id,
+ protected:
+  std::string table_name_;
+  tdi_id_t table_id_;
+  tdi_rt_table_type_e table_type_;
+  pipe_tbl_hdl_t table_hdl_;
+  // Map of reference_type -> vector of ref_info structs
+  table_ref_map_t table_ref_map_;
+  bool is_const_table_;
+  // hash_bit_width of hash object. Only required for the hash tables
+  uint64_t hash_bit_width_ = 0;
+  key_size_t key_size_;
+
+  mutable std::set<tdi_rt_operations_type_e> operations_type_set_;
+  mutable std::set<tdi_rt_attributes_type_e> attributes_type_set_;
+
+  pipe_tbl_hdl_t pipe_tbl_hdl{0};
+
+  size_t maxDataSz_{0};
+  size_t maxDataSzbits_{0};
+
+  std::vector<tdi_table_ref_info_t> tableGetRefNameVec(std::string ref) const {
+    if (table_ref_map_.find(ref) != table_ref_map_.end()) {
+      return table_ref_map_.at(ref);
+    }
+    return {};
+  }
+
+  friend class ContextInfoParser;
+};
+
+class MatchActionTableContextInfo : public RtTableContextInfo {
+ public:
+  MatchActionTableContextInfo() : RtTableContextInfo(){};
+  pipe_tbl_hdl_t resourceHdlGet(const DataFieldType &field_type) const {
+    tdi_table_ref_info_t tbl_ref;
+    bf_status_t status = resourceInternalGet(field_type, &tbl_ref);
+    if (status != BF_SUCCESS) {
+      return 0;
+    }
+    return tbl_ref.tbl_hdl;
+  }
+
+  pipe_tbl_hdl_t indirectResourceHdlGet(const DataFieldType &field_type) const {
+    tdi_table_ref_info_t tbl_ref;
+    bf_status_t status = resourceInternalGet(field_type, &tbl_ref);
+    if (status != BF_SUCCESS) {
+      return 0;
+    }
+    if (tbl_ref.indirect_ref) {
+      return tbl_ref.tbl_hdl;
+    }
+    return 0;
+  }
+  void isTernaryTableSet(const tdi_dev_id_t &dev_id);
+  const std::map<pipe_act_fn_hdl_t, tdi_id_t> &actFnHdlToIdGet() const {
+    return act_fn_hdl_to_id_;
+  };
+  const bool &isTernaryTableGet() const { return is_ternary_table_; };
+  void actionResourcesSet(const tdi_dev_id_t &dev_id);
+  void actionResourcesGet(const tdi_id_t action_id,
                           bool *meter,
                           bool *reg,
                           bool *cntr) const {
@@ -336,20 +401,15 @@ class RtTableContextInfo : public TableContextInfo {
     }
   }
 
-  virtual void setIsTernaryTable(const tdi_dev_id_t & /*dev_id*/) { return; };
-  const bool &getIsTernaryTable() const { return is_ternary_table_; };
-
- protected:
-  std::string table_name_;
-  tdi_id_t table_id_;
-  tdi_rt_table_type_e table_type_;
-  pipe_tbl_hdl_t table_hdl_;
-  // Map of reference_type -> vector of ref_info structs
-  table_ref_map_t table_ref_map_;
-  bool is_const_table_;
-  // hash_bit_width of hash object. Only required for the hash tables
-  uint64_t hash_bit_width_ = 0;
-  key_size_t key_size_;
+ private:
+  tdi_status_t resourceInternalGet(const DataFieldType &field_type,
+                                   tdi_table_ref_info_t *tbl_ref) const;
+  // Store information about direct resources applicable per action
+  std::map<tdi_id_t, bool> act_uses_dir_meter_;
+  std::map<tdi_id_t, bool> act_uses_dir_cntr_;
+  std::map<tdi_id_t, bool> act_uses_dir_reg_;
+  // if this table is a ternary table
+  bool is_ternary_table_{false};
   // A map from action fn handle to action id
   std::map<pipe_act_fn_hdl_t, tdi_id_t> act_fn_hdl_to_id_;
   mutable tdi::Table *actProfTbl_;
@@ -362,34 +422,17 @@ class RtTableContextInfo : public TableContextInfo {
   // MatchAction_Indirect_Selector table
   mutable tdi_id_t selector_tbl_id_;
   // Place holder for action_context_info for phase0 tables
-  std::unique_ptr<RtActionContextInfo> phase0_action_context_info_;
-
-  mutable std::set<tdi_rt_attributes_type_e> operations_type_set_;
-  mutable std::set<tdi_rt_attributes_type_e> attributes_type_set_;
-
-  // Store information about direct resources applicable per action
-  std::map<tdi_id_t, bool> act_uses_dir_meter_;
-  std::map<tdi_id_t, bool> act_uses_dir_cntr_;
-  std::map<tdi_id_t, bool> act_uses_dir_reg_;
-
-  // if this table is a ternary table
-  bool is_ternary_table_{false};
-  pipe_tbl_hdl_t pipe_tbl_hdl{0};
-
-  size_t maxDataSz_{0};
-  size_t maxDataSzbits_{0};
-
-  std::vector<tdi_table_ref_info_t> tableGetRefNameVec(std::string ref) const {
-    if (table_ref_map_.find(ref) != table_ref_map_.end()) {
-      return table_ref_map_.at(ref);
-    }
-    return {};
-  }
-
   friend class ContextInfoParser;
-  friend tdi_status_t parseContextJson(const TdiInfo *tdi_info,
-                                       const tdi_dev_id_t &dev_id,
-                                       const ProgramConfig &program_config);
+};
+
+class MatchActionDirectTableContextInfo : public MatchActionTableContextInfo {
+ public:
+  MatchActionDirectTableContextInfo() : MatchActionTableContextInfo(){};
+};
+
+class MatchActionIndirectTableContextInfo : public MatchActionTableContextInfo {
+ public:
+  MatchActionIndirectTableContextInfo() : MatchActionTableContextInfo(){};
 };
 
 class RtKeyFieldContextInfo : public KeyFieldContextInfo {
@@ -398,11 +441,14 @@ class RtKeyFieldContextInfo : public KeyFieldContextInfo {
 
   size_t startBitGet() const { return start_bit_; };
 
-  size_t fieldOffSetGet() const { return field_offset_; };
+  size_t fieldOffsetGet() const { return field_offset_; };
 
   size_t parentFieldFullByteSizeGet() const {
     return parent_field_full_byte_size_;
   };
+
+  bool isFieldSlice() const { return is_field_slice_; };
+  bool isMatchPriority() const { return is_match_priority_; };
 
  private:
   std::string name_;
@@ -413,6 +459,8 @@ class RtKeyFieldContextInfo : public KeyFieldContextInfo {
   // This might vary from the 'size_bits' in case of field slices when the field
   // slice width does not equal the size of the entire key field
   size_t parent_field_full_byte_size_{0};
+  // flag to indicate whether it is a priority index or not
+  bool is_match_priority_{false};
   friend class ContextInfoParser;
 };
 
@@ -443,25 +491,15 @@ class RtDataFieldContextInfo : public DataFieldContextInfo {
  public:
   std::string nameGet() const { return name_; };
   const std::set<DataFieldType> &typesGet() const { return types_; }
+  const size_t &offsetGet() const { return offset_; };
+  static fieldDestination getDataFieldDestination(
+      const std::set<DataFieldType> &fieldTypes);
 
  private:
   std::string name_;
+  size_t offset_{0};
   std::set<DataFieldType> types_;  // resource_set
   friend class ContextInfoParser;
-};
-
-class MatchActionDirectTableContextInfo : public RtTableContextInfo {
- public:
-  MatchActionDirectTableContextInfo() : RtTableContextInfo(){};
-  void setIsTernaryTable(const tdi_dev_id_t &dev_id) override final;
-  void setActionResources(const tdi_dev_id_t &dev_id) override final;
-};
-
-class MatchActionIndirectTableContextInfo : public RtTableContextInfo {
- public:
-  MatchActionIndirectTableContextInfo() : RtTableContextInfo(){};
-  void setIsTernaryTable(const tdi_dev_id_t &dev_id) override final;
-  void setActionResources(const tdi_dev_id_t &dev_id) override final;
 };
 
 const std::vector<std::string> indirect_refname_list = {

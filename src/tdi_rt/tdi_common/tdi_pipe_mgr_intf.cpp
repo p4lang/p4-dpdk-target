@@ -28,6 +28,8 @@ extern "C" {
 #include <tdi/common/tdi_defs.h>
 
 namespace tdi {
+namespace pna {
+namespace rt {
 
 std::unique_ptr<IPipeMgrIntf> IPipeMgrIntf::instance = nullptr;
 std::mutex IPipeMgrIntf::pipe_mgr_intf_mtx;
@@ -1236,4 +1238,6 @@ tdi_status_t PipeMgrIntf::pipeMgrEnablePipeline(tdi_dev_id_t dev_id) const {
    return pipe_mgr_enable_pipeline(dev_id);
 }
 
+}  // namespace rt
+}  // namespace pna
 }  // namespace tdi

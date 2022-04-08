@@ -36,9 +36,9 @@ extern "C" {
 #include <tdi_rt/c_frontend/tdi_rt_init.h>
 #include <tdi_rt/tdi_rt_init.hpp>
 #include "tdi_rt_info.hpp"
+#include "tdi_rt_target.hpp"
 #include "tdi_context_info.hpp"
 #include "tdi_pipe_mgr_intf.hpp"
-#include "tdi_session_impl.hpp"
 
 namespace tdi {
 namespace pna {
@@ -83,7 +83,7 @@ std::vector<std::string> tdiFixedJsonFilePathsGet(
 }
 
 std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
-    const bf_dev_id_t & /*dev_id*/,
+    const bf_dev_id_t &dev_id,
     const bf_device_profile_t *dev_profile,
     const std::vector<std::string> &tdi_fixed_json_path_vec) {
   // tracks P4 programs with valid bf-rt.json of their own
@@ -121,9 +121,7 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
         TDI_ASSERT(dev_profile->num_p4_programs == 1);
         TDI_ASSERT(dev_profile->p4_programs[i].num_p4_pipelines == 1);
         uint32_t num_pipes = 4;
-#if 0
         PipeMgrIntf::getInstance()->pipeMgrGetNumPipelines(dev_id, &num_pipes);
-#endif
         for (uint32_t k = 0; k < num_pipes; k++) {
           pipe_scope.push_back(k);
         }
@@ -182,49 +180,6 @@ tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
 tdi_status_t tdi_device_remove(bf_dev_id_t dev_id) {
   auto &dev_mgr_obj = tdi::DevMgr::getInstance();
   return dev_mgr_obj.deviceRemove(dev_id);
-}
-
-tdi_status_t Device::createSession(std::shared_ptr<tdi::Session>* session) const {
-  auto session_t = std::make_shared<TdiSessionImpl>();
-  tdi_status_t status = session_t->sessionCreateInternal();
-
-  *session = session_t;
-  if (status != TDI_SUCCESS)
-    *session = nullptr;
-  return status;
-}
-
-Device::Device(const tdi_dev_id_t &device_id,
-               const tdi_arch_type_e &arch_type,
-               const std::vector<tdi::ProgramConfig> &device_config,
-               const std::vector<tdi_mgr_type_e> mgr_type_list,
-               void *cookie)
-    : tdi::pna::Device(
-          device_id, arch_type, device_config, mgr_type_list, cookie) {
-  // Parse tdi json for every program
-  for (const auto &program_config : device_config) {
-    LOG_ERROR("%s:%d parsing %s",
-              __func__,
-              __LINE__,
-              program_config.prog_name_.c_str());
-    auto tdi_info_mapper = std::unique_ptr<tdi::TdiInfoMapper>(
-        new tdi::pna::rt::TdiInfoMapper());
-    auto table_factory = std::unique_ptr<tdi::TableFactory>(
-        new tdi::pna::rt::TableFactory());
-
-    auto tdi_info_parser = std::unique_ptr<TdiInfoParser>(
-        new TdiInfoParser(std::move(tdi_info_mapper)));
-    tdi_info_parser->parseTdiInfo(program_config.tdi_info_file_paths_);
-    auto tdi_info = tdi::TdiInfo::makeTdiInfo(program_config.prog_name_,
-                                              std::move(tdi_info_parser),
-                                              table_factory.get());
-    // Parse context json
-    auto status = parseContextJson(tdi_info.get(), device_id, program_config);
-    if (status) {
-      LOG_ERROR("%s:%d Failed to parse context.json", __func__, __LINE__);
-    }
-    tdi_info_map_.insert({program_config.prog_name_, std::move(tdi_info)});
-  }
 }
 
 tdi_status_t Init::tdiModuleInit(

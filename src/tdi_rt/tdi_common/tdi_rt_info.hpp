@@ -61,12 +61,8 @@ const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"Meter", TDI_RT_TABLE_TYPE_METER},
     {"Counter", TDI_RT_TABLE_TYPE_COUNTER},
     {"Register", TDI_RT_TABLE_TYPE_REGISTER},
-    {"PortMetadata", TDI_RT_TABLE_TYPE_PORT_METADATA},
     {"PortConfigure", TDI_RT_TABLE_TYPE_PORT_CFG},
     {"PortStat", TDI_RT_TABLE_TYPE_PORT_STAT},
-    {"PortHdlInfo", TDI_RT_TABLE_TYPE_PORT_HDL_INFO},
-    {"PortStrInfo", TDI_RT_TABLE_TYPE_PORT_STR_INFO},
-    {"PortFpIdxInfo", TDI_RT_TABLE_TYPE_PORT_FRONT_PANEL_IDX_INFO},
     {"DevConfigure", TDI_RT_TABLE_TYPE_DEV_CFG},
 };
 }
@@ -91,7 +87,7 @@ class TdiInfoMapper : public tdi::pna::TdiInfoMapper {
 class TableFactory : public tdi::pna::TableFactory {
  public:
   virtual std::unique_ptr<tdi::Table> makeTable(
-      const tdi::TdiInfo *tdiInfo,
+      const TdiInfo *tdi_info,
       const tdi::TableInfo *table_info) const override {
     if (!table_info) {
       LOG_ERROR("%s:%d No table info received", __func__, __LINE__);
@@ -102,24 +98,24 @@ class TableFactory : public tdi::pna::TableFactory {
 		    (int)table_type, table_info->nameGet().c_str());
     switch(table_type) {
       case TDI_RT_TABLE_TYPE_MATCH_DIRECT:
-        return std::unique_ptr<tdi::Table>(new MatchActionDirect(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new MatchActionDirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_MATCH_INDIRECT:
       case TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR:
-        return std::unique_ptr<tdi::Table>(new MatchActionIndirect(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new MatchActionIndirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_ACTION_PROFILE:
-        return std::unique_ptr<tdi::Table>(new ActionProfile(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new ActionProfile(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_SELECTOR:
-        return std::unique_ptr<tdi::Table>(new Selector(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new Selector(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_COUNTER:
-        return std::unique_ptr<tdi::Table>(new CounterIndirect(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new CounterIndirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_METER:
-        return std::unique_ptr<tdi::Table>(new MeterIndirect(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new MeterIndirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_PORT_CFG:
 	LOG_DBG("%s:%d table info received for PORT_CFG", __func__, __LINE__);
-        return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_PORT_STAT:
 	LOG_DBG("%s:%d table info received for PORT_STAT", __func__, __LINE__);
-        return std::unique_ptr<tdi::Table>(new tdi::PortStatTable(tdiInfo, table_info));
+        return std::unique_ptr<tdi::Table>(new tdi::PortStatTable(tdi_info, table_info));
       default:
         LOG_DBG("%s:%d table info received for other", __func__, __LINE__);
 	return nullptr;

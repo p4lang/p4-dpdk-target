@@ -21,16 +21,8 @@
 
 
 namespace tdi {
-#if 0
-std::shared_ptr<tdi::Session> tdi::Session::sessionCreate() {
-  auto session = std::make_shared<TdiSessionImpl>();
-  auto status = session->sessionCreateInternal();
-  if (status != TDI_SUCCESS) {
-    return nullptr;
-  }
-  return session;
-}
-#endif
+namespace pna {
+namespace rt {
 
 tdi_status_t TdiSessionImpl::sessionCreateInternal() {
   tdi_status_t status = TDI_SUCCESS;
@@ -55,7 +47,11 @@ tdi_status_t TdiSessionImpl::sessionCreateInternal() {
 }
 
 TdiSessionImpl::TdiSessionImpl()
-    : Session(std::vector<tdi_mgr_type_e>()),session_handle_(), valid_(false) {}
+    : Session(std::vector<tdi_mgr_type_e>()),
+      in_batch_(false),
+      in_pipe_mgr_batch_(false),
+      session_handle_(), 
+      valid_(false) {}
 
 TdiSessionImpl::~TdiSessionImpl() {
   // session delete here
@@ -78,6 +74,8 @@ tdi_status_t TdiSessionImpl::destroy() {
         pipe_str_err((pipe_status_t)status));
     return status;
   }
+  this->in_pipe_mgr_batch_ = false;
+  this->in_batch_ = false;
   // Mark session as invalid
   valid_ = false;
 
@@ -99,12 +97,12 @@ tdi_status_t TdiSessionImpl::completeOperations() const {
 
 // Batching functions
 tdi_status_t TdiSessionImpl::beginBatch() const {
-  if (valid_) {
-    tdi_status_t status = TDI_SUCCESS;
-    auto *pipeMgr = PipeMgrIntf::getInstance();
-    status = pipeMgr->pipeMgrBeginBatch(session_handle_);
-    return status;
+  if (valid_ && !this->in_batch_) {
+    this->in_batch_ = true;
+    return TDI_SUCCESS;
   }
+  LOG_ERROR(
+      "%s:%d Session is invalid or already in batch.", __func__, __LINE__);
   return TDI_INVALID_ARG;
 }
 
@@ -113,7 +111,8 @@ tdi_status_t TdiSessionImpl::flushBatch() const {
     tdi_status_t status = TDI_SUCCESS;
     auto *pipeMgr = PipeMgrIntf::getInstance();
 
-    status = pipeMgr->pipeMgrFlushBatch(session_handle_);
+    if (this->in_pipe_mgr_batch_)
+      status = pipeMgr->pipeMgrFlushBatch(session_handle_);
 
 
     return status;
@@ -126,7 +125,11 @@ tdi_status_t TdiSessionImpl::endBatch(bool hwSynchronous) const {
     tdi_status_t status = TDI_SUCCESS;
     auto *pipeMgr = PipeMgrIntf::getInstance();
 
-    status = pipeMgr->pipeMgrEndBatch(session_handle_, hwSynchronous);
+    if (this->in_pipe_mgr_batch_) {
+      status = pipeMgr->pipeMgrEndBatch(session_handle_, hwSynchronous);
+      this->in_pipe_mgr_batch_ = false;
+    }
+    this->in_batch_ = false;
     return status;
   }
   return TDI_INVALID_ARG;
@@ -165,4 +168,6 @@ tdi_status_t TdiSessionImpl::abortTransaction() const {
   return TDI_INVALID_ARG;
 }
 
+}
+}
 }  // tdi
