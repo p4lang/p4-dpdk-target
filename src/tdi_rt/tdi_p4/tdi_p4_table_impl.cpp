@@ -2172,7 +2172,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
 
   uint32_t res_get_flags = 0;
   pipe_res_get_data_t res_data;
-  res_data.stful.data = nullptr;
   pipe_act_fn_hdl_t pipe_act_fn_hdl = 0;
   pipe_action_spec_t *pipe_action_spec = nullptr;
   bool all_fields_set = false;
@@ -2245,10 +2244,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
         tableInfoGet()->nameGet().c_str(),
         pipe_entry_hdl,
         status);
-    // Must free stful related memory
-    if (res_data.stful.data != nullptr) {
-      bf_sys_free(res_data.stful.data);
-    }
     return status;
   }
 
@@ -2262,10 +2257,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
               tableInfoGet()->nameGet().c_str(),
               req_action_id,
               action_id);
-    // Must free stful related memory
-    if (res_data.stful.data != nullptr) {
-      bf_sys_free(res_data.stful.data);
-    }
     return TDI_INVALID_ARG;
   }
 
@@ -2281,10 +2272,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
                 __LINE__,
                 tableInfoGet()->nameGet().c_str(),
                 status);
-      // Must free stful related memory
-      if (res_data.stful.data != nullptr) {
-        bf_sys_free(res_data.stful.data);
-      }
       return status;
     }
 // TODO(sayanb)
@@ -2305,7 +2292,7 @@ tdi_status_t MatchActionDirect::entryGet_internal(
 
   for (const auto &dataFieldId : dataFields) {
     const tdi::DataFieldInfo *tableDataField =
-        this->tableInfoGet()->dataFieldGet(dataFieldId);
+        this->tableInfoGet()->dataFieldGet(dataFieldId, action_id);
     if (!tableDataField) {
       return TDI_OBJECT_NOT_FOUND;
     }
@@ -2336,9 +2323,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
                   __LINE__,
                   tableInfoGet()->nameGet().c_str(),
                   dataFieldId);
-        if (res_data.stful.data != nullptr) {
-          bf_sys_free(res_data.stful.data);
-        }
         return TDI_NOT_SUPPORTED;
         break;
     }

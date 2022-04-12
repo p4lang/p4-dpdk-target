@@ -768,7 +768,6 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 0,
                                 &is_register_data_field);
 
-      data_field_context_info->offset_ = offset;
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
@@ -788,7 +787,6 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 action_id,
                                 0,
                                 &is_register_data_field);
-      data_field_context_info->offset_ = offset;
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
@@ -886,6 +884,8 @@ ContextInfoParser::parseDataFieldContext(
   // fields have user defined names in tdi json
 
   data_field_context_info->types_ = resource_set;
+  data_field_context_info->offset_ = field_offset;
+
   field_offset += ((tdi_data_field_info->sizeGet() + 7) / 8);
   bitsize += tdi_data_field_info->sizeGet();
   return data_field_context_info;
