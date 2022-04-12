@@ -175,6 +175,13 @@ tdi_status_t ContextInfoParser::parseContextJson(
     const auto mat_context_tbl =
         static_cast<const MatchActionTableContextInfo *>(
             tdi_table_info->tableContextInfoGet());
+    if (context_tbl == nullptr) {
+      LOG_ERROR("%s:%d context Table object not found for \"%s\"",
+                __func__,
+                __LINE__,
+                table_name.c_str());
+	    continue;
+    }
 
     for (const auto &action_table_res_pair :
          context_tbl->tableGetRefNameVec("action_data_table_refs")) {
@@ -281,7 +288,7 @@ ContextInfoParser::ContextInfoParser(const TdiInfo *tdi_info,
 
     // Get the mask which needs to be applied on all the handles parsed from
     // the context json/s
-    tdi_id_t context_json_handle_mask;
+    tdi_id_t context_json_handle_mask = 0;
     IPipeMgrIntf *pipe_mgr_obj = PipeMgrIntf::getInstance();
     pipe_mgr_obj->pipeMgrTblHdlPipeMaskGet(dev_id,
                                            program_config.prog_name_,

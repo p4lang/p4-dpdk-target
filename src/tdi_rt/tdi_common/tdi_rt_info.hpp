@@ -36,8 +36,8 @@
 
 #include <tdi_rt/tdi_rt_defs.h>
 
-#include "tdi_rt_table.hpp"
 #include "../tdi_port/dpdk/tdi_port_table_impl.hpp"
+#include "../tdi_p4/tdi_p4_table_impl.hpp"
 /**
  * @brief Namespace for TDI
  */
