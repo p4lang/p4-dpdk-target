@@ -66,7 +66,7 @@ tdi_status_t PortCfgTable::entryAdd(const Session & session,
                                     const TableData &data) const {
   tdi_status_t status = BF_SUCCESS;
   // the call entryAdd without flags parameter method.
-  status = this->entryAdd(session, dev_tgt, key, data);
+  status = this->entryAdd_internal(session, dev_tgt, key, data);
   if (BF_SUCCESS != status) {
       LOG_ERROR("%s:%d %s: Error in adding an port",
               __func__,
@@ -78,7 +78,7 @@ tdi_status_t PortCfgTable::entryAdd(const Session & session,
 
 // need passing flags class type without identify
 // - for silencing warning about unused paramter.
-tdi_status_t PortCfgTable::entryAdd(const Session & /*session*/,
+tdi_status_t PortCfgTable::entryAdd_internal(const Session & /*session*/,
                                     const Target & dev_tgt,
                                     const TableKey &key,
                                     const TableData &data) const {

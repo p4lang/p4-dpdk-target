@@ -87,7 +87,7 @@ class PortCfgTable : public Table {
   std::map<std::string, dpdk_port_type_t> portTypeMap;
   std::map<std::string, bf_pm_port_dir_e> portDirMap;
   
-  tdi_status_t entryAdd(const Session & /*session*/,
+  tdi_status_t entryAdd_internal(const Session & /*session*/,
                         const Target & /*dev_tgt*/,
                         const TableKey &key,
                         const TableData &data) const;
