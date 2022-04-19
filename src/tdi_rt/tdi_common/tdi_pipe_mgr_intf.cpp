@@ -443,7 +443,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                                tdi_dev_id_t device_id,
+                                                dev_target_t dev_tgt,
                                                 pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                                 pipe_sel_grp_hdl_t sel_grp_hdl,
                                                 uint32_t mbrs_size,
@@ -451,7 +451,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
                                                 bool *enable,
                                                 uint32_t *mbrs_populated) {
   return pipe_mgr_sel_grp_mbrs_get(sess_hdl,
-                                   device_id,
+                                   dev_tgt,
                                    sel_tbl_hdl,
                                    sel_grp_hdl,
                                    mbrs_size,
@@ -1067,11 +1067,11 @@ pipe_status_t PipeMgrIntf::pipeMgrGetNextEntryHandles(
 pipe_status_t PipeMgrIntf::pipeMgrGetFirstGroupMember(
     pipe_sess_hdl_t sess_hdl,
     pipe_tbl_hdl_t tbl_hdl,
-    tdi_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_sel_grp_hdl_t sel_grp_hdl,
     pipe_adt_ent_hdl_t *mbr_hdl) {
   return pipe_mgr_get_first_group_member(
-      sess_hdl, tbl_hdl, dev_id, sel_grp_hdl, mbr_hdl);
+      sess_hdl, tbl_hdl, dev_tgt, sel_grp_hdl, mbr_hdl);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrGetNextGroupMembers(
@@ -1088,12 +1088,12 @@ pipe_status_t PipeMgrIntf::pipeMgrGetNextGroupMembers(
 
 pipe_status_t PipeMgrIntf::pipeMgrGetSelGrpMbrCount(
     pipe_sess_hdl_t sess_hdl,
-    tdi_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_sel_tbl_hdl_t tbl_hdl,
     pipe_sel_grp_hdl_t sel_grp_hdl,
     uint32_t *count) {
   return pipe_mgr_get_sel_grp_mbr_count(
-      sess_hdl, dev_id, tbl_hdl, sel_grp_hdl, count);
+      sess_hdl, dev_tgt, tbl_hdl, sel_grp_hdl, count);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrGetReservedEntryCount(
@@ -1116,7 +1116,7 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntryCount(pipe_sess_hdl_t sess_hdl,
 pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
     pipe_sess_hdl_t sess_hdl,
     pipe_mat_tbl_hdl_t tbl_hdl,
-    tdi_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_mat_ent_hdl_t entry_hdl,
     pipe_tbl_match_spec_t *pipe_match_spec,
     pipe_action_spec_t *pipe_action_spec,
@@ -1126,7 +1126,7 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
     pipe_res_get_data_t *res_data) {
   return pipe_mgr_get_entry(sess_hdl,
                             tbl_hdl,
-                            dev_id,
+                            dev_tgt,
                             entry_hdl,
                             pipe_match_spec,
                             pipe_action_spec,
@@ -1139,13 +1139,13 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
 pipe_status_t PipeMgrIntf::pipeMgrGetActionDataEntry(
     pipe_sess_hdl_t sess_hdl,
     pipe_adt_tbl_hdl_t tbl_hdl,
-    tdi_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_adt_ent_hdl_t entry_hdl,
     pipe_action_data_spec_t *data_spec,
     pipe_act_fn_hdl_t *act_fn_hdl,
     bool from_hw) {
   return pipe_mgr_get_action_data_entry(
-      sess_hdl, tbl_hdl, dev_id, entry_hdl, data_spec, act_fn_hdl, from_hw);
+      sess_hdl, tbl_hdl, dev_tgt, entry_hdl, data_spec, act_fn_hdl, from_hw);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrTblSetProperty(

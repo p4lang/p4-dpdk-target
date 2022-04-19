@@ -281,7 +281,7 @@ class IPipeMgrIntf {
                                              uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                             tdi_dev_id_t device_id,
+                                             dev_target_t dev_tgt,
                                              pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                              pipe_sel_grp_hdl_t sel_grp_hdl,
                                              uint32_t mbrs_size,
@@ -692,7 +692,7 @@ class IPipeMgrIntf {
   virtual pipe_status_t pipeMgrGetFirstGroupMember(
       pipe_sess_hdl_t sess_hdl,
       pipe_tbl_hdl_t tbl_hdl,
-      tdi_dev_id_t dev_id,
+      dev_target_t dev_tgt,
       pipe_sel_grp_hdl_t sel_grp_hdl,
       pipe_adt_ent_hdl_t *mbr_hdl) = 0;
 
@@ -706,7 +706,7 @@ class IPipeMgrIntf {
       pipe_adt_ent_hdl_t *next_mbr_hdls) = 0;
 
   virtual pipe_status_t pipeMgrGetSelGrpMbrCount(pipe_sess_hdl_t sess_hdl,
-                                                 tdi_dev_id_t dev_id,
+                                                 dev_target_t dev_tgt,
                                                  pipe_sel_tbl_hdl_t tbl_hdl,
                                                  pipe_sel_grp_hdl_t sel_grp_hdl,
                                                  uint32_t *count) = 0;
@@ -724,7 +724,7 @@ class IPipeMgrIntf {
 
   virtual pipe_status_t pipeMgrGetEntry(pipe_sess_hdl_t sess_hdl,
                                         pipe_mat_tbl_hdl_t tbl_hdl,
-                                        tdi_dev_id_t dev_id,
+                                        dev_target_t dev_tgt,
                                         pipe_mat_ent_hdl_t entry_hdl,
                                         pipe_tbl_match_spec_t *pipe_match_spec,
                                         pipe_action_spec_t *pipe_action_spec,
@@ -736,7 +736,7 @@ class IPipeMgrIntf {
   virtual pipe_status_t pipeMgrGetActionDataEntry(
       pipe_sess_hdl_t sess_hdl,
       pipe_adt_tbl_hdl_t tbl_hdl,
-      tdi_dev_id_t dev_id,
+      dev_target_t dev_tgt,
       pipe_adt_ent_hdl_t entry_hdl,
       pipe_action_data_spec_t *pipe_action_data_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,
@@ -1060,7 +1060,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                      uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                     tdi_dev_id_t device_id,
+                                     dev_target_t dev_tgt,
                                      pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                      pipe_sel_grp_hdl_t sel_grp_hdl,
                                      uint32_t mbrs_size,
@@ -1443,7 +1443,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
 
   pipe_status_t pipeMgrGetFirstGroupMember(pipe_sess_hdl_t sess_hdl,
                                            pipe_tbl_hdl_t tbl_hdl,
-                                           tdi_dev_id_t dev_id,
+                                           dev_target_t dev_tgt,
                                            pipe_sel_grp_hdl_t sel_grp_hdl,
                                            pipe_adt_ent_hdl_t *mbr_hdl);
 
@@ -1456,7 +1456,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                            pipe_adt_ent_hdl_t *next_mbr_hdls);
 
   pipe_status_t pipeMgrGetSelGrpMbrCount(pipe_sess_hdl_t sess_hdl,
-                                         tdi_dev_id_t dev_id,
+                                         dev_target_t dev_tgt,
                                          pipe_sel_tbl_hdl_t tbl_hdl,
                                          pipe_sel_grp_hdl_t sel_grp_hdl,
                                          uint32_t *count);
@@ -1474,7 +1474,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
 
   pipe_status_t pipeMgrGetEntry(pipe_sess_hdl_t sess_hdl,
                                 pipe_mat_tbl_hdl_t tbl_hdl,
-                                tdi_dev_id_t dev_id,
+                                dev_target_t dev_tgt,
                                 pipe_mat_ent_hdl_t entry_hdl,
                                 pipe_tbl_match_spec_t *pipe_match_spec,
                                 pipe_action_spec_t *pipe_action_spec,
@@ -1486,7 +1486,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
   pipe_status_t pipeMgrGetActionDataEntry(
       pipe_sess_hdl_t sess_hdl,
       pipe_adt_tbl_hdl_t tbl_hdl,
-      tdi_dev_id_t dev_id,
+      dev_target_t dev_tgt,
       pipe_adt_ent_hdl_t entry_hdl,
       pipe_action_data_spec_t *pipe_action_data_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,

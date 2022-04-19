@@ -62,7 +62,7 @@ tdi_status_t getActionSpec(const tdi::Session &session,
         session.handleGet(
             static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
         pipe_tbl_hdl,
-        dev_tgt.device_id,
+        dev_tgt,
         mat_ent_hdl,
         pipe_match_spec,
         pipe_action_spec,
