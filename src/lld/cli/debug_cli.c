@@ -15,9 +15,9 @@
  */
 #include <Python.h>
 #include <stdio.h>
-#include "target_utils/clish/shell.h"
+#include "target-utils/clish/shell.h"
 #include <dvm/bf_drv_intf.h>
-#include <target_sys/bf_sal/bf_sys_sem.h>
+#include <target-sys/bf_sal/bf_sys_sem.h>
 #include <lld/python_shell_mutex.h>
 /*
  * Start BF Runtime CLI. This program heavily borrows from the python C

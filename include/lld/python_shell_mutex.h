@@ -16,7 +16,7 @@
 #ifndef _LLD_PYTHON_SHELL_MUTEX_H
 #define _LLD_PYTHON_SHELL_MUTEX_H
 
-#include <target_sys/bf_sal/bf_sys_sem.h>
+#include <target-sys/bf_sal/bf_sys_sem.h>
 
 typedef struct py_shell_context_t_ {
   bf_sys_mutex_t python_exclude_mutex;

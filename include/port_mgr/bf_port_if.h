@@ -44,10 +44,32 @@ typedef enum {
 /**
  * Port Info Structure
  */
-typedef struct port_info_t {
+struct port_info_t {
   bf_dev_port_t dev_port;               /*!< Port ID */
-  port_attributes_t port_attrib;        /*!< Port Attributes */
-} port_info_t;
+  struct port_attributes_t port_attrib; /*!< Port Attributes */
+};
+
+/**
+ * Enum identifying Port Counters
+ */
+enum port_counters_t {
+	RX_BYTES,               /*!< RX Bytes */
+	RX_PACKETS,             /*!< RX Packets */
+	RX_UNICAST,             /*!< RX Unicast Packets */
+	RX_MULTICAST,           /*!< RX Multicast Packets */
+	RX_BROADCAST,           /*!< RX Broadcast Packets */
+	RX_DISCARDS,            /*!< RX Discards */
+	RX_ERRORS,              /*!< RX Errors */
+	RX_EMPTY_POLLS,         /*!< RX Empty Polls */
+	TX_BYTES,               /*!< TX Bytes */
+	TX_PACKETS,             /*!< TX Packets */
+	TX_UNICAST,             /*!< TX Unicast Packets */
+	TX_MULTICAST,           /*!< TX Multicast Packets */
+	TX_BROADCAST,           /*!< TX Broadcast Packets */
+	TX_DISCARDS,            /*!< TX Discards */
+	TX_ERRORS,              /*!< TX Errors */
+	BF_PORT_NUM_COUNTERS,    /*!< Total Number of Counters */
+};
 
 bf_status_t bf_port_mgr_init(void);
 

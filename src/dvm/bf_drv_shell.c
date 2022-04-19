@@ -22,12 +22,13 @@
 
 #include <stdlib.h>
 #include <getopt.h>
+#include <strings.h>
 
 #include <osdep/p4_sde_osdep.h>
-#include <target_utils/target_utils.h>
-#include <target_utils/uCli/ucli.h>
-#include <target_utils/uCli/ucli_argparse.h>
-#include <target_utils/uCli/ucli_node.h>
+#include <target-utils/target_utils.h>
+#include <target-utils/uCli/ucli.h>
+#include <target-utils/uCli/ucli_argparse.h>
+#include <target-utils/uCli/ucli_node.h>
 #include <bf_types/bf_types.h>
 #include <dvm/bf_drv_intf.h>
 
@@ -246,7 +247,7 @@ static ucli_status_t bf_drv_ucli_ucli__set_log_level__(ucli_context_t *uc) {
 }
 
 static ucli_status_t bf_drv_ucli_ucli__trace_buff__(ucli_context_t *uc) {
-  size_t size, len_written;
+  size_t size, len_written, max_size = 1024 * 1024;
   uint8_t *buf;
 
   UCLI_COMMAND_INFO(uc, "get_trace", 1, "get_trace <size>");
@@ -259,8 +260,8 @@ static ucli_status_t bf_drv_ucli_ucli__trace_buff__(ucli_context_t *uc) {
   }
 
   size = (size_t)atoi(uc->pargs->args[0]);
-  if (size <= 0) {
-      printf("Invalid Size\n");
+  if ((size <= 0) || (size > max_size))  {
+      printf("Invalid Size, maximum allowed size is 1MB\n");
       return 0;
   }
   /* allocate the buffer to read the trace buffer into */
@@ -364,6 +365,12 @@ bf_status_t bf_drv_shell_init(void) {
 
   ucli_module_init(&bf_drv_ucli_mod);
   _ctl.uc = uc = ucli_create("bf-sde", &bf_drv_ucli_mod, NULL);
+
+	ucli_node_t *node = NULL;
+
+	extern ucli_node_t *pipe_mgr_ucli_node_create(void);
+	node = pipe_mgr_ucli_node_create();
+	ucli_node_add(uc, node);
 
   return BF_SUCCESS;
 }

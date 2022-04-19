@@ -16,9 +16,10 @@
 #include <dvm/bf_drv_intf.h>
 #include <pipe_mgr/pipe_mgr_intf.h>
 #include <port_mgr/bf_port_if.h>
+#include <port_mgr/port_mgr.h>
 #include <port_mgr/port_mgr_port.h>
 #include <lld/lld_err.h>
-#include <target_utils/map/map.h>
+#include <target-utils/map/map.h>
 #include "bf_pal_log.h"
 
 static bf_map_t bf_pm_port_map_db[BF_MAX_DEV_COUNT];
@@ -36,8 +37,9 @@ struct bf_pal_port_info {
 #define MAX_NUM_CHNL 4
 
 static int bf_pal_port_str_to_info(const char *str,
-                                     u32 *conn,
-                                     u32 *chnl) {
+				   u32 *conn,
+				   u32 *chnl)
+{
   int len, i;
   char *tmp_str, *ptr;
   int ret = 0;
@@ -93,7 +95,7 @@ static inline unsigned long pm_port_info_map_key_get(u32 conn_id, u32 chnl_id)
  * Look up the given conn/chnl (port_hdl) in the DB,
  * across all devices
  */
-static struct bf_pal_port_info* pm_port_info_get_from_port_map
+static struct bf_pal_port_info *pm_port_info_get_from_port_map
 		(bf_dev_id_t dev_id, u32 conn_id, u32 chnl_id)
 {
 	bf_map_sts_t map_sts;
@@ -118,10 +120,8 @@ bf_status_t bf_pal_create_port_info(bf_dev_id_t dev_id)
 	bf_map_sts_t map_sts;
 	unsigned long port_key = 0;
 	int chnl_cnt, conn_cnt;
-	for (conn_cnt = 1; conn_cnt <= MAX_NUM_CONN; conn_cnt++)
-	{
-		for (chnl_cnt = 0; chnl_cnt <= MAX_NUM_CHNL; chnl_cnt++)
-		{
+	for (conn_cnt = 1; conn_cnt <= MAX_NUM_CONN; conn_cnt++) {
+		for (chnl_cnt = 0; chnl_cnt <= MAX_NUM_CHNL; chnl_cnt++) {
 			dev_port = ((conn_cnt - 1) * 4) + chnl_cnt;
 
 			port_info =
@@ -144,10 +144,9 @@ bf_status_t bf_pal_create_port_info(bf_dev_id_t dev_id)
 }
 
 bf_status_t bf_pal_port_add(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
-			    port_attributes_t *port_attrib)
+			    struct port_attributes_t *port_attrib)
 {
-	port_mgr_port_add(dev_id, dev_port, port_attrib);
-	return BF_SUCCESS;
+	return port_mgr_port_add(dev_id, dev_port, port_attrib);
 }
 
 bf_status_t bf_pal_port_del(bf_dev_id_t dev_id, bf_dev_port_t dev_port)
@@ -155,11 +154,23 @@ bf_status_t bf_pal_port_del(bf_dev_id_t dev_id, bf_dev_port_t dev_port)
 	return BF_SUCCESS;
 }
 
-bf_status_t bf_pal_port_this_stat_get(bf_dev_id_t dev_id,
+bf_status_t bf_pal_port_all_stats_get(bf_dev_id_t dev_id,
 				      bf_dev_port_t dev_port,
-				      uint64_t *stats)
+				      u64 *stats)
 {
-	return BF_SUCCESS;
+	return port_mgr_port_all_stats_get(dev_id, dev_port, stats);
+}
+
+bf_status_t bf_pal_get_port_id_from_mac(bf_dev_id_t dev_id, char *mac,
+					u32 *port_id)
+{
+	return port_mgr_get_port_id_from_mac(dev_id, mac, port_id);
+}
+
+bf_status_t bf_pal_get_port_id_from_name(bf_dev_id_t dev_id, char *port_name,
+					 u32 *port_id)
+{
+	return port_mgr_get_port_id_from_name(dev_id, port_name, port_id);
 }
 
 bf_status_t bf_pal_port_str_to_dev_port_map(bf_dev_id_t dev_id,
@@ -168,9 +179,23 @@ bf_status_t bf_pal_port_str_to_dev_port_map(bf_dev_id_t dev_id,
 {
 	u32 conn = 0, chnl = 0;
 	struct bf_pal_port_info *port_info = NULL;
+
 	bf_pal_port_str_to_info(port_str, &conn, &chnl);
 	port_info = pm_port_info_get_from_port_map(dev_id, conn, chnl);
-	*dev_port = port_info->dev_port;
+	if (port_info) {
+		*dev_port = port_info->dev_port;
+		return BF_SUCCESS;
+	}
+	return BF_UNEXPECTED;
+}
+
+bf_status_t bf_pal_port_info_get(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
+				 struct port_info_t **port_info)
+{
+	/* Get the Port Info from Hash Map */
+	*port_info = port_mgr_get_port_info(dev_port);
+	if (!*port_info)
+		return BF_OBJECT_NOT_FOUND;
 
 	return BF_SUCCESS;
 }

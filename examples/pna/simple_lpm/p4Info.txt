@@ -1,0 +1,57 @@
+pkg_info {
+  arch: "pna"
+}
+tables {
+  preamble {
+    id: 40097106
+    name: "MainControlImpl.ipv4_da_lpm"
+    alias: "ipv4_da_lpm"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ipv4.dstAddr"
+    bitwidth: 32
+    match_type: LPM
+  }
+  action_refs {
+    id: 25584005
+  }
+  action_refs {
+    id: 19071441
+  }
+  const_default_action_id: 19071441
+  size: 1024
+}
+actions {
+  preamble {
+    id: 25584005
+    name: "MainControlImpl.next_hop"
+    alias: "next_hop"
+  }
+  params {
+    id: 1
+    name: "vport"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+}
+actions {
+  preamble {
+    id: 19071441
+    name: "MainControlImpl.default_route_drop"
+    alias: "default_route_drop"
+  }
+}
+type_info {
+  new_types {
+    key: "PortId_t"
+    value {
+      translated_type {
+        uri: "p4.org/pna/v1/PortId_t"
+        sdn_bitwidth: 32
+      }
+    }
+  }
+}

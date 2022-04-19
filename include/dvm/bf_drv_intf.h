@@ -32,8 +32,8 @@
 #include <dvm/bf_drv_profile.h>
 #include <port_mgr/bf_port_if.h>
 #include <osdep/p4_sde_osdep.h>
-#include <target_utils/cJSON.h>
-#include <target_utils/uCli/ucli.h>
+#include <cjson/cJSON.h>
+#include <target-utils/uCli/ucli.h>
 
 /**
  * @addtogroup dvm-device-mgmt
@@ -134,7 +134,7 @@ typedef bf_status_t (*bf_drv_device_del_cb)(bf_dev_id_t dev_id);
 typedef bf_status_t (*bf_drv_device_log_cb)(bf_dev_id_t dev_id, cJSON *node);
 typedef bf_status_t (*bf_drv_port_add_cb)(bf_dev_id_t dev_id,
                                           bf_dev_port_t port,
-                                          port_attributes_t *port_attrib);
+                                          struct port_attributes_t *port_attrib);
 typedef bf_status_t (*bf_drv_port_del_cb)(bf_dev_id_t dev_id,
                                           bf_dev_port_t port,
                                           bf_port_cb_direction_t direction);

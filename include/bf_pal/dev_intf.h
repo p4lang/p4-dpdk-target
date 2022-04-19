@@ -50,4 +50,5 @@ typedef struct bf_pal_dev_callbacks_s {
 } bf_pal_dev_callbacks_t;
 
 bf_status_t bf_pal_device_callbacks_register(bf_pal_dev_callbacks_t *callbacks);
+bf_status_t bf_pal_pltfm_type_get(bf_dev_id_t dev_id, bool *is_sw_model);
 #endif

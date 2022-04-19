@@ -1,0 +1,62 @@
+This document describes simple test scenario and provides sample commands to run the test manually.
+
+
+artifacts generation steps:
+============================
+simple_l2l3_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
+
+p4c-dpdk :  version - 0.1 (SHA: 362c2dbf2 BUILD: RELEASE) 
+artifacts:  bfrt.json, context.json, simple_l2l3_lpm.spec and p4Info.txt
+
+Command to generate artifacts:
+/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/simple_l2l3_lpm.spec --arch psa --bf-rt-schema ./bf-rt.json --context ./pipe/context.json simple_l2l3_lpm.p4
+
+Test scenario  :
+================
+1. Add rule to send
+2. Packet from interface "TAP0" should reach interface "TAP1"
+3. Delete rule and packet should not reach interface "TAP1"
+
+Running bf_swtichd application:
+===============================
+export SDE=    ////////sde path
+export SDE_INSTALL=$SDE/install
+export LD_LIBRARY_PATH=$SDE_INSTALL/lib/:$SDE_INSTALL/lib/x86_64-linux-gnu/:$SDE_INSTALL/lib64:$SDE_INSTALL/lib64/pkgconfig
+export PYTHONPATH=$SDE_INSTALL/lib/python3.8/:$SDE_INSTALL/lib/python3.8/lib-dynload:$SDE_INSTALL/lib/python3.8/site-packages
+export PYTHONHOME=$SDE_INSTALL/lib/python3.8
+
+mkdir -p $SDE_INSTALL/share/examples
+cp -rf examples/psa/simple_l2l3_lpm/ $SDE_INSTALL/share/examples/
+cd $SDE_INSTALL/bin
+
+./bf_switchd --install-dir $SDE_INSTALL --conf-file $SDE_INSTALL/share/examples/simple_l2l3_lpm/simple_l2l3_lpm.conf --init-mode=cold --status-port 7777 --skip-hld mkt
+
+BF_RT commands:
+===============
+bfrt_python
+bfrt.simple_l2l3_lpm.enable
+pipe = bfrt.simple_l2l3_lpm.ip.ingress
+from netaddr import IPAddress
+pipe.ipv4_lpm.add_with_send(dst_addr=IPAddress('192.168.2.0'),dst_addr_p_length=24, port=1)
+pipe.ipv4_lpm.get(dst_addr=IPAddress('192.168.2.0'),dst_addr_p_length=24)
+pipe.ipv4_lpm.dump
+pipe.ipv4_lpm.delete(dst_addr=IPAddress('192.168.2.0'),dst_addr_p_length=24)
+pipe.ipv4_lpm.dump
+
+Scapy commands:
+===============
+otr_dmac="aa:bb:cc:dd:00:00"
+otr_smac="9e:ba:ce:98:d9:d3"
+otr_sip='192.168.1.10'
+otr_dip='192.168.2.12'
+tcp_sport = 7777
+tcp_dport = 8888
+sendp(Ether(dst=otr_dmac, src=otr_smac)/IP(src=otr_sip, dst=otr_dip)/TCP(sport=tcp_sport, dport=tcp_dport)/Raw(load="0"*50), iface='TAP0')
+
+Test with traffic:
+==================
+1. Bring up all tap interface.
+    - ifconfig TAP0 up;ifconfig TAP1 up;ifconfig TAP2 up;ifconfig TAP3 up
+2. Send packet from Scapy on interface "TAP0".
+3. Run packet capture on interface "TAP1".
+    - tcpdump -i TAP1 -XX

@@ -21,6 +21,7 @@ void pipe_mgr_print_match_spec(struct pipe_tbl_match_spec *match_spec)
 	int i;
 
 	printf("MatchSpec:\n");
+	printf("priority = %d\n", (int) match_spec->priority);
 	printf("num_valid_match_bits:%d\n", match_spec->num_valid_match_bits);
 	printf("num_match_bytes:%d\n", match_spec->num_match_bytes);
 	printf("match_value_bits: 0x");

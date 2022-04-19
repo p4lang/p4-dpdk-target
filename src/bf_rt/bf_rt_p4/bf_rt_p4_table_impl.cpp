@@ -50,7 +50,7 @@ bf_status_t getActionSpec(const BfRtSession &session,
   if (pipe_match_spec) {
     status = pipeMgr->pipeMgrGetEntry(session.sessHandleGet(),
                                       pipe_tbl_hdl,
-                                      dev_tgt.device_id,
+                                      dev_tgt,
                                       mat_ent_hdl,
                                       pipe_match_spec,
                                       pipe_action_spec,
@@ -1426,6 +1426,9 @@ bf_status_t BfRtMatchActionTable::tableEntryGetFirst(
 
   bf_rt_id_t table_id_from_data;
   const BfRtTable *table_from_data;
+  bf_status_t status;
+  bool store_entries;
+
   data->getParent(&table_from_data);
   table_from_data->tableIdGet(&table_id_from_data);
 
@@ -1445,42 +1448,99 @@ bf_status_t BfRtMatchActionTable::tableEntryGetFirst(
   dev_target_t pipe_dev_tgt;
   pipe_dev_tgt.device_id = dev_tgt.dev_id;
   pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
-
-  // Get the first entry handle present in pipe-mgr
-  int first_entry_handle;
-  bf_status_t status = pipeMgr->pipeMgrGetFirstEntryHandle(
-      session.sessHandleGet(), pipe_tbl_hdl, pipe_dev_tgt, &first_entry_handle);
-
-  if (status == BF_OBJECT_NOT_FOUND) {
-    return status;
-  } else if (status != BF_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
-              __func__,
-              __LINE__,
-              table_name_get().c_str(),
-              status);
-  }
-
   pipe_tbl_match_spec_t pipe_match_spec;
   std::memset(&pipe_match_spec, 0, sizeof(pipe_tbl_match_spec_t));
 
-  match_key->populate_match_spec(&pipe_match_spec);
+  status = pipeMgr->pipeMgrStoreEntries(session.sessHandleGet(),
+					pipe_tbl_hdl, pipe_dev_tgt,
+					&store_entries);
+  if (status) {
+    LOG_ERROR("Checking if entries are stored in SDE failed.");
+    return status;
+  }
+  if (store_entries) {
+    // Get the first entry handle present in pipe-mgr
+    uint32_t first_entry_handle;
+    status = pipeMgr->pipeMgrGetFirstEntryHandle(
+            session.sessHandleGet(), pipe_tbl_hdl, pipe_dev_tgt,
+	    &first_entry_handle);
 
-  status = tableEntryGet_internal(
-      session, dev_tgt, flags, first_entry_handle, &pipe_match_spec, data);
-  if (status != BF_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR in getting first entry, err %d",
+    if (status == BF_OBJECT_NOT_FOUND) {
+        return status;
+    } else if (status != BF_SUCCESS) {
+        LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+                            __func__,
+                            __LINE__,
+                            table_name_get().c_str(),
+                            status);
+    }
+
+    match_key->populate_match_spec(&pipe_match_spec);
+
+    status = tableEntryGet_internal(
+            session, dev_tgt, flags, first_entry_handle, &pipe_match_spec, data);
+    if (status != BF_SUCCESS) {
+        LOG_TRACE("%s:%d %s ERROR in getting first entry, err %d",
+                            __func__,
+                            __LINE__,
+                            table_name_get().c_str(),
+                            status);
+    }
+    match_key->populate_key_from_match_spec(pipe_match_spec);
+    // Store ref point for GetNext_n to follow.
+    auto device_state =
+            BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
+    auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
+    nextRef->setRef(session.sessHandleGet(), dev_tgt.pipe_id, first_entry_handle);
+  } else {
+      BfRtMatchActionTableData *match_data =
+        static_cast<BfRtMatchActionTableData *>(data);
+      pipe_action_spec_t *pipe_action_spec = nullptr;
+      bf_rt_id_t req_action_id = 0;
+      pipe_act_fn_hdl_t pipe_act_fn_hdl = 0;
+
+      match_key->populate_match_spec(&pipe_match_spec);
+
+      std::vector<bf_rt_id_t> dataFields;
+      status = match_data->actionIdGet(&req_action_id);
+      BF_RT_ASSERT(status == BF_SUCCESS);
+
+      match_data->reset();
+      pipe_action_spec = match_data->get_pipe_action_spec();
+      status = pipeMgr->pipeMgrGetFirstEntry(
+                  session.sessHandleGet(), pipe_tbl_hdl, pipe_dev_tgt,
+                  &pipe_match_spec, pipe_action_spec, &pipe_act_fn_hdl);
+
+      if (status == BF_OBJECT_NOT_FOUND) {
+            return status;
+      } else if (status != BF_SUCCESS) {
+            LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+                                          __func__,
+                                          __LINE__,
+                                          table_name_get().c_str(),
+                                          status);
+      }
+      match_key->populate_key_from_match_spec(pipe_match_spec);
+      /* TODO: Build Action Data from the ActionSpec and re-enable this code. */
+#if 0
+      bf_rt_id_t action_id = this->getActIdFromActFnHdl(pipe_act_fn_hdl);
+      if (req_action_id && req_action_id != action_id) {
+         // Keeping this log as warning for iteration purposes.
+         // Caller can decide to throw an error if required
+         LOG_TRACE("%s:%d %s ERROR expecting action ID to be %d but recvd %d ",
               __func__,
               __LINE__,
               table_name_get().c_str(),
-              status);
+              req_action_id,
+              action_id);
+         return BF_INVALID_ARG;
+      }
+#endif
+      bf_rt_id_t action_id;
+      this->actionIdGet("NoAction", &action_id);
+      match_data->actionIdSet(action_id);
+      match_data->setActiveFields(dataFields);
   }
-  match_key->populate_key_from_match_spec(pipe_match_spec);
-  // Store ref point for GetNext_n to follow.
-  auto device_state =
-      BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
-  auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
-  nextRef->setRef(session.sessHandleGet(), dev_tgt.pipe_id, first_entry_handle);
 
   return status;
 }
@@ -1497,6 +1557,8 @@ bf_status_t BfRtMatchActionTable::tableEntryGetNext_n(
 
   const BfRtMatchActionKey &match_key =
       static_cast<const BfRtMatchActionKey &>(key);
+  bf_status_t status;
+  bool store_entries;
 
   dev_target_t pipe_dev_tgt;
   pipe_dev_tgt.device_id = dev_tgt.dev_id;
@@ -1507,111 +1569,135 @@ bf_status_t BfRtMatchActionTable::tableEntryGetNext_n(
   pipe_mat_ent_hdl_t pipe_entry_hdl;
   pipe_tbl_match_spec_t pipe_match_spec = {0};
   match_key.populate_match_spec(&pipe_match_spec);
-  bf_status_t status =
-      pipeMgr->pipeMgrMatchSpecToEntHdl(session.sessHandleGet(),
-                                        pipe_dev_tgt,
-                                        pipe_tbl_hdl,
-                                        &pipe_match_spec,
-                                        &pipe_entry_hdl);
-  // If key is not found and this is subsequent call, API should continue
-  // from previous call.
-  if (status == BF_OBJECT_NOT_FOUND) {
-    // Warn the user that currently used key no longer exist.
-    LOG_WARN("%s:%d %s Provided key does not exist, trying previous handle",
-             __func__,
-             __LINE__,
-             table_name_get().c_str());
-    auto device_state =
-        BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
-    auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
-    status = nextRef->getRef(
-        session.sessHandleGet(), dev_tgt.pipe_id, &pipe_entry_hdl);
-  }
-
-  if (status != BF_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
-              __func__,
-              __LINE__,
-              table_name_get().c_str());
+  status = pipeMgr->pipeMgrStoreEntries(session.sessHandleGet(),
+					pipe_tbl_hdl, pipe_dev_tgt,
+					&store_entries);
+  if (status) {
+    LOG_ERROR("Checking if entries are stored in SDE failed.");
     return status;
   }
-  std::vector<int> next_entry_handles(n, 0);
-
-  status = pipeMgr->pipeMgrGetNextEntryHandles(session.sessHandleGet(),
-                                               pipe_tbl_hdl,
-                                               pipe_dev_tgt,
-                                               pipe_entry_hdl,
-                                               n,
-                                               next_entry_handles.data());
-  if (status == BF_OBJECT_NOT_FOUND) {
-    if (num_returned) {
-      *num_returned = 0;
+  if (store_entries) {
+    status =
+        pipeMgr->pipeMgrMatchSpecToEntHdl(session.sessHandleGet(),
+                                          pipe_dev_tgt,
+                                          pipe_tbl_hdl,
+                                          &pipe_match_spec,
+                                          &pipe_entry_hdl);
+    // If key is not found and this is subsequent call, API should continue
+    // from previous call.
+    if (status == BF_OBJECT_NOT_FOUND) {
+      // Warn the user that currently used key no longer exist.
+      LOG_WARN("%s:%d %s Provided key does not exist, trying previous handle",
+               __func__,
+               __LINE__,
+               table_name_get().c_str());
+      auto device_state =
+          BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
+      auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
+      status = nextRef->getRef(
+          session.sessHandleGet(), dev_tgt.pipe_id, &pipe_entry_hdl);
     }
-    return BF_SUCCESS;
-  }
-  if (status != BF_SUCCESS) {
-    LOG_TRACE(
-        "%s:%d %s ERROR in getting next entry handles from pipe-mgr, err %d",
-        __func__,
-        __LINE__,
-        table_name_get().c_str(),
-        status);
-    return status;
-  }
-  pipe_tbl_match_spec_t match_spec;
-  unsigned i = 0;
-  for (i = 0; i < n; i++) {
-    std::memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
-    auto this_key =
-        static_cast<BfRtMatchActionKey *>((*key_data_pairs)[i].first);
-    auto this_data = (*key_data_pairs)[i].second;
-    bf_rt_id_t table_id_from_data;
-    const BfRtTable *table_from_data;
-    this_data->getParent(&table_from_data);
-    table_from_data->tableIdGet(&table_id_from_data);
 
-    if (table_id_from_data != this->table_id_get()) {
+    if (status != BF_SUCCESS) {
+      LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
+                __func__,
+                __LINE__,
+                table_name_get().c_str());
+      return status;
+    }
+    std::vector<uint32_t> next_entry_handles(n, 0);
+
+    status = pipeMgr->pipeMgrGetNextEntryHandles(session.sessHandleGet(),
+                                                 pipe_tbl_hdl,
+                                                 pipe_dev_tgt,
+                                                 pipe_entry_hdl,
+                                                 n,
+                                                 next_entry_handles.data());
+    if (status == BF_OBJECT_NOT_FOUND) {
+      if (num_returned) {
+        *num_returned = 0;
+      }
+      return BF_SUCCESS;
+    }
+    if (status != BF_SUCCESS) {
       LOG_TRACE(
-          "%s:%d %s ERROR : Table Data object with object id %d  does not "
-          "match "
-          "the table",
+          "%s:%d %s ERROR in getting next entry handles from pipe-mgr, err %d",
           __func__,
           __LINE__,
           table_name_get().c_str(),
-          table_id_from_data);
-      return BF_INVALID_ARG;
+          status);
+      return status;
     }
-    if (next_entry_handles[i] == -1) {
-      break;
-    }
-    this_key->populate_match_spec(&match_spec);
-    status = tableEntryGet_internal(
-        session, dev_tgt, flags, next_entry_handles[i], &match_spec, this_data);
-    if (status != BF_SUCCESS) {
-      LOG_TRACE("%s:%d %s ERROR in getting %dth entry from pipe-mgr, err %d",
-                __func__,
-                __LINE__,
-                table_name_get().c_str(),
-                i + 1,
-                status);
-      // Make the data object null if error
-      (*key_data_pairs)[i].second = nullptr;
-    }
-    this_key->setPriority(match_spec.priority);
-    this_key->setPartitionIndex(match_spec.partition_index);
-  }
-  auto device_state =
-      BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
-  auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
-  // Even if tableEntryGet failed, since pipe_mgr can fetch next n handles
-  // starting from non-existing handle, just store last one that was used.
-  nextRef->setRef(
-      session.sessHandleGet(), dev_tgt.pipe_id, next_entry_handles[i - 1]);
+    pipe_tbl_match_spec_t match_spec;
+    unsigned i = 0;
+    for (i = 0; i < n; i++) {
+      std::memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+      auto this_key =
+          static_cast<BfRtMatchActionKey *>((*key_data_pairs)[i].first);
+      auto this_data = (*key_data_pairs)[i].second;
+      bf_rt_id_t table_id_from_data;
+      const BfRtTable *table_from_data;
+      this_data->getParent(&table_from_data);
+      table_from_data->tableIdGet(&table_id_from_data);
 
-  if (num_returned) {
-    *num_returned = i;
+      if (table_id_from_data != this->table_id_get()) {
+        LOG_TRACE(
+            "%s:%d %s ERROR : Table Data object with object id %d  does not "
+            "match "
+            "the table",
+            __func__,
+            __LINE__,
+            table_name_get().c_str(),
+            table_id_from_data);
+        return BF_INVALID_ARG;
+      }
+      if (next_entry_handles[i] == (uint32_t)-1) {
+        break;
+      }
+      this_key->populate_match_spec(&match_spec);
+      status = tableEntryGet_internal(
+          session, dev_tgt, flags, next_entry_handles[i], &match_spec, this_data);
+      if (status != BF_SUCCESS) {
+        LOG_TRACE("%s:%d %s ERROR in getting %dth entry from pipe-mgr, err %d",
+                  __func__,
+                  __LINE__,
+                  table_name_get().c_str(),
+                  i + 1,
+                  status);
+        // Make the data object null if error
+        (*key_data_pairs)[i].second = nullptr;
+      }
+      this_key->setPriority(match_spec.priority);
+      this_key->setPartitionIndex(match_spec.partition_index);
+    }
+    auto device_state =
+        BfRtDevMgrImpl::bfRtDeviceStateGet(dev_tgt.dev_id, prog_name);
+    auto nextRef = device_state->nextRefState.getObjState(this->table_id_get());
+    // Even if tableEntryGet failed, since pipe_mgr can fetch next n handles
+    // starting from non-existing handle, just store last one that was used.
+    nextRef->setRef(
+        session.sessHandleGet(), dev_tgt.pipe_id, next_entry_handles[i - 1]);
+
+    if (num_returned) {
+      *num_returned = i;
+    }
+  } else {
+      uint32_t num;
+      status = tableEntryGetNextNByKey(session, dev_tgt, flags,
+				       &pipe_match_spec, n, key_data_pairs,
+				       &num);
+      if (status != BF_SUCCESS) {
+        LOG_TRACE("%s:%d %s ERROR in getting entries from pipe-mgr, err %d",
+                  __func__,
+                  __LINE__,
+                  table_name_get().c_str(),
+                  status);
+      }
+      if (num_returned) {
+        *num_returned = num;
+      }
   }
-  return BF_SUCCESS;
+  return status;
 }
 
 bf_status_t BfRtMatchActionTable::tableSizeGet(const BfRtSession &session,
@@ -2045,6 +2131,67 @@ bf_status_t BfRtMatchActionTable::dataAllocate_internal(
 
   if (*data_ret == nullptr) {
     return BF_NO_SYS_RESOURCES;
+  }
+  return BF_SUCCESS;
+}
+
+bf_status_t BfRtMatchActionTable::tableEntryGetNextNByKey(
+    const BfRtSession &session,
+    const bf_rt_target_t &dev_tgt,
+    const uint64_t &flags,
+    pipe_tbl_match_spec_t *pipe_match_spec,
+    uint32_t n,
+    keyDataPairs *key_data_pairs,
+    uint32_t *num_returned) const{
+  uint32_t i;
+  bf_status_t status = BF_SUCCESS;
+  auto match_specs = std::unique_ptr<pipe_tbl_match_spec_t[]>{ new pipe_tbl_match_spec_t[n] };
+  auto action_specs = std::unique_ptr<struct pipe_action_spec*[]>{ new struct pipe_action_spec*[n] };
+  auto act_fn_hdls = std::unique_ptr<uint32_t[]>{ new uint32_t[n]};
+  bf_rt_id_t action_id;
+
+  for (i = 0; i < n; i++) {
+    auto this_key =
+          static_cast<BfRtMatchActionKey *>((*key_data_pairs)[i].first);
+    auto this_data = (*key_data_pairs)[i].second;
+    this_key->populate_match_spec(&match_specs.get()[i]);
+    BfRtMatchActionTableData *match_data =
+      static_cast<BfRtMatchActionTableData *>(this_data);
+
+    match_data->reset();
+    action_specs.get()[i] = match_data->get_pipe_action_spec();
+  }
+
+  dev_target_t pipe_dev_tgt;
+  pipe_dev_tgt.device_id = dev_tgt.dev_id;
+  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+
+  auto *pipeMgr = PipeMgrIntf::getInstance();
+  status = pipeMgr->pipeMgrGetNextNByKey(session.sessHandleGet(), pipe_tbl_hdl,
+				pipe_dev_tgt, pipe_match_spec, n,
+				match_specs.get(), action_specs.get(),
+				act_fn_hdls.get(), num_returned);
+  if (status == BF_OBJECT_NOT_FOUND) {
+    return status;
+  } else if (status != BF_SUCCESS) {
+    LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+              __func__,
+              __LINE__,
+              table_name_get().c_str(),
+              status);
+    return status;
+  }
+
+  for (i = 0; i < *num_returned; i++) {
+    auto this_data = (*key_data_pairs)[i].second;
+    BfRtMatchActionTableData *match_data =
+      static_cast<BfRtMatchActionTableData *>(this_data);
+
+    std::vector<bf_rt_id_t> dataFields;
+    /* TODO: Build Action Data from the ActionSpec and return correct action. */
+    this->actionIdGet("NoAction", &action_id);
+    match_data->actionIdSet(action_id);
+    match_data->setActiveFields(dataFields);
   }
   return BF_SUCCESS;
 }
@@ -2737,7 +2884,7 @@ bf_status_t BfRtMatchActionIndirectTable::tableEntryGetFirst(
   pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
 
   // Get the first entry handle present in pipe-mgr
-  int first_entry_handle;
+  uint32_t first_entry_handle;
   bf_status_t status = pipeMgr->pipeMgrGetFirstEntryHandle(
       session.sessHandleGet(), pipe_tbl_hdl, pipe_dev_tgt, &first_entry_handle);
 
@@ -2826,7 +2973,7 @@ bf_status_t BfRtMatchActionIndirectTable::tableEntryGetNext_n(
               table_name_get().c_str());
     return status;
   }
-  std::vector<int> next_entry_handles(n, 0);
+  std::vector<uint32_t> next_entry_handles(n, 0);
 
   status = pipeMgr->pipeMgrGetNextEntryHandles(session.sessHandleGet(),
                                                pipe_tbl_hdl,
@@ -2872,7 +3019,7 @@ bf_status_t BfRtMatchActionIndirectTable::tableEntryGetNext_n(
           table_id_from_data);
       return BF_INVALID_ARG;
     }
-    if (next_entry_handles[i] == -1) {
+    if (next_entry_handles[i] == (uint32_t)-1) {
       break;
     }
     this_key->populate_match_spec(&match_spec);
@@ -3116,7 +3263,7 @@ bf_status_t BfRtMatchActionIndirectTable::getActionState(
     }
 
     status =
-        selTbl->getOneMbr(session, dev_tgt.dev_id, *sel_grp_hdl, adt_entry_hdl);
+        selTbl->getOneMbr(session, dev_tgt, *sel_grp_hdl, adt_entry_hdl);
     if (status != BF_SUCCESS) {
       *adt_entry_hdl =
           BfRtMatchActionIndirectTableData::invalid_action_entry_hdl;
@@ -3933,7 +4080,7 @@ bf_status_t BfRtActionTable::tableEntryDel(const BfRtSession &session,
   }
 
   status = pipeMgr->pipeMgrAdtEntDel(session.sessHandleGet(),
-                                     pipe_dev_tgt.device_id,
+                                     pipe_dev_tgt,
                                      pipe_tbl_hdl,
                                      adt_ent_hdl,
                                      0 /* Pipe api flags */);
@@ -4002,7 +4149,7 @@ bf_status_t BfRtActionTable::tableClear(const BfRtSession &session,
       return BF_OBJECT_NOT_FOUND;
     }
     status = pipeMgr->pipeMgrAdtEntDel(session.sessHandleGet(),
-                                       pipe_dev_tgt.device_id,
+                                       pipe_dev_tgt,
                                        pipe_tbl_hdl,
                                        adt_ent_hdl,
                                        0 /* Pipe api flags */);
@@ -4455,9 +4602,14 @@ bf_status_t BfRtActionTable::tableEntryGet_internal(
     read_from_hw = true;
   }
   pipe_act_fn_hdl_t act_fn_hdl;
+  dev_target_t pipe_dev_tgt;
+
+  pipe_dev_tgt.device_id = dev_tgt.dev_id;
+  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  
   bf_status_t status =
       pipeMgr->pipeMgrGetActionDataEntry(session.sessHandleGet(), pipe_tbl_hdl,
-                                         dev_tgt.dev_id,
+                                         pipe_dev_tgt,
                                          entry_hdl,
                                          &action_spec->act_data,
                                          &act_fn_hdl,
@@ -4468,7 +4620,7 @@ bf_status_t BfRtActionTable::tableEntryGet_internal(
   // with read_from_hw = False
   if (status == BF_OBJECT_NOT_FOUND && read_from_hw) {
     status = pipeMgr->pipeMgrGetActionDataEntry(session.sessHandleGet(), pipe_tbl_hdl,
-                                                dev_tgt.dev_id,
+                                                pipe_dev_tgt,
                                                 entry_hdl,
                                                 &action_spec->act_data,
                                                 &act_fn_hdl,
@@ -4660,7 +4812,7 @@ bf_status_t BfRtSelectorTable::tableEntryAdd(const BfRtSession &session,
 
   // Set the membership of the group
   status = pipeMgr->pipeMgrSelGrpMbrsSet(session.sessHandleGet(),
-                                         pipe_dev_tgt.device_id,
+                                         pipe_dev_tgt,
                                          pipe_tbl_hdl,
                                          sel_grp_hdl,
                                          members.size(),
@@ -4697,7 +4849,7 @@ cleanup:
   }
 cleanup_pipe:
   pipeMgr->pipeMgrSelGrpDel(session.sessHandleGet(),
-                            pipe_dev_tgt.device_id,
+                            pipe_dev_tgt,
                             pipe_tbl_hdl,
                             sel_grp_hdl,
                             0 /* Pipe API flags */);
@@ -4826,7 +4978,7 @@ bf_status_t BfRtSelectorTable::tableEntryMod(const BfRtSession &session,
   }
 
   status = pipeMgr->pipeMgrSelGrpMbrsSet(session.sessHandleGet(),
-                                         pipe_dev_tgt.device_id,
+                                         pipe_dev_tgt,
                                          pipe_tbl_hdl,
                                          sel_grp_hdl,
                                          members.size(),
@@ -4889,7 +5041,7 @@ bf_status_t BfRtSelectorTable::tableEntryDel(const BfRtSession &session,
   }
 
   status = pipeMgr->pipeMgrSelGrpDel(session.sessHandleGet(),
-                                     pipe_dev_tgt.device_id,
+                                     pipe_dev_tgt,
                                      pipe_tbl_hdl,
                                      sel_grp_hdl,
                                      0 /* Pipe API flags */);
@@ -4957,7 +5109,7 @@ bf_status_t BfRtSelectorTable::tableClear(const BfRtSession &session,
       break;
     }
     status = pipeMgr->pipeMgrSelGrpDel(session.sessHandleGet(),
-                                       pipe_dev_tgt.device_id,
+                                       pipe_dev_tgt,
                                        pipe_tbl_hdl,
                                        sel_grp_hdl,
                                        0 /* Pipe API flags */);
@@ -5011,6 +5163,12 @@ bf_status_t BfRtSelectorTable::tableEntryGet_internal(
     return BF_OBJECT_NOT_FOUND;
   }
 
+  dev_target_t pipe_dev_tgt;
+  
+  pipe_dev_tgt.device_id = dev_tgt.dev_id;
+  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+
+  
   // Get the selector group hdl from the group id
   bool found = sel_state->grpIdExists(dev_tgt.pipe_id, grp_id, &sel_grp_hdl);
   if (!found) {
@@ -5041,7 +5199,7 @@ bf_status_t BfRtSelectorTable::tableEntryGet_internal(
   // Query pipe mgr for member and status list
   uint32_t count = 0;
   status = pipeMgr->pipeMgrGetSelGrpMbrCount(session.sessHandleGet(),
-                                             dev_tgt.dev_id,
+                                             pipe_dev_tgt,
                                              pipe_tbl_hdl,
                                              sel_grp_hdl,
                                              &count);
@@ -5059,7 +5217,7 @@ bf_status_t BfRtSelectorTable::tableEntryGet_internal(
   std::vector<char> pipe_member_status(count, 0);
   uint32_t mbrs_populated = 0;
   status = pipeMgr->pipeMgrSelGrpMbrsGet(session.sessHandleGet(),
-                                         dev_tgt.dev_id,
+                                         pipe_dev_tgt,
                                          pipe_tbl_hdl,
                                          sel_grp_hdl,
                                          count,
@@ -5388,13 +5546,18 @@ bf_status_t BfRtSelectorTable::getNextGrp(
 }
 
 bf_status_t BfRtSelectorTable::getOneMbr(const BfRtSession &session,
-                                         const uint16_t device_id,
+                                         const bf_rt_target_t &dev_tgt,
                                          const pipe_sel_grp_hdl_t sel_grp_hdl,
                                          pipe_adt_ent_hdl_t *member_hdl) const {
   auto *pipeMgr = PipeMgrIntf::getInstance();
+  dev_target_t pipe_dev_tgt;
+
+  pipe_dev_tgt.device_id = dev_tgt.dev_id;
+  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+
   return pipeMgr->pipeMgrGetFirstGroupMember(session.sessHandleGet(),
                                              pipe_tbl_hdl,
-                                             device_id,
+                                             pipe_dev_tgt,
                                              sel_grp_hdl,
                                              member_hdl);
 }
@@ -7024,7 +7187,7 @@ bf_status_t BfRtPhase0Table::tableEntryGetFirst(const BfRtSession &session,
   dev_target_t pipe_dev_tgt;
   pipe_dev_tgt.device_id = dev_tgt.dev_id;
   pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
-  int pipe_entry_hdl = 0;
+  uint32_t pipe_entry_hdl = 0;
   bf_status_t status = pipeMgr->pipeMgrGetFirstEntryHandle(
       session.sessHandleGet(), pipe_tbl_hdl, pipe_dev_tgt, &pipe_entry_hdl);
   if (status == BF_OBJECT_NOT_FOUND) {
@@ -7106,7 +7269,7 @@ bf_status_t BfRtPhase0Table::tableEntryGetNext_n(const BfRtSession &session,
     return status;
   }
 
-  std::vector<int> next_entry_handles(n, 0);
+  std::vector<uint32_t> next_entry_handles(n, 0);
   status = pipeMgr->pipeMgrGetNextEntryHandles(session.sessHandleGet(),
                                                pipe_tbl_hdl,
                                                pipe_dev_tgt,
@@ -7152,7 +7315,7 @@ bf_status_t BfRtPhase0Table::tableEntryGetNext_n(const BfRtSession &session,
           table_id_from_data);
       return BF_INVALID_ARG;
     }
-    if (next_entry_handles[i] == -1) {
+    if (next_entry_handles[i] == (uint32_t)-1) {
       break;
     }
 

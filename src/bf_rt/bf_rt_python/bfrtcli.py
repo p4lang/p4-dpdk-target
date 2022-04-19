@@ -232,7 +232,7 @@ class CIntfBFRT:
         if not sts == 0:
             print("Error, unable to create BF Runtime session")
             return -1
-        self._dev_tgt = self.BfDevTgt(self._dev_id, 0xFFFF, 0xff, 0xff)
+        self._dev_tgt = self.BfDevTgt(self._dev_id, 0, 0xff, 0xff)
 
     def _devcall(self):
         pdb.set_trace()
@@ -553,6 +553,7 @@ class BFNode(BFContext):
         # mask the clear method here to avoid the current missing implementation of clear method
         # self._commands["clear"] = getattr(self, "clear")
         self._commands["info"] = getattr(self, "info")
+        self._commands["enable"] = getattr(self, "enable")
 
     def enable(self):
         self._cintf.get_driver().bf_rt_enable_pipeline(self._cintf.get_dev_id())

@@ -1,0 +1,12 @@
+{
+    "schema_version" : "1.0.0",
+    "tables" : [
+      {
+        "name" : "pipe.Ingress.l2_fwd_rx",
+        "id" : 33598764,
+        "table_type" : "MatchAction_Direct",
+        "size" : 1024,
+        "annotations" : []
+    }
+]
+}

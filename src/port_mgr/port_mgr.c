@@ -15,6 +15,9 @@
  */
 
 #include "port_mgr.h"
+#include <target-utils/third-party/xxHash/xxHash/xxhash.h>
+
+#define HASH_SEED 0x12345678
 
 /* Pointer to global port_mgr context */
 static struct port_mgr_ctx_t *port_mgr_ctx_obj;
@@ -29,32 +32,35 @@ void port_mgr_ctx_cleanup(struct port_mgr_ctx_t *ctx)
 	port_mgr_log_trace("Entering %s", __func__);
 
 	P4_SDE_MAP_DESTROY(&ctx->port_info_map);
+	P4_SDE_MAP_DESTROY(&ctx->port_name_map);
 
 	port_mgr_log_trace("Exiting %s", __func__);
 }
 
 int port_mgr_set_port_info(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib)
+			   struct port_attributes_t *port_attrib)
 {
-	port_info_t *port_info;
+	struct port_info_t *port_info;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
 
 	port_mgr_log_trace("Entering %s", __func__);
 
-	port_info = P4_SDE_CALLOC(1, sizeof(port_info_t));
+	port_info = P4_SDE_CALLOC(1, sizeof(struct port_info_t));
 	if (!port_info)
 		return BF_NO_SYS_RESOURCES;
 
 	port_info->dev_port = dev_port;
 	memcpy(&port_info->port_attrib, port_attrib,
-	       sizeof(port_attributes_t));
+	       sizeof(struct port_attributes_t));
 
 	/* Get the global port_mgr context */
 	ctx = get_port_mgr_ctx();
-	if (!ctx)
+	if (!ctx) {
+		P4_SDE_FREE(port_info);
 		return BF_OBJECT_NOT_FOUND;
+	}
 
 	map = &ctx->port_info_map;
 
@@ -75,7 +81,7 @@ int port_mgr_set_port_info(bf_dev_port_t dev_port,
 
 int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 {
-	port_info_t *port_info;
+	struct port_info_t *port_info;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
@@ -90,11 +96,8 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 	map = &ctx->port_info_map;
 
 	port_info = port_mgr_get_port_info(dev_port);
-	if (!port_info) {
-		port_mgr_log_trace("Port Info not found. Exiting %s",
-				   __func__);
+	if (!port_info)
 		return BF_OBJECT_NOT_FOUND;
-	}
 
 	P4_SDE_FREE(port_info);
 
@@ -111,9 +114,9 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 	return BF_SUCCESS;
 }
 
-port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
+struct port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
 {
-	port_info_t *port_info = NULL;
+	struct port_info_t *port_info = NULL;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
@@ -129,10 +132,146 @@ port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
 
 	/* Get Port Info from Hash Map */
 	status = P4_SDE_MAP_GET(map, dev_port, (void **)&port_info);
+    
+	if (!port_info)
+		port_mgr_log_error("%s: Port info not found for dev port %d",
+							__func__, dev_port);
 
 	port_mgr_log_trace("Exiting %s", __func__);
 
 	return ((status == BF_MAP_OK) ? port_info : NULL);
+}
+
+static u32 construct_hash(char *str)
+{
+	return XXH32(str, strlen(str), HASH_SEED);
+}
+
+u32 *port_mgr_get_port_from_name(char *port_name)
+{
+        p4_sde_map *map;
+        u32 *dev_port_obj = NULL;
+	struct port_mgr_ctx_t *ctx;
+        u32 port_name_hash = 0;
+        int status;
+
+        port_mgr_log_trace("Entering %s", __func__);
+
+        port_name_hash = construct_hash(port_name);
+        port_mgr_log_trace(" %s : Port Name Hash %u", __func__,
+                           port_name_hash);
+
+        /* Get the global port_mgr context */
+        ctx = get_port_mgr_ctx();
+        if (!ctx)
+                return NULL;
+
+        map = &ctx->port_name_map;
+
+        /* Get Port Info from Hash Map */
+        status = P4_SDE_MAP_GET(map, port_name_hash, (void **)&dev_port_obj);
+
+        port_mgr_log_trace("Exiting %s", __func__);
+        return ((status == BF_MAP_OK) ? dev_port_obj : NULL);
+}
+
+int port_mgr_add_name(char *port_name, u32 dev_port)
+{
+        u32 *dev_port_obj = NULL;
+        u32 port_name_hash = 0;
+	struct port_mgr_ctx_t *ctx;
+        p4_sde_map_sts status;
+        p4_sde_map *map;
+
+        port_mgr_log_trace("Entering %s", __func__);
+
+        /* Get the global port_mgr context */
+        ctx = get_port_mgr_ctx();
+        if (!ctx) {
+                return BF_OBJECT_NOT_FOUND;
+        }
+        map = &ctx->port_name_map;
+
+        port_name_hash = construct_hash(port_name);
+        port_mgr_log_trace(" %s : Port Name Hash %u", __func__,
+                           port_name_hash);
+
+	if (P4_SDE_MAP_GET(map, port_name_hash, (void **)&dev_port_obj) == 
+			BF_MAP_OK) {
+		port_mgr_log_trace
+			("%s : Port Name Hash Collision, Entry already exists",
+			__func__);
+		return BF_UNEXPECTED;
+	}
+
+        dev_port_obj = P4_SDE_CALLOC(1, sizeof(*dev_port_obj));
+        if (!dev_port_obj)
+                return BF_NO_SYS_RESOURCES;
+
+	*dev_port_obj = dev_port;
+
+
+        status = P4_SDE_MAP_ADD(map, port_name_hash, (void *)dev_port_obj);
+        if (status != BF_MAP_OK) {
+                port_mgr_log_error("Adding dev port %d to port name map "
+                                   "failed . sts %d", dev_port, status);
+                status = BF_UNEXPECTED;
+                goto cleanup;
+        }
+
+        port_mgr_log_trace("Exiting %s", __func__);
+        return BF_SUCCESS;
+
+cleanup:
+        P4_SDE_FREE(dev_port_obj);
+        port_mgr_log_trace("Exiting %s", __func__);
+        return BF_SUCCESS;
+}
+
+int port_mgr_remove_name(char *port_name)
+{
+        u32 *dev_port_obj = NULL;
+        int status;
+        u32 port_name_hash = 0;
+	struct port_mgr_ctx_t *ctx;
+        p4_sde_map *map;
+
+        port_mgr_log_trace("Entering %s", __func__);
+
+        port_name_hash = construct_hash(port_name);
+        port_mgr_log_trace(" %s : Port Name Hash %u", __func__,
+                           port_name_hash);
+
+        dev_port_obj = port_mgr_get_port_from_name(port_name);
+        if (!dev_port_obj) {
+                port_mgr_log_error("Dev Port not found in port name map. "
+                                   "Exiting %s", __func__);
+                status = BF_OBJECT_NOT_FOUND;
+                goto end;
+        }
+
+        P4_SDE_FREE(dev_port_obj);
+
+        /* Get the global port_mgr context */
+        ctx = get_port_mgr_ctx();
+        if (!ctx)
+                return BF_OBJECT_NOT_FOUND;
+
+        map = &ctx->port_name_map;
+
+        /* Remove Port Info from Hash Map */
+        status = P4_SDE_MAP_RMV(map, port_name_hash);
+        if (status != BF_MAP_OK) {
+                port_mgr_log_error("%s: failed to remove object from map",
+                                   __func__);
+                status = BF_UNEXPECTED;
+                goto end;
+        }
+        status = BF_SUCCESS;
+
+end:
+        port_mgr_log_trace("Exiting %s", __func__);
+        return status;
 }
 
 int port_mgr_shared_init(void)
@@ -157,6 +296,7 @@ int port_mgr_shared_init(void)
 	}
 
 	P4_SDE_MAP_INIT(&ctx->port_info_map);
+	P4_SDE_MAP_INIT(&ctx->port_name_map);
 
 	/* Store the context pointer */
 	port_mgr_ctx_obj = ctx;
@@ -192,6 +332,8 @@ void port_mgr_init(void)
 	bf_drv_client_register_callbacks(bf_drv_hdl, &callbacks,
 					 BF_CLIENT_PRIO_4);
 
+	// Platform specific initialization
+	port_mgr_platform_init();
 	port_mgr_log_trace("Exiting %s", __func__);
 	return;
 

@@ -52,85 +52,84 @@ typedef enum bf_pm_port_dir_e {
 #define MEMPOOL_NAME_LEN 64
 #define PCAP_FILE_NAME_LEN 128
 #define DEV_ARGS_LEN 256
+#define DIR_REG_ARRAY_SIZE 256
+
+#define PORT_IN_BURST_SIZE 32
+#define PORT_OUT_BURST_SIZE 1
 
 /**
  * DPDK Port Types
  */
-typedef enum dpdk_port_type_t {
+enum dpdk_port_type_t {
 	BF_DPDK_TAP,    /*!< DPDK Tap Port */
 	BF_DPDK_LINK,   /*!< DPDK Link Port */
 	BF_DPDK_SOURCE,   /*!< DPDK Source Port */
 	BF_DPDK_SINK,   /*!< DPDK Sink Port */
+	BF_DPDK_RING,   /*!< DPDK Ring Port */
 	BF_DPDK_PORT_MAX,   /*!< DPDK Invalid Port */
-} dpdk_port_type_t;
+};
 
 /**
  * DPDK Tap Port Attributes
  */
-typedef struct tap_port_attributes_t {
+struct tap_port_attributes_t {
 	uint32_t mtu;           /*!< Port MTU */
-} tap_port_attributes_t;
+};
 
 /**
  * DPDK Link Port Attributes
  */
-typedef struct link_port_attributes_t {
+struct link_port_attributes_t {
 	char pcie_domain_bdf[PCIE_BDF_LEN]; /*!< PCIE Domain BDF */
 	char dev_args[DEV_ARGS_LEN]; /*!< Device Arguments */
 	uint32_t dev_hotplug_enabled; /*!< Device Hotplug Enabled Flag */
-} link_port_attributes_t;
+};
 
 /**
  * DPDK Source Port Attributes
  */
-typedef struct source_port_attributes_t {
+struct source_port_attributes_t {
 	char file_name[PCAP_FILE_NAME_LEN]; /*!< PCAP File Name */
-} source_port_attributes_t;
+};
 
 /**
  * DPDK Sink Port Attributes
  */
-typedef struct sink_port_attributes_t {
+struct sink_port_attributes_t {
 	char file_name[PCAP_FILE_NAME_LEN]; /*!< PCAP File Name */
-} sink_port_attributes_t;
+};
+
+/**
+ * DPDK Ring Port Attributes
+ */
+struct ring_port_attributes_t {
+	uint32_t size; /*!< Size of the ring port */
+};
 
 /**
  * DPDK Port Attributes
  */
-typedef struct port_attributes_t {
+struct port_attributes_t {
 	char port_name[PORT_NAME_LEN];         /*!< Port Name */
 	char mempool_name[MEMPOOL_NAME_LEN];   /*!< Mempool Name */
-	char pipe_name[PIPE_NAME_LEN];         /*!< Pipeline Name */
+	char pipe_in[PIPE_NAME_LEN];           /*!< Pipeline Name in Input
+						*   Direction*/
+	char pipe_out[PIPE_NAME_LEN];          /*!< Pipeline Name in Output
+						*   Direction*/
 	bf_pm_port_dir_e port_dir;              /*!< Port Direction */
 	uint32_t port_in_id;    /*!< Port ID for Pipeline in Input Direction */
 	uint32_t port_out_id;   /*!< Port ID for Pipeline in Output Direction */
-	dpdk_port_type_t port_type;            /*!< Port Type */
+	uint8_t net_port;    /*!< if set port is network port else host port*/
+	enum dpdk_port_type_t port_type;            /*!< Port Type */
 
 	union {
-		tap_port_attributes_t tap;       /*!< Tap Port Attributes */
-		link_port_attributes_t link;     /*!< Link Port Attributes */
-		source_port_attributes_t source; /*!< Source Port Attributes */
-		sink_port_attributes_t sink;     /*!< Sink Port Attributes */
+		struct tap_port_attributes_t tap;       /*!< Tap Port Attributes */
+		struct link_port_attributes_t link;     /*!< Link Port Attributes */
+		struct source_port_attributes_t source; /*!< Source Port Attributes */
+		struct sink_port_attributes_t sink;     /*!< Sink Port Attributes */
+		struct ring_port_attributes_t ring;     /*!< Ring Port Attributes */
 	};
-} port_attributes_t;
-
-/**
- * Enum identifying DPDK Port Counters
- */
-typedef enum {
-	INPUT_PACKETS,			/*!< Input Number of Packets */
-	INPUT_BYTES,			/*!< Input Number of Bytes */
-	INPUT_EMPTY_POLLS,		/*!< Input Number of Empty Polls */
-	OUTPUT_PACKETS,			/*!< Output Number of Packets */
-	OUTPUT_BYTES,			/*!< Output Number of Bytes */
-	BF_DPDK_NUM_COUNTERS,		/*!< Total Number of Counters */
-} port_counters_t;
-
-/**
- * Create a sink port if required
- * @return Status of the API call.
- */
-bf_status_t port_mgr_sink_create(const char *pipe_name);
+};
 #ifdef __cplusplus
 }
 #endif /* C++ */

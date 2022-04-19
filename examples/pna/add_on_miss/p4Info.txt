@@ -1,0 +1,61 @@
+pkg_info {
+  arch: "pna"
+}
+tables {
+  preamble {
+    id: 38237845
+    name: "MainControlImpl.ipv4_da"
+    alias: "ipv4_da"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ipv4.dstAddr"
+    bitwidth: 32
+    match_type: EXACT
+  }
+  action_refs {
+    id: 25584005
+    annotations: "@tableonly"
+    scope: TABLE_ONLY
+  }
+  action_refs {
+    id: 18241179
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  const_default_action_id: 18241179
+  size: 1024
+}
+actions {
+  preamble {
+    id: 25584005
+    name: "MainControlImpl.next_hop"
+    alias: "next_hop"
+  }
+  params {
+    id: 1
+    name: "vport"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+}
+actions {
+  preamble {
+    id: 18241179
+    name: "MainControlImpl.add_on_miss_action"
+    alias: "add_on_miss_action"
+  }
+}
+type_info {
+  new_types {
+    key: "PortId_t"
+    value {
+      translated_type {
+        uri: "p4.org/pna/v1/PortId_t"
+        sdn_bitwidth: 32
+      }
+    }
+  }
+}

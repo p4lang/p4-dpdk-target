@@ -75,6 +75,12 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 
 	LOG_TRACE("Entering %s", __func__);
 
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
 		LOG_ERROR("API prologue failed with err: %d", status);
@@ -131,7 +137,7 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_tbl_hdl,
 		u32 sel_grp_hdl,
 		uint32_t num_mbrs,
@@ -139,18 +145,23 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		bool *enable,
 		uint32_t pipe_api_flags)
 {
+	struct pipe_mgr_mat_state *adt_tbl_state;
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
+	struct pipe_mgr_mat *adt_tbl;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
-
-	dev_tgt.device_id = device_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
+	u32 i;
 
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -166,8 +177,27 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		goto cleanup;
 	}
 
+	/* get the ADT table handle*/
+	status = pipe_mgr_ctx_get_tbl(dev_tgt,
+			tbl->ctx.adt_handle, &adt_tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  sel_tbl_hdl);
+		goto cleanup;
+	}
+
 	tbl_state = tbl->state;
 	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  sel_tbl_hdl, status);
+		status = BF_UNEXPECTED;
+		goto cleanup;
+	}
+
+	/*Acquiring the mutux for the ADT table associated with this sel tbl*/
+	adt_tbl_state = adt_tbl->state;
+	status = P4_SDE_MUTEX_LOCK(&adt_tbl_state->lock);
 	if (status) {
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  sel_tbl_hdl, status);
@@ -202,6 +232,25 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		goto cleanup_map_add;
 	}
 
+	/* incrementing the members reference count */
+	for (i = 0; i < num_mbrs; i++) {
+		status = pipe_mgr_adt_member_reference_add_delete(dev_tgt,
+				tbl->ctx.adt_handle,
+				mbrs[i], 0);
+		if (status) {
+			LOG_ERROR("ADT member reference add failed");
+			status = BF_UNEXPECTED;
+			goto cleanup_map_add;
+		}
+	}
+
+	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock)) {
+		LOG_ERROR("Unlock of table %d failed",
+				tbl->ctx.adt_handle);
+		status = BF_UNEXPECTED;
+		goto cleanup_map_add;
+	}
+
 	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
 		LOG_ERROR("Unlock of table %d failed", sel_tbl_hdl);
 		status = BF_UNEXPECTED;
@@ -230,22 +279,24 @@ cleanup:
 
 int pipe_mgr_get_first_group_member(u32 sess_hdl,
 		u32 tbl_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_grp_hdl,
 		u32 *mbr_hdl)
 {
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -307,7 +358,7 @@ cleanup:
 }
 
 int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t *count)
@@ -315,15 +366,17 @@ int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -383,7 +436,7 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 sel_grp_hdl,
 		uint32_t mbrs_size,
@@ -394,16 +447,18 @@ int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 	u32 i;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -468,23 +523,28 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_del(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t pipe_api_flags)
 {
+	struct pipe_mgr_mat_state *adt_tbl_state;
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
+	struct pipe_mgr_mat *adt_tbl;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
-
-	dev_tgt.device_id = device_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
+	u32 i;
 
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -500,11 +560,30 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		goto cleanup;
 	}
 
+	/* get the ADT table handle*/
+	status = pipe_mgr_ctx_get_tbl(dev_tgt,
+			tbl->ctx.adt_handle, &adt_tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  tbl->ctx.adt_handle);
+		goto cleanup;
+	}
+
 	tbl_state = tbl->state;
 	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
 	if (status) {
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  tbl_hdl, status);
+		status = BF_UNEXPECTED;
+		goto cleanup;
+	}
+
+	/*Acquiring the mutux for the ADT table associated with this sel tbl*/
+	adt_tbl_state = adt_tbl->state;
+	status = P4_SDE_MUTEX_LOCK(&adt_tbl_state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.adt_handle, status);
 		status = BF_UNEXPECTED;
 		goto cleanup;
 	}
@@ -518,17 +597,29 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		goto cleanup_tbl_unlock;
 	}
 
-	if (entry->num_mbrs)
-			status = dal_table_sel_member_add_del(sess_hdl,
-					dev_tgt, tbl_hdl,
-					grp_hdl, entry->num_mbrs,
-					entry->mbrs,
-					pipe_api_flags, &tbl->ctx,
-					1);
+	if (entry->num_mbrs) {
+		status = dal_table_sel_member_add_del(sess_hdl,
+				dev_tgt, tbl_hdl,
+				grp_hdl, entry->num_mbrs,
+				entry->mbrs,
+				pipe_api_flags, &tbl->ctx,
+				1);
 
-	if (status != BF_SUCCESS) {
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
+		if (status != BF_SUCCESS) {
+			status = BF_UNEXPECTED;
+			goto cleanup_tbl_unlock;
+		}
+
+		for (i = 0; i < entry->num_mbrs; i++) {
+			status = pipe_mgr_adt_member_reference_add_delete(
+					dev_tgt, tbl->ctx.adt_handle,
+					entry->mbrs[i], 1);
+			if (status) {
+				LOG_ERROR("ADT member reference add failed");
+				status = BF_UNEXPECTED;
+				goto cleanup_tbl_unlock;
+			}
+		}
 	}
 
 	status = dal_table_sel_ent_add_del(sess_hdl, dev_tgt, tbl_hdl,
@@ -540,6 +631,13 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		pipe_mgr_sel_delete_entry_data(entry);
 	} else {
 		LOG_ERROR("dal_table_sel_member_add_del del failed");
+		status = BF_UNEXPECTED;
+		goto cleanup_tbl_unlock;
+	}
+
+	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock)) {
+		LOG_ERROR("Unlock of table %d failed",
+				tbl->ctx.adt_handle);
 		status = BF_UNEXPECTED;
 		goto cleanup_tbl_unlock;
 	}

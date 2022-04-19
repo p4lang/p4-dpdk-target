@@ -576,7 +576,6 @@ Status ConfigManager::warmInitBegin(
       auto bf_status = bf_pal_device_warm_init_begin(
           device_forwarding_config_->deviceIdGet(),
           mode,
-          BF_DEV_SERDES_UPD_NONE,
           true);
       check_and_return(bf_status, "Failed to begin warm_init");
 
@@ -754,8 +753,10 @@ ServerData::ServerData(std::string server_name, std::string address)
   builder_.SetMaxReceiveMessageSize(INT_MAX);
   builder_.AddListeningPort(
       address_, grpc::InsecureServerCredentials(), &port_);
-
   builder_.RegisterService(&service_);
+#ifdef PTF_ENABLED
+  builder_.RegisterService(&ptfservice_); //Adding PTF Service on the server
+#endif
   server_ = builder_.BuildAndStart();
   LOG_DBG("%s:%d  %s listening on port %d",
           __func__,
@@ -927,13 +928,6 @@ Status BfRtServer::refreshConnections(const bf_dev_id_t &device_id) {
                            "Failed to find BfRtInfo for program %s",
                            p4_name.c_str());
         }
-        // Register learn callback, if learn_notifications are enabled
-        if (connection_sp->getNotifications().enable_learn_) {
-          bf_rt_target_t target = {device_id, BF_DEV_PIPE_ALL};
-          grpc_status = learn_callback_register(
-              *connection_sp, connection_sp->sessionGet(), target);
-          grpc_check_and_return(grpc_status, "Failed to register learn cb");
-        }
       }
     }
   }
@@ -984,16 +978,6 @@ Status BfRtServer::forwardingConfigBind(
     check_and_return(BF_OBJECT_NOT_FOUND,
                      "Failed to find BfRtInfo for program %s",
                      request->config(0).p4_name().c_str());
-  }
-  // Register learn callback, only if p4_name is a real p4_program's name and if
-  // learn_notifications are enabled
-  if (strcmp(request->config(0).p4_name().c_str(), "$SHARED") &&
-      connection_sp->getNotifications().enable_learn_) {
-    bf_rt_target_t target = {static_cast<bf_dev_id_t>(request->device_id()),
-                             BF_DEV_PIPE_ALL};
-    auto grpc_status = learn_callback_register(
-        *connection_sp, connection_sp->sessionGet(), target);
-    grpc_check_and_return(grpc_status, "Failed to register learn cb");
   }
   return Status();
 }
@@ -1155,27 +1139,6 @@ void BfRtServer::cleanupConnection(const uint32_t &client_id) {
   if (!connection_data->isIndependent()) {
     const BoundProgram *bound_program = nullptr;
     auto grpc_status = connection_data->boundProgramGet(&bound_program);
-    if (bound_program && bound_program->p4NameGet() != "$SHARED") {
-      // Deregister learn callbacks
-      bf_rt_target_t target = {
-          static_cast<bf_dev_id_t>(bound_program->deviceIdGet()),
-          BF_DEV_PIPE_ALL};
-      const auto session = connection_data->sessionGet();
-      if (connection_data->getNotifications().enable_learn_) {
-        grpc_status =
-            learn_callback_deregister(*connection_data, session, target);
-        if (!grpc_status.ok()) {
-          LOG_WARN(
-              "%s:%d Error while deregistering learn callback for dev %d, "
-              "client "
-              "%d",
-              __func__,
-              __LINE__,
-              bound_program->deviceIdGet(),
-              client_id);
-        }
-      }
-    }
 
     // Mark the reader writer stream channel as invalid
     connection_data->setStreamChannelRWValidFlag(false);

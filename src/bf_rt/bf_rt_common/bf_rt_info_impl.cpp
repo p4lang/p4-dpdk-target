@@ -691,7 +691,7 @@ bool BfRtInfoImpl::isActionParam(Cjson action_table_cjson,
   use_p4_params_node = 1;
   if (!use_p4_params_node) {
     for (const auto &pack_format :
-         action_table_cjson["stage_tables"][0]["pack_format"]
+         action_table_cjson[STAGE_TABLE_STR][0]["pack_format"]
              .getCjsonChildVec()) {
       auto json_action_handle =
           static_cast<unsigned int>((*pack_format)["action_handle"]);
@@ -780,16 +780,16 @@ bool BfRtInfoImpl::isActionParam_matchTbl(const BfRtTableObj *bfrtTable,
   // There will be as many "units" as the number of ATCAM logical tables for the
   // ALPM table. We just process the first one in order to find out about action
   // tables
-  Cjson stage_table = match_table_cjson["match_attributes"]["stage_tables"];
+  Cjson stage_table = match_table_cjson["match_attributes"][STAGE_TABLE_STR];
   if (is_alpm) {
     stage_table =
         match_table_cjson["match_attributes"]["atcam_table"]["match_attributes"]
-                         ["units"][0]["match_attributes"]["stage_tables"][0];
+                         ["units"][0]["match_attributes"][STAGE_TABLE_STR][0];
   } else if (is_atcam) {
     stage_table = match_table_cjson["match_attributes"]["units"][0]
-                                   ["match_attributes"]["stage_tables"][0];
+                                   ["match_attributes"][STAGE_TABLE_STR][0];
   } else {
-    stage_table = match_table_cjson["match_attributes"]["stage_tables"][0];
+    stage_table = match_table_cjson["match_attributes"][STAGE_TABLE_STR][0];
   }
 
   Cjson action_formats = stage_table["action_format"];
@@ -1536,10 +1536,10 @@ std::unique_ptr<BfRtTableObj> BfRtInfoImpl::parseTable(
     // will be implemented.
     if (table_context["match_attributes"].exists() &&
         table_context["match_attributes"]["match_type"].exists() &&
-        table_context["match_attributes"]["stage_tables"].exists()) {
+        table_context["match_attributes"][STAGE_TABLE_STR].exists()) {
       std::string match_type_ = table_context["match_attributes"]["match_type"];
       if (match_type_ == "match_with_no_key") {
-        Cjson s_tbl_cjson_ = table_context["match_attributes"]["stage_tables"];
+        Cjson s_tbl_cjson_ = table_context["match_attributes"][STAGE_TABLE_STR];
         for (const auto &s_tbl_ : s_tbl_cjson_.getCjsonChildVec()) {
           if ((*s_tbl_)["has_attached_gateway"].exists() &&
               static_cast<bool>((*s_tbl_)["has_attached_gateway"]) == true) {

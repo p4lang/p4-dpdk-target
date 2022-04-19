@@ -33,6 +33,10 @@ typedef struct switch_mac_s {
   int configured;  // set from switch config json parsing
 } switch_mac_t;
 
+typedef struct switchd_pcie_cfg_s {
+  char bdf[PCIE_DOMAIN_BDF_LEN];
+} switchd_pcie_cfg_t;
+
 typedef struct switch_asic_s {
   int pci_dev_id;
   int configured;
@@ -40,11 +44,23 @@ typedef struct switch_asic_s {
   bool is_virtual;
   bool is_virtual_dev_slave;
   bool is_sw_model;
+  int iommu_grp_num;
+  int host_id; 
+  int pf_num;
+  switchd_pcie_cfg_t pcie_cfg;
   char bfrt_non_p4_json_dir_path[BF_SWITCHD_MAX_FILE_NAME];
   bf_sys_mutex_t switch_mutex;
 } switch_asic_t;
 
+/* This is the pipeline mirror profile configuration.
+ * These are taken as input from user from config file.
+ */
+#define DEFAULT_MIRROR_N_SLOTS         4
+#define DEFAULT_MIRROR_N_SESSIONS     64
+#define DEFAULT_MIRROR_FAST_CLONE      0
+
 #define BF_SWITCHD_MAX_PIPES 4
+#define BF_SWITCHD_MAX_MEMPOOL_OBJS 2
 #define BF_SWITCHD_MAX_P4_PROGRAMS BF_SWITCHD_MAX_PIPES
 #define BF_SWITCHD_MAX_P4_PIPELINES BF_SWITCHD_MAX_PIPES
 typedef struct p4_pipeline_config_s {
@@ -52,8 +68,11 @@ typedef struct p4_pipeline_config_s {
   char table_config[BF_SWITCHD_MAX_FILE_NAME];
   char cfg_file[BF_SWITCHD_MAX_FILE_NAME];
   char pi_native_config_path[BF_SWITCHD_MAX_FILE_NAME];
+  int core_id;
+  int numa_node;
   int num_pipes_in_scope;
   int pipe_scope[BF_SWITCHD_MAX_PIPES];
+  struct mirror_config_s mir_cfg;
 } p4_pipeline_config_t;
 
 typedef struct p4_programs_s {
@@ -73,8 +92,19 @@ typedef struct p4_programs_s {
   p4_pipeline_config_t p4_pipelines[BF_SWITCHD_MAX_P4_PIPELINES];
 } p4_programs_t;
 
+struct mempool_obj_s {
+	char *name;
+	int buffer_size;
+	int pool_size;
+	int cache_size;
+	int numa_node;
+};
+
 typedef struct p4_devices_s {
   bool configured;
+  bool debug_cli_enable;
+  uint8_t num_mempool_objs;
+  struct mempool_obj_s mempool_objs[BF_SWITCHD_MAX_MEMPOOL_OBJS];
   uint8_t num_p4_programs;
   p4_programs_t p4_programs[BF_SWITCHD_MAX_P4_PROGRAMS];
   char eal_args[MAX_EAL_LEN];

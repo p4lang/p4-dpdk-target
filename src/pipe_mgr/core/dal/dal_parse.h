@@ -29,5 +29,13 @@ int dal_parse_ctx_json_parse_stage_tables
 	(int dev_id, int prof_id,
 	cJSON *stage_table_list_cjson,
 	void **stage_table,
-	int *stage_table_count);
+	int *stage_table_count,
+	struct pipe_mgr_mat_ctx *mat_ctx);
+
+int dal_ctx_json_parse_global_config(int dev_id, int prof_id,
+		cJSON *root, void **dal_global_config);
+
+int dal_post_parse_processing(int dev_id, int prof_id,
+		struct pipe_mgr_p4_pipeline *ctx);
+
 #endif

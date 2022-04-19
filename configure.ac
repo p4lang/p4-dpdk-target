@@ -10,6 +10,16 @@ AM_EXTRA_RECURSIVE_TARGETS([doc])
 AM_SILENT_RULES([yes])
 AC_CONFIG_HEADERS([config.h])
 
+# Option to build for Unit-Test
+AC_ARG_ENABLE([unittest],
+              AS_HELP_STRING([--enable-unittest], ["Build with Unit Test support, default=no"])),
+AM_CONDITIONAL([IS_UT_ENABLED],[test "x$enable_unittest" = "xyes"])
+
+#Option to build with PTF
+AC_ARG_ENABLE([ptf],
+	      AS_HELP_STRING([--enable-ptf], ["Build with ptf test support, default=no"]))
+AM_CONDITIONAL([IS_PTF_ENABLED],[test "x$enable_ptf" = "xyes"])
+
 # Option to compile with ASAN checks
 AC_ARG_WITH([asan],
             [AS_HELP_STRING([--with-asan],
@@ -262,6 +272,9 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  include/Makefile
                  bf_switchd/Makefile
+                 third-party/ptf_grpc/Makefile
 		 src/lld/dpdk/Makefile
-		 third-party/Makefile])
+		 third-party/grpc/Makefile
+		 third-party/Makefile
+                 unit-test/Makefile])
 AC_OUTPUT

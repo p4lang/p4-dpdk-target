@@ -23,14 +23,52 @@
 #include <rte_launch.h>
 #include <rte_eal.h>
 
+#include "dpdk_cli.h"
+#include "dpdk_conn.h"
 #include "dpdk_infra.h"
 
-int
-dpdk_infra_init(int count, char **arr)
-{
-	int status;
+static pthread_t cli_thread_id;
 
-	if (count == 0 || arr == NULL)
+struct conn_params conn_param = {
+	.welcome = "\nWelcome!\n\n",
+	.prompt = "pipeline> ",
+	.addr = "0.0.0.0",
+	.port = 8086,
+	.buf_size = 1024 * 1024,
+	.msg_in_len_max = 1024,
+	.msg_out_len_max = 1024 * 1024,
+	.msg_handle = cli_process,
+	.msg_handle_arg = NULL, /* set later. */
+};
+
+void *
+dpdk_cli_thread(void *arg)
+{
+	struct conn *conn;
+
+	/* Connectivity */
+	conn = conn_init(&conn_param);
+	if (!conn) {
+		printf("Error: Connectivity initialization failed\n");
+		return NULL;
+	};
+
+    /* Dispatch loop */
+	for ( ; ; ) {
+		conn_poll_for_conn(conn);
+
+		conn_poll_for_msg(conn);
+	}
+
+	return NULL;
+}
+
+int
+dpdk_infra_init(int count, char **arr, bool debug_cli_enable)
+{
+	int status = 0;
+
+	if (count == 0 || !arr)
 		return -1;
 
 	/* EAL */
@@ -58,5 +96,23 @@ dpdk_infra_init(int count, char **arr)
 		thread_main,
 		NULL,
 		SKIP_MAIN);
-	return 0;
+
+	if (debug_cli_enable) {
+		/* DPDK CLI Thread */
+		status = pthread_create(&cli_thread_id, NULL, dpdk_cli_thread,
+								NULL);
+		if (status) {
+			printf("Error: DPDK CLI thread creation failed (%d)\n",
+					status);
+			return status;
+		}
+
+		status = pthread_setname_np(cli_thread_id, "dpdk_cli_thread");
+		if (status) {
+			printf("Error: Failed to set name for DPDK CLI Thread (%d)\n",
+					status);
+			return status;
+		}
+	}
+	return status;
 }

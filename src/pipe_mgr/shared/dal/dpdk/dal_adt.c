@@ -57,7 +57,8 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 		return BF_NOT_SUPPORTED;
 	}
 
-	status = pipe_mgr_get_profile(dev_tgt.device_id, &profile);
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
 	if (status) {
 		LOG_ERROR("not able find profile with device_id  %d",
 				dev_tgt.device_id);
@@ -135,7 +136,6 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 		goto error;
 	}
 
-	return status;
 error:
 	table_entry_free(entry);
 	return status;
@@ -165,7 +165,8 @@ int dal_table_adt_ent_del
 		return BF_NOT_SUPPORTED;
 	}
 
-	status = pipe_mgr_get_profile(dev_tgt.device_id, &profile);
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
 	if (status) {
 		LOG_ERROR("not able find profile with device_id  %d",
 				dev_tgt.device_id);

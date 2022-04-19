@@ -24,10 +24,12 @@
 #ifndef _LLD_DPDK_PORT_H
 #define _LLD_DPDK_PORT_H
 
-#include "port_mgr/dpdk/bf_dpdk_port_if.h"
+#include <osdep/p4_sde_osdep.h>
+#include "port_mgr/bf_port_if.h"
 #include <rte_swx_port_fd.h>
 #include <rte_swx_port_ethdev.h>
 #include <rte_swx_port_source_sink.h>
+#include <rte_swx_port_ring.h>
 #include "infra/dpdk_infra.h"
 #include "infra/dpdk_cli.h"
 
@@ -39,7 +41,7 @@
  * @return Status of the API call
  */
 
-int lld_dpdk_tap_port_create(port_attributes_t *port_attrib);
+int lld_dpdk_tap_port_create(struct port_attributes_t *port_attrib);
 
 /**
  * Add a Tap Port to DPDK Pipeline in Both Directions
@@ -51,8 +53,9 @@ int lld_dpdk_tap_port_create(port_attributes_t *port_attrib);
  */
 
 int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
-				   port_attributes_t *port_attrib,
-				   struct pipeline *pipe,
+				   struct port_attributes_t *port_attrib,
+				   struct pipeline *pipe_in,
+				   struct pipeline *pipe_out,
 				   struct mempool *mp);
 
 /**
@@ -65,8 +68,9 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_tap_port_add(bf_dev_port_t dev_port,
-			  port_attributes_t *port_attrib,
-			  struct pipeline *pipe,
+			  struct port_attributes_t *port_attrib,
+			  struct pipeline *pipe_in,
+			  struct pipeline *pipe_out,
 			  struct mempool *mp);
 
 /**
@@ -75,7 +79,7 @@ int lld_dpdk_tap_port_add(bf_dev_port_t dev_port,
  * @return Status of the API call
  */
 
-int lld_dpdk_link_port_create(port_attributes_t *port_attrib);
+int lld_dpdk_link_port_create(struct port_attributes_t *port_attrib);
 
 /**
  * Add a Link Port to DPDK Pipeline in Both Directions
@@ -86,8 +90,9 @@ int lld_dpdk_link_port_create(port_attributes_t *port_attrib);
  */
 
 int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
-				    port_attributes_t *port_attrib,
-				    struct pipeline *pipe);
+				    struct port_attributes_t *port_attrib,
+				    struct pipeline *pipe_in,
+				    struct pipeline *pipe_out);
 
 /**
  * Add a New DPDK Link Port
@@ -98,8 +103,9 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_link_port_add(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib,
-			   struct pipeline *pipe);
+			   struct port_attributes_t *port_attrib,
+			   struct pipeline *pipe_in,
+			   struct pipeline *pipe_out);
 
 /**
  * Add a New DPDK Source Port
@@ -111,8 +117,8 @@ int lld_dpdk_link_port_add(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
-			     port_attributes_t *port_attrib,
-			     struct pipeline *pipe,
+			     struct port_attributes_t *port_attrib,
+			     struct pipeline *pipe_in,
 			     struct mempool *mp);
 
 /**
@@ -124,8 +130,42 @@ int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib,
-			   struct pipeline *pipe);
+			   struct port_attributes_t *port_attrib,
+			   struct pipeline *pipe_out);
+
+/**
+ * Create a DPDK Ring Port
+ * @param port_attrib The Port Attributes Eg. Port Name, Port Type etc
+ * @return Status of the API call
+ */
+
+int lld_dpdk_ring_port_create(struct port_attributes_t *port_attrib);
+
+/**
+ * Add a Ring Port to DPDK Pipeline in Both Directions
+ * @param dev_port The Port ID
+ * @param port_attrib The Port Attributes Eg. Port Name, Port Type etc
+ * @param pipe DPDK Pipeline
+ * @return Status of the API call
+ */
+
+int lld_dpdk_pipeline_ring_port_add(bf_dev_port_t dev_port,
+                                    struct port_attributes_t *port_attrib,
+                                    struct pipeline *pipe_in,
+                                    struct pipeline *pipe_out);
+
+/**
+ * Add a New DPDK Ring Port
+ * @param dev_port The Port ID
+ * @param port_attrib The Port Attributes Eg. Port Name, Port Type etc
+ * @param pipe DPDK Pipeline
+ * @return Status of the API call
+ */
+
+int lld_dpdk_ring_port_add(bf_dev_port_t dev_port,
+			   struct port_attributes_t *port_attrib,
+			   struct pipeline *pipe_in,
+			   struct pipeline *pipe_out);
 
 /**
  * Get All Port Statistics for DPDK Port
@@ -136,8 +176,8 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
-			    port_attributes_t *port_attrib,
-			    uint64_t *stats);
+			    struct port_attributes_t *port_attrib,
+			    u64 *stats);
 
 /**
  * Add a New DPDK Port
@@ -147,6 +187,6 @@ int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
  */
 
 int lld_dpdk_port_add(bf_dev_port_t dev_port,
-		      port_attributes_t *port_attrib);
+		      struct port_attributes_t *port_attrib);
 
 #endif

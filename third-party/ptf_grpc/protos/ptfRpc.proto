@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package ptf_proto;
+
+
+service switchd_application{
+    rpc port_add(switchd_app_int_t) returns(response) {}
+    rpc enable_pipeline(device_id) returns(response) {}
+    rpc add_or_del_table_entry(table) returns(response) {}
+    rpc wcm_add_or_del_table_entry(wcm_table) returns(response) {}
+}
+
+enum table_operation {
+    addition = 0;
+    deletion = 1;
+}
+
+enum prog_name {
+    simple_l2l3_lpm = 0;
+    simple_l2l3_wcm = 1;
+}
+
+message switchd_app_int_t{
+    int32 dev_id = 1;
+    string port_name = 2;
+    string mempool_name = 3;
+    string pipe_name = 4;
+}
+
+message device_id{
+    int32 dev_id = 1;
+}
+
+message table{
+    uint32 ipaddr = 1;
+    int32 prefix = 2;
+    int32 port = 3;
+    table_operation op = 4;
+    string p4_name = 5;
+    string table_name = 6;
+    int32 field_id = 7;
+    int32 action_id = 8;
+    int32 data_field = 9;
+    prog_name pn = 10;
+}
+
+message wcm_table{
+    uint32 ipaddr = 1;
+    uint32 mask = 2;
+    int32 port = 3;
+    table_operation op = 4;
+    string p4_name = 5;
+    string table_name = 6;
+    int32 field_id = 7;
+    int32 action_id = 8;
+    int32 data_field = 9;
+    prog_name pn = 10;
+}
+
+message response{
+    int32 responsem= 1;
+}

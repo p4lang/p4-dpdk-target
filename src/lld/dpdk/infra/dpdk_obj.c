@@ -28,12 +28,6 @@
 #include <rte_mempool.h>
 #include <rte_mbuf.h>
 #include <rte_ethdev.h>
-#include <rte_swx_port_ethdev.h>
-#include <rte_swx_port_fd.h>
-#include <rte_swx_port_ring.h>
-#include <rte_swx_port_source_sink.h>
-#include <rte_swx_table_em.h>
-#include <rte_swx_table_wm.h>
 #include <rte_swx_pipeline.h>
 #include <rte_swx_ctl.h>
 
@@ -146,8 +140,8 @@ mempool_find(const char *name)
 static struct rte_eth_conf port_conf_default = {
 	.link_speeds = 0,
 	.rxmode = {
-		.mq_mode = ETH_MQ_RX_NONE,
-		.max_rx_pkt_len = 9000, /* Jumbo frame max packet len */
+		.mq_mode = RTE_ETH_MQ_RX_NONE,
+		.mtu = 9000 - (RTE_ETHER_HDR_LEN + RTE_ETHER_CRC_LEN), /* Jumbo frame MTU */
 		.split_hdr_size = 0, /* Header split buffer size */
 	},
 	.rx_adv_conf = {
@@ -158,12 +152,12 @@ static struct rte_eth_conf port_conf_default = {
 		},
 	},
 	.txmode = {
-		.mq_mode = ETH_MQ_TX_NONE,
+		.mq_mode = RTE_ETH_MQ_TX_NONE,
 	},
 	.lpbk_mode = 0,
 };
 
-#define RETA_CONF_SIZE     (ETH_RSS_RETA_SIZE_512 / RTE_RETA_GROUP_SIZE)
+#define RETA_CONF_SIZE     (RTE_ETH_RSS_RETA_SIZE_512 / RTE_ETH_RETA_GROUP_SIZE)
 
 static int
 rss_setup(uint16_t port_id,
@@ -178,11 +172,11 @@ rss_setup(uint16_t port_id,
 	memset(reta_conf, 0, sizeof(reta_conf));
 
 	for (i = 0; i < reta_size; i++)
-		reta_conf[i / RTE_RETA_GROUP_SIZE].mask = UINT64_MAX;
+		reta_conf[i / RTE_ETH_RETA_GROUP_SIZE].mask = UINT64_MAX;
 
 	for (i = 0; i < reta_size; i++) {
-		uint32_t reta_id = i / RTE_RETA_GROUP_SIZE;
-		uint32_t reta_pos = i % RTE_RETA_GROUP_SIZE;
+		uint32_t reta_id = i / RTE_ETH_RETA_GROUP_SIZE;
+		uint32_t reta_pos = i % RTE_ETH_RETA_GROUP_SIZE;
 		uint32_t rss_qs_pos = i % rss->n_queues;
 
 		reta_conf[reta_id].reta[reta_pos] =
@@ -255,7 +249,7 @@ link_create(const char *name, struct link_params *params)
 	rss = params->rx.rss;
 	if (rss) {
 		if ((port_info.reta_size == 0) ||
-			(port_info.reta_size > ETH_RSS_RETA_SIZE_512))
+			(port_info.reta_size > RTE_ETH_RSS_RETA_SIZE_512))
 			return NULL;
 
 		if ((rss->n_queues == 0) ||
@@ -273,9 +267,9 @@ link_create(const char *name, struct link_params *params)
 	/* Port */
 	memcpy(&port_conf, &port_conf_default, sizeof(port_conf));
 	if (rss) {
-		port_conf.rxmode.mq_mode = ETH_MQ_RX_RSS;
+		port_conf.rxmode.mq_mode = RTE_ETH_MQ_RX_RSS;
 		port_conf.rx_adv_conf.rss_conf.rss_hf =
-			(ETH_RSS_IP | ETH_RSS_TCP | ETH_RSS_UDP) &
+			(RTE_ETH_RSS_IP | RTE_ETH_RSS_TCP | RTE_ETH_RSS_UDP) &
 			port_info.flow_type_rss_offloads;
 	}
 
@@ -384,7 +378,7 @@ link_is_up(const char *name)
 	if (rte_eth_link_get(link->port_id, &link_params) < 0)
 		return 0;
 
-	return (link_params.link_status == ETH_LINK_DOWN) ? 0 : 1;
+	return (link_params.link_status == RTE_ETH_LINK_DOWN) ? 0 : 1;
 }
 
 struct link *
@@ -571,77 +565,6 @@ pipeline_create(const char *name, int numa_node)
 	if (status)
 		goto error;
 
-	status = rte_swx_pipeline_port_in_type_register(p,
-		"ethdev",
-		&rte_swx_port_ethdev_reader_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_port_out_type_register(p,
-		"ethdev",
-		&rte_swx_port_ethdev_writer_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_port_in_type_register(p,
-		"ring",
-		&rte_swx_port_ring_reader_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_port_out_type_register(p,
-		"ring",
-		&rte_swx_port_ring_writer_ops);
-	if (status)
-		goto error;
-
-#ifdef RTE_PORT_PCAP
-	status = rte_swx_pipeline_port_in_type_register(p,
-		"source",
-		&rte_swx_port_source_ops);
-	if (status)
-		goto error;
-#endif
-
-	status = rte_swx_pipeline_port_out_type_register(p,
-		"sink",
-		&rte_swx_port_sink_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_port_in_type_register(p,
-		"fd",
-		&rte_swx_port_fd_reader_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_port_out_type_register(p,
-		"fd",
-		&rte_swx_port_fd_writer_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_table_type_register(p,
-		"exact",
-		RTE_SWX_TABLE_MATCH_EXACT,
-		&rte_swx_table_exact_match_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_table_type_register(p,
-		"wildcard",
-		RTE_SWX_TABLE_MATCH_WILDCARD,
-		&rte_swx_table_wildcard_match_ops);
-	if (status)
-		goto error;
-
-	status = rte_swx_pipeline_table_type_register(p,
-			"lpm",
-			RTE_SWX_TABLE_MATCH_LPM,
-			&rte_swx_table_wildcard_match_ops);
-	if (status)
-		goto error;
-
 	/* Node allocation */
 	pipeline = calloc(1, sizeof(struct pipeline));
 	if (pipeline == NULL)
@@ -675,6 +598,29 @@ pipeline_find(const char *name)
 			return pipeline;
 
 	return NULL;
+}
+
+/**
+ * Validate the number of ports added to the
+ * pipeline in input and output directions
+ */
+int
+pipeline_port_is_valid(struct pipeline *pipe)
+{
+	struct rte_swx_ctl_pipeline_info pipe_info = {0};
+
+	if (rte_swx_ctl_pipeline_info_get(pipe->p, &pipe_info) < 0) {
+		printf("%s failed at %d for pipeinfo \n",__func__, __LINE__);
+        return 0;
+    }
+
+	if (!pipe_info.n_ports_in || !(rte_is_power_of_2(pipe_info.n_ports_in)))
+		return 0;
+
+	if (!pipe_info.n_ports_out)
+		return 0;
+
+	return 1;
 }
 
 /*

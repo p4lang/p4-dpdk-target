@@ -1,0 +1,72 @@
+{
+	"ports" : [
+		{
+			"dev_port" : 0,
+			"port_name" : "TAP0",
+			"mempool_name" : "MEMPOOL0",
+			"port_dir" : "default",
+			"port_in_id" : 0,
+			"pipe_in" : "pipe",
+			"port_out_id" : 0,
+			"pipe_out" : "pipe",
+			"port_type" : "tap",
+			"tap_port_attributes" : {
+				"mtu" : 1500
+			}
+		},
+        {
+            "dev_port" : 1,
+            "port_name" : "TAP1",
+            "mempool_name" : "MEMPOOL0",
+            "port_dir" : "default",
+            "port_in_id" : 1,
+            "pipe_in" : "pipe",
+            "port_out_id" : 1,
+            "pipe_out" : "pipe",
+            "port_type" : "tap",
+            "tap_port_attributes" : {
+                "mtu" : 1500
+            }
+        },
+        {
+            "dev_port" : 2,
+            "port_name" : "TAP2",
+            "mempool_name" : "MEMPOOL0",
+            "port_dir" : "default",
+            "port_in_id" : 2,
+            "pipe_in" : "pipe",
+            "port_out_id" : 2,
+            "pipe_out" : "pipe",
+            "port_type" : "tap",
+            "tap_port_attributes" : {
+                "mtu" : 1500
+            }
+        },
+        {
+            "dev_port" : 3,
+            "port_name" : "TAP3",
+            "mempool_name" : "MEMPOOL0",
+            "port_dir" : "default",
+            "port_in_id" : 3,
+            "pipe_in" : "pipe",
+            "port_out_id" : 3,
+            "pipe_out" : "pipe",
+            "port_type" : "tap",
+            "tap_port_attributes" : {
+                "mtu" : 1500
+            }
+        },
+        {
+            "dev_port" : 4,
+            "port_name" : "SINK0",
+            "mempool_name" : "MEMPOOL0",
+            "port_dir" : "out",
+            "port_out_id" : 4,
+            "pipe_out" : "pipe",
+            "port_type" : "sink",
+            "sink_port_attributes" : {
+                "file_name" : "./sink0.pcap"
+            }
+        }
+	]
+}

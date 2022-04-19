@@ -155,7 +155,8 @@ int pipe_mgr_dpdk_encode_sel_action(char *table_name,
 	 * init time */
 	action_name[0] = 0;
 	strncat(action_name, table_name,
-		(sizeof(action_name) - strlen(action_name) -1));
+		(sizeof(action_name) - strlen(action_name) -1) -
+		 strlen("_set_group_id"));
 	strcat(action_name, "_set_group_id");
 
 	entry->action_id = get_action_id(pipe, action_name);
@@ -188,7 +189,8 @@ int pipe_mgr_dpdk_encode_member_id(char *table_name,
 	 * init time */
 	action_name[0] = 0;
 	strncat(action_name, table_name,
-		(sizeof(action_name) - strlen(action_name) -1));
+		(sizeof(action_name) - strlen(action_name) -1) -
+		 strlen("_set_member_id"));
 	strcat(action_name, "_set_member_id");
 
 	entry->action_id = get_action_id(pipe, action_name);

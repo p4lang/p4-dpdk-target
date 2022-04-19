@@ -354,10 +354,6 @@ bf_status_t BfRtDevMgrImpl::bfRtDeviceAdd(
 
       std::vector<bf_dev_pipe_t> pipe_scope;
       if (dev_profile->p4_programs[i].p4_pipelines[j].num_pipes_in_scope == 0) {
-        // number of p4 programs and p4 pipelines should be both 1 in this case
-        // because we expect pipe_scope to be specified in this scenario
-        BF_RT_ASSERT(dev_profile->num_p4_programs == 1);
-        BF_RT_ASSERT(dev_profile->p4_programs[i].num_p4_pipelines == 1);
         uint32_t num_pipes;
         PipeMgrIntf::getInstance()->pipeMgrGetNumPipelines(dev_id, &num_pipes);
         for (uint32_t k = 0; k < num_pipes; k++) {

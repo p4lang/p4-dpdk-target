@@ -319,12 +319,12 @@ pipe_status_t PipeMgrIntf::pipeMgrAdtEntAdd(
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
-                                            bf_dev_id_t device_id,
+                                            dev_target_t dev_tgt,
                                             pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                             pipe_adt_ent_hdl_t adt_ent_hdl,
                                             uint32_t pipe_api_flags) {
   return pipe_mgr_adt_ent_del(
-      sess_hdl, device_id, adt_tbl_hdl, adt_ent_hdl, pipe_api_flags);
+      sess_hdl, dev_tgt, adt_tbl_hdl, adt_ent_hdl, pipe_api_flags);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrAdtEntSet(
@@ -383,12 +383,12 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpAdd(pipe_sess_hdl_t sess_hdl,
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrSelGrpDel(pipe_sess_hdl_t sess_hdl,
-                                            bf_dev_id_t device_id,
+                                            dev_target_t dev_tgt,
                                             pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                             pipe_sel_grp_hdl_t sel_grp_hdl,
                                             uint32_t pipe_api_flags) {
   return pipe_mgr_sel_grp_del(
-      sess_hdl, device_id, sel_tbl_hdl, sel_grp_hdl, pipe_api_flags);
+      sess_hdl, dev_tgt, sel_tbl_hdl, sel_grp_hdl, pipe_api_flags);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrAdd(pipe_sess_hdl_t sess_hdl,
@@ -422,7 +422,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrDel(pipe_sess_hdl_t sess_hdl,
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
-                                                bf_dev_id_t device_id,
+                                                dev_target_t dev_tgt,
                                                 pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                                 pipe_sel_grp_hdl_t sel_grp_hdl,
                                                 uint32_t num_mbrs,
@@ -430,7 +430,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
                                                 bool *enable,
                                                 uint32_t pipe_api_flags) {
   return pipe_mgr_sel_grp_mbrs_set(sess_hdl,
-                                   device_id,
+                                   dev_tgt,
                                    sel_tbl_hdl,
                                    sel_grp_hdl,
                                    num_mbrs,
@@ -440,7 +440,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                                bf_dev_id_t device_id,
+                                                dev_target_t dev_tgt,
                                                 pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                                 pipe_sel_grp_hdl_t sel_grp_hdl,
                                                 uint32_t mbrs_size,
@@ -448,7 +448,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
                                                 bool *enable,
                                                 uint32_t *mbrs_populated) {
   return pipe_mgr_sel_grp_mbrs_get(sess_hdl,
-                                   device_id,
+                                   dev_tgt,
                                    sel_tbl_hdl,
                                    sel_grp_hdl,
                                    mbrs_size,
@@ -1006,11 +1006,46 @@ bf_dev_pipe_t PipeMgrIntf::devPortToPipeId(uint16_t dev_port_id) {
   return dev_port_to_pipe_id(dev_port_id);
 }
 
+pipe_status_t PipeMgrIntf::pipeMgrStoreEntries(pipe_sess_hdl_t sess_hdl,
+                                      pipe_mat_tbl_hdl_t tbl_hdl,
+                                      dev_target_t dev_tgt,
+				      bool *store_entries) {
+	return pipe_mgr_store_entries(sess_hdl, tbl_hdl, dev_tgt,
+				      store_entries);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrGetFirstEntry(
+    pipe_sess_hdl_t sess_hdl,
+    pipe_mat_tbl_hdl_t tbl_hdl,
+    dev_target_t dev_tgt,
+    pipe_tbl_match_spec_t *match_spec,
+    pipe_action_spec_t *action_spec,
+    pipe_act_fn_hdl_t *pipe_act_fn_hdl) {
+	return pipe_mgr_get_first_entry(sess_hdl, tbl_hdl, dev_tgt, match_spec,
+					action_spec, pipe_act_fn_hdl);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrGetNextNByKey(
+    pipe_sess_hdl_t sess_hdl,
+    pipe_mat_tbl_hdl_t tbl_hdl,
+    dev_target_t dev_tgt,
+    pipe_tbl_match_spec_t *cur_match_spec,
+    int n,
+    pipe_tbl_match_spec_t *match_specs,
+    pipe_action_spec_t **action_specs,
+    pipe_act_fn_hdl_t *pipe_act_fn_hdls,
+    uint32_t *num) {
+	return pipe_mgr_get_next_n_by_key(sess_hdl, tbl_hdl, dev_tgt,
+					  cur_match_spec, n, match_specs,
+					  action_specs, pipe_act_fn_hdls, num);
+}
+
+
 pipe_status_t PipeMgrIntf::pipeMgrGetFirstEntryHandle(
     pipe_sess_hdl_t sess_hdl,
     pipe_mat_tbl_hdl_t tbl_hdl,
     dev_target_t dev_tgt,
-    int *entry_handle) {
+    uint32_t *entry_handle) {
   return pipe_mgr_get_first_entry_handle(
       sess_hdl, tbl_hdl, dev_tgt, entry_handle);
 }
@@ -1021,7 +1056,7 @@ pipe_status_t PipeMgrIntf::pipeMgrGetNextEntryHandles(
     dev_target_t dev_tgt,
     pipe_mat_ent_hdl_t entry_handle,
     int n,
-    int *next_entry_handles) {
+    uint32_t *next_entry_handles) {
   return pipe_mgr_get_next_entry_handles(
       sess_hdl, tbl_hdl, dev_tgt, entry_handle, n, next_entry_handles);
 }
@@ -1029,11 +1064,11 @@ pipe_status_t PipeMgrIntf::pipeMgrGetNextEntryHandles(
 pipe_status_t PipeMgrIntf::pipeMgrGetFirstGroupMember(
     pipe_sess_hdl_t sess_hdl,
     pipe_tbl_hdl_t tbl_hdl,
-    bf_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_sel_grp_hdl_t sel_grp_hdl,
     pipe_adt_ent_hdl_t *mbr_hdl) {
   return pipe_mgr_get_first_group_member(
-      sess_hdl, tbl_hdl, dev_id, sel_grp_hdl, mbr_hdl);
+      sess_hdl, tbl_hdl, dev_tgt, sel_grp_hdl, mbr_hdl);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrGetNextGroupMembers(
@@ -1050,12 +1085,12 @@ pipe_status_t PipeMgrIntf::pipeMgrGetNextGroupMembers(
 
 pipe_status_t PipeMgrIntf::pipeMgrGetSelGrpMbrCount(
     pipe_sess_hdl_t sess_hdl,
-    bf_dev_id_t dev_id,
+    dev_target_t dev_tgt,
     pipe_sel_tbl_hdl_t tbl_hdl,
     pipe_sel_grp_hdl_t sel_grp_hdl,
     uint32_t *count) {
   return pipe_mgr_get_sel_grp_mbr_count(
-      sess_hdl, dev_id, tbl_hdl, sel_grp_hdl, count);
+      sess_hdl, dev_tgt, tbl_hdl, sel_grp_hdl, count);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrGetReservedEntryCount(
@@ -1078,7 +1113,7 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntryCount(pipe_sess_hdl_t sess_hdl,
 pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
     pipe_sess_hdl_t sess_hdl,
     pipe_mat_tbl_hdl_t tbl_hdl,
-    bf_dev_id_t dev_id,
+    struct bf_dev_target_t dev_tgt,
     pipe_mat_ent_hdl_t entry_hdl,
     pipe_tbl_match_spec_t *pipe_match_spec,
     pipe_action_spec_t *pipe_action_spec,
@@ -1088,7 +1123,7 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
     pipe_res_get_data_t *res_data) {
   return pipe_mgr_get_entry(sess_hdl,
                             tbl_hdl,
-                            dev_id,
+                            dev_tgt,
                             entry_hdl,
                             pipe_match_spec,
                             pipe_action_spec,
@@ -1101,13 +1136,13 @@ pipe_status_t PipeMgrIntf::pipeMgrGetEntry(
 pipe_status_t PipeMgrIntf::pipeMgrGetActionDataEntry(
     pipe_sess_hdl_t sess_hdl,
     pipe_adt_tbl_hdl_t tbl_hdl,
-    bf_dev_id_t dev_id,
+    struct bf_dev_target_t dev_tgt,
     pipe_adt_ent_hdl_t entry_hdl,
     pipe_action_data_spec_t *data_spec,
     pipe_act_fn_hdl_t *act_fn_hdl,
     bool from_hw) {
   return pipe_mgr_get_action_data_entry(
-      sess_hdl, tbl_hdl, dev_id, entry_hdl, data_spec, act_fn_hdl, from_hw);
+      sess_hdl, tbl_hdl, dev_tgt, entry_hdl, data_spec, act_fn_hdl, from_hw);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrTblSetProperty(
