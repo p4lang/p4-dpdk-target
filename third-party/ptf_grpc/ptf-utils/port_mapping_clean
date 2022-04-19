@@ -1,0 +1,20 @@
+#!/bin/bash
+echo "Started port clean script"
+output=$(brctl show | grep brPort)
+#echo "Grep cmd output is $output"
+OLD_IFS="$IFS"
+IFS=$'\n'
+for line in $output
+do
+#echo "line-->$line"
+    IFS=$'\t'
+    for word in $line
+    do
+        if [[ $word == "brPort"* ]]; then
+            echo "Deleting bridge $word";
+            brname=$word
+            ifconfig $brname down
+            brctl delbr $brname
+        fi
+    done
+done

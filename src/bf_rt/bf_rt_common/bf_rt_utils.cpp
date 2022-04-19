@@ -23,7 +23,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <bf_types/bf_types.h>
-#include <target_sys/bf_sal/bf_sys_mem.h>
+#include <target-sys/bf_sal/bf_sys_mem.h>
 
 void bf_rt_err_str(bf_status_t sts, const char **err_str) {
   *err_str = bf_err_str(sts);

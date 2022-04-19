@@ -90,7 +90,8 @@ apt_packages = ['git',
                 'meson',
                 'google-perftools',
                 'connect-proxy',
-                'tshark'
+                'tshark',
+                'cmake'
                 ]
 
 pip_packages = ['thrift', 'protobuf','pyelftools','scapy','six']
@@ -115,7 +116,9 @@ dnf_pkg = [ "clang", #libstdc++ is part of clang
             "python3-cffi",
             "autoconf-archive",
             "connect-proxy",
-            "wireshark"
+            "wireshark",
+            "cmake",
+            "libunwind-devel"
 ]
 
 

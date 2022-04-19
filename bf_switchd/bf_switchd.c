@@ -43,7 +43,7 @@
 #include <osdep/p4_sde_osdep.h>
 
 /* <clish> includes  */
-#include <target_utils/clish/thread.h>
+#include <target-utils/clish/thread.h>
 
 /* <bf_driver> includes */
 #include <dvm/bf_drv_intf.h>
@@ -368,6 +368,21 @@ static bf_status_t bf_switchd_init_device_profile(
 	  char *eal_args = dev_profile_p->eal_args;
 	  memset(eal_args, 0, MAX_EAL_LEN);
 	  strncpy(eal_args, p4_device->eal_args, MAX_EAL_LEN - 1);
+	  // Flag for enabling debug cli
+	  dev_profile_p->debug_cli_enable = p4_device->debug_cli_enable;
+	  // initialize the number of mempool objs
+	  dev_profile_p->num_mempool_objs = p4_device->num_mempool_objs;
+	  for (j = 0; j < p4_device->num_mempool_objs; j++) {
+		  struct mempool_obj_s *mempool_obj = &(p4_device->mempool_objs[j]);
+		  struct bf_mempool_obj_s *dev_profile_mempool = &(dev_profile_p->mempool_objs[j]);
+
+		  snprintf(dev_profile_mempool->name, sizeof(dev_profile_mempool->name),
+				  "%s", mempool_obj->name);
+		  dev_profile_mempool->buffer_size = mempool_obj->buffer_size;
+		  dev_profile_mempool->pool_size   = mempool_obj->pool_size;
+		  dev_profile_mempool->cache_size  = mempool_obj->cache_size;
+		  dev_profile_mempool->numa_node   = mempool_obj->numa_node;
+	  }
   }
 
 #ifdef BFRT_ENABLED
@@ -420,6 +435,10 @@ static bf_status_t bf_switchd_init_device_profile(
           sizeof(dev_profile_pipeline->p4_pipeline_name),
           "%s",
           p4_pipeline->p4_pipeline_name ? p4_pipeline->p4_pipeline_name : "");
+      if (switchd_ctx->asic[dev_id].chip_family == BF_DEV_FAMILY_DPDK) {
+         dev_profile_pipeline->core_id   = p4_pipeline->core_id;
+         dev_profile_pipeline->numa_node = p4_pipeline->numa_node;
+      }
 
       // configuration file
       dev_profile_pipeline->cfg_file = strdup(p4_pipeline->cfg_file);
@@ -472,6 +491,7 @@ bf_status_t bf_switchd_device_add(bf_dev_id_t dev_id, bool setup_dma) {
 
   /* Initialize P4 profile for the device */
   memset(&dev_profile, 0, sizeof dev_profile);
+
   if (switchd_ctx->asic[dev_id].configured) {
     status = bf_switchd_init_device_profile(
         dev_id, switchd_ctx->skip_p4, &dev_profile);
@@ -1331,6 +1351,7 @@ static int bf_switchd_pal_device_type_get(void) {
 
 /*
  * Set device type to sw_model for dpdk
+ * For ASIC it needs to be obtained from platfm/pal functions
  */
 static int bf_switchd_device_type_get(void) {
   int ret = 0;
@@ -1529,6 +1550,89 @@ static int bf_switchd_pal_handler_reg() {
   return 0;
 }
 
+#ifdef GRPC_ENABLED
+
+static void *bf_switchd_device_status_srv(void *arg) {
+  bf_switchd_context_t *ctx = (bf_switchd_context_t *)arg;
+  int optval = 1;
+  int sock_fd;
+  if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    fprintf(stderr,
+	    "Error: socket creation failed for switchd dev status %s\n",
+	    strerror(errno));
+    return NULL;
+  }
+
+  struct sockaddr_in switchd_addr;
+  memset(&switchd_addr, 0, sizeof(switchd_addr));
+  switchd_addr.sin_family = AF_INET;
+  switchd_addr.sin_addr.s_addr = ctx->server_listen_local_only
+                                     ? htonl(INADDR_LOOPBACK)
+                                     : htonl(INADDR_ANY);
+  switchd_addr.sin_port = htons(ctx->dev_sts_port);
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR,
+      (const void *)&optval,
+      sizeof(int)) < 0) {
+    fprintf(stderr,
+	    "Error: unable to set socket opt for switchd dev status %s\n",
+	    strerror(errno));
+    return NULL;
+  }
+
+  if (bind(sock_fd, (struct sockaddr *)&switchd_addr,
+      sizeof(switchd_addr)) < 0 ) {
+    fprintf(stderr,
+	    "Error: bind socket failed for switchd dev status %s\n",
+	    strerror(errno));
+    return NULL;
+  }
+
+  if (listen(sock_fd, 1) < 0) {
+    fprintf(stderr,
+	    "Error: listen failed for switchd dev status %s\n",
+	    strerror(errno));
+    return NULL;
+  }
+
+  while (1) {
+    int fd;
+    if ((fd = accept(sock_fd, (struct sockaddr *)NULL, NULL)) < 0) {
+      fprintf(stderr,
+	      "Error: accept Failed for switchd dev status %s\n",
+	      strerror(errno));
+      return NULL;
+    }
+    char x[2] = {0};
+    ssize_t rs = read(fd, x, 1);
+    if (-1 == rs) {
+      fprintf(stderr,
+              "Read failure for device status request: %s\n",
+              strerror(errno));
+    }
+    int dev_id = atoi(x);
+    if (dev_id >= BF_MAX_DEV_COUNT) {
+      fprintf(stderr, "Invalid device id: %d\n", dev_id);
+      x[0] = '0';
+    }
+    else {
+      x[0] = switchd_ctx->init_done && switchd_ctx->state[dev_id].device_ready
+                 ? '1'
+                 : '0';
+    }
+    ssize_t ws = write(fd, x, 1);
+    if (-1 == ws) {
+      fprintf(stderr,
+              "Write failure for device status request: %s\n",
+              strerror(errno));
+    }
+    close(fd);
+  }
+  return NULL;
+}
+
+#endif //GRPC_Enabled
+
+
 /* bf_switchd main */
 int bf_switchd_lib_init_local(void *ctx_local) {
   bf_switchd_context_t *ctx = (bf_switchd_context_t*)ctx_local;
@@ -1545,6 +1649,27 @@ int bf_switchd_lib_init_local(void *ctx_local) {
   } else {
     return -1;
   }
+
+  #ifdef GRPC_ENABLED
+  /* Status port thread creation */
+  if (switchd_ctx->dev_sts_thread) {
+    pthread_attr_t a;
+    pthread_attr_init(&a);
+
+    ret = pthread_create(&switchd_ctx->dev_sts_t_id,
+		         &a,
+                         bf_switchd_device_status_srv,
+                         switchd_ctx);
+    if (ret != 0) {
+      printf("ERROR: thread creation failed for switchd dev status service %d\n",
+	     ret);
+      return ret;
+    }
+
+    pthread_attr_destroy(&a);
+    pthread_setname_np(switchd_ctx->dev_sts_t_id, "bf_device_sts");
+  }
+  #endif
 
   /* Initialize system services */
   ret = bf_switchd_sys_init();

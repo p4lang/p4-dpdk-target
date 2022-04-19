@@ -34,27 +34,29 @@ void port_mgr_ctx_cleanup(struct port_mgr_ctx_t *ctx)
 }
 
 int port_mgr_set_port_info(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib)
+			   struct port_attributes_t *port_attrib)
 {
-	port_info_t *port_info;
+	struct port_info_t *port_info;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
 
 	port_mgr_log_trace("Entering %s", __func__);
 
-	port_info = P4_SDE_CALLOC(1, sizeof(port_info_t));
+	port_info = P4_SDE_CALLOC(1, sizeof(struct port_info_t));
 	if (!port_info)
 		return BF_NO_SYS_RESOURCES;
 
 	port_info->dev_port = dev_port;
 	memcpy(&port_info->port_attrib, port_attrib,
-	       sizeof(port_attributes_t));
+	       sizeof(struct port_attributes_t));
 
 	/* Get the global port_mgr context */
 	ctx = get_port_mgr_ctx();
-	if (!ctx)
+	if (!ctx) {
+		P4_SDE_FREE(port_info);
 		return BF_OBJECT_NOT_FOUND;
+	}
 
 	map = &ctx->port_info_map;
 
@@ -75,7 +77,7 @@ int port_mgr_set_port_info(bf_dev_port_t dev_port,
 
 int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 {
-	port_info_t *port_info;
+	struct port_info_t *port_info;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
@@ -90,11 +92,8 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 	map = &ctx->port_info_map;
 
 	port_info = port_mgr_get_port_info(dev_port);
-	if (!port_info) {
-		port_mgr_log_trace("Port Info not found. Exiting %s",
-				   __func__);
+	if (!port_info)
 		return BF_OBJECT_NOT_FOUND;
-	}
 
 	P4_SDE_FREE(port_info);
 
@@ -111,9 +110,9 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port)
 	return BF_SUCCESS;
 }
 
-port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
+struct port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
 {
-	port_info_t *port_info = NULL;
+	struct port_info_t *port_info = NULL;
 	struct port_mgr_ctx_t *ctx;
 	p4_sde_map_sts status;
 	p4_sde_map *map;
@@ -129,6 +128,10 @@ port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
 
 	/* Get Port Info from Hash Map */
 	status = P4_SDE_MAP_GET(map, dev_port, (void **)&port_info);
+    
+	if (!port_info)
+		port_mgr_log_error("%s: Port info not found for dev port %d",
+							__func__, dev_port);
 
 	port_mgr_log_trace("Exiting %s", __func__);
 
@@ -192,6 +195,8 @@ void port_mgr_init(void)
 	bf_drv_client_register_callbacks(bf_drv_hdl, &callbacks,
 					 BF_CLIENT_PRIO_4);
 
+	// Platform specific initialization
+	port_mgr_platform_init();
 	port_mgr_log_trace("Exiting %s", __func__);
 	return;
 

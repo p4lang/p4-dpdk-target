@@ -1531,38 +1531,6 @@ pipe_status_t pipe_stful_param_get_hdl(bf_dev_id_t dev,
 bf_dev_pipe_t dev_port_to_pipe_id(uint16_t dev_port_id);
 
 /**
- * Get first entry handle
- *
- * @param  sess_hdl              Session handle
- * @param  tbl_hdl               Table handle.
- * @param  dev_tgt               Device target.
- * @param  entry_handle          Entry handle.
- * @return                       Status of the API call
- */
-pipe_status_t pipe_mgr_get_first_entry_handle(pipe_sess_hdl_t sess_hdl,
-                                              pipe_mat_tbl_hdl_t tbl_hdl,
-                                              dev_target_t dev_tgt,
-                                              int *entry_handle);
-
-/**
- * Get next entry handles
- *
- * @param  sess_hdl              Session handle
- * @param  tbl_hdl               Table handle.
- * @param  dev_tgt               Device target.
- * @param  entry_handle          Entry handle.
- * @param  n                     Num of handles
- * @param  next_entry_handles    Next Entry handles.
- * @return                       Status of the API call
- */
-pipe_status_t pipe_mgr_get_next_entry_handles(pipe_sess_hdl_t sess_hdl,
-                                              pipe_mat_tbl_hdl_t tbl_hdl,
-                                              dev_target_t dev_tgt,
-                                              pipe_mat_ent_hdl_t entry_handle,
-                                              int n,
-                                              int *next_entry_handles);
-
-/**
  * Get next group members
  *
  * @param  sess_hdl              Session handle.

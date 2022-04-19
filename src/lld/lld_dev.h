@@ -21,7 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+extern bool is_skip_p4;
 bf_status_t lld_dev_add(bf_dev_id_t dev_id,
 			bf_dev_family_t dev_family,
 			bf_device_profile_t *profile,

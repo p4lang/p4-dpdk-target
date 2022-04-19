@@ -44,6 +44,22 @@ struct port_mgr_ctx_t {
 };
 
 /**
+ * Platform specific port initialization
+ *
+ * @param void
+ * @return void
+ */
+void port_mgr_platform_init(void);
+
+/**
+ * Platform specific port cleanup
+ *
+ * @param void
+ * @return void
+ */
+void port_mgr_platform_cleanup(void);
+
+/**
  * Get the Global Port Manager Context
  * @param void
  * @return port_mgr_ctx_t Port Manager Context
@@ -64,7 +80,7 @@ void port_mgr_ctx_cleanup(struct port_mgr_ctx_t *ctx);
  * @return Status of the API Call
  */
 int port_mgr_set_port_info(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib);
+			   struct port_attributes_t *port_attrib);
 
 /**
  * Remove entry from Port Info Hash Map
@@ -78,7 +94,7 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port);
  * @param dev_port Port ID
  * @return port_info_t Port Info Structure
  */
-port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port);
+struct port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port);
 
 #ifdef __cplusplus
 }

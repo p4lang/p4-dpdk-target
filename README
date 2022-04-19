@@ -44,7 +44,7 @@ p4-dpdk-target works in conjunction with following repos:
         in the install directory.
 
     P4-OVS:
-        (https://github.com/ipdk-io/ovs)
+        (https://github.com/ipdk-io/p4-ovs)
         The remote control plane interfaces like P4 Runtime and OpenConfig are
         supported through P4-OVS.  P4-OVS maps these remote protocol messages 
         and maps them to TDI interface.  (Currently, it maps them to the interim
@@ -84,8 +84,13 @@ p4-dpdk-target is organized as follows
     bf_switchd/
         Reference implementation of application to exercise the drivers.
 
-    third-party/tdi
-        Target independent frontend interface. (To be supported in future.)
+    third-party
+    	tdi:
+        	Target independent frontend interface. (To be supported in future.)
+	target-syslibs:
+		Target syslib package
+	target-utils:
+		Target utilities package
 
     tools/
         Scripts to help dependencies installation, ports setup and executing.

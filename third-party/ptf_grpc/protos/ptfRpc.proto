@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ptf_proto;
+
+
+service switchd_application{
+    rpc port_add(switchd_app_int_t) returns(response) {}
+    rpc enable_pipeline(device_id) returns(response) {}
+    rpc add_or_del_table_entry(table) returns(response) {}
+}
+
+enum table_operation {
+    addition = 0;
+    deletion = 1;
+}
+message switchd_app_int_t{
+    int32 dev_id = 1;
+    string port_name = 2;
+    string mempool_name = 3;
+    string pipe_name = 4;
+
+}
+
+message device_id{
+    int32 dev_id = 1;
+}
+
+message table{
+    int64 ipaddr = 1;
+    int32 prefix = 2;
+    int32 port = 3;
+    table_operation op = 4;
+}
+
+message response{
+    int32 responsem= 1;
+}

@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 #include <bf_types/bf_types.h>
-#include <target_sys/bf_sal/bf_sys_mem.h>
+#include <target-sys/bf_sal/bf_sys_mem.h>
 
 #include <pipe_mgr/pipe_mgr_intf.h>
 #include <dvm/bf_drv_intf.h>
@@ -207,7 +207,7 @@ class IPipeMgrIntf {
                                          uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
-                                         bf_dev_id_t device_id,
+                                         dev_target_t dev_tgt,
                                          pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                          pipe_adt_ent_hdl_t adt_ent_hdl,
                                          uint32_t pipe_api_flags) = 0;
@@ -246,7 +246,7 @@ class IPipeMgrIntf {
                                          uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrSelGrpDel(pipe_sess_hdl_t sess_hdl,
-                                         bf_dev_id_t device_id,
+                                         dev_target_t dev_tgt,
                                          pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                          pipe_sel_grp_hdl_t sel_grp_hdl,
                                          uint32_t pipe_api_flags) = 0;
@@ -267,7 +267,7 @@ class IPipeMgrIntf {
                                             uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
-                                             bf_dev_id_t device_id,
+                                             dev_target_t dev_tgt,
                                              pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                              pipe_sel_grp_hdl_t sel_grp_hdl,
                                              uint32_t num_mbrs,
@@ -276,7 +276,7 @@ class IPipeMgrIntf {
                                              uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                             bf_dev_id_t device_id,
+                                             dev_target_t dev_tgt,
                                              pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                              pipe_sel_grp_hdl_t sel_grp_hdl,
                                              uint32_t mbrs_size,
@@ -647,10 +647,34 @@ class IPipeMgrIntf {
 
   virtual bf_dev_pipe_t devPortToPipeId(uint16_t dev_port_id) = 0;
 
+  virtual pipe_status_t pipeMgrStoreEntries(pipe_sess_hdl_t sess_hdl,
+                                            pipe_mat_tbl_hdl_t tbl_hdl,
+                                            dev_target_t dev_tgt,
+				            bool *store_entries) = 0;
+
+  virtual pipe_status_t pipeMgrGetFirstEntry(
+			pipe_sess_hdl_t sess_hdl,
+			pipe_mat_tbl_hdl_t tbl_hdl,
+			dev_target_t dev_tgt,
+			pipe_tbl_match_spec_t *match_spec,
+			pipe_action_spec_t *action_spec,
+			pipe_act_fn_hdl_t *pipe_act_fn_hdl) = 0;
+
+  virtual pipe_status_t pipeMgrGetNextNByKey(
+				pipe_sess_hdl_t sess_hdl,
+				pipe_mat_tbl_hdl_t tbl_hdl,
+				dev_target_t dev_tgt,
+				pipe_tbl_match_spec_t *cur_match_spec,
+				int n,
+				pipe_tbl_match_spec_t *match_specs,
+				pipe_action_spec_t **action_specs,
+				pipe_act_fn_hdl_t *pipe_act_fn_hdls,
+				uint32_t *num) = 0;
+
   virtual pipe_status_t pipeMgrGetFirstEntryHandle(pipe_sess_hdl_t sess_hdl,
                                                    pipe_mat_tbl_hdl_t tbl_hdl,
                                                    dev_target_t dev_tgt,
-                                                   int *entry_handle) = 0;
+                                                   uint32_t *entry_handle) = 0;
 
   virtual pipe_status_t pipeMgrGetNextEntryHandles(
       pipe_sess_hdl_t sess_hdl,
@@ -658,12 +682,12 @@ class IPipeMgrIntf {
       dev_target_t dev_tgt,
       pipe_mat_ent_hdl_t entry_handle,
       int n,
-      int *next_entry_handles) = 0;
+      uint32_t *next_entry_handles) = 0;
 
   virtual pipe_status_t pipeMgrGetFirstGroupMember(
       pipe_sess_hdl_t sess_hdl,
       pipe_tbl_hdl_t tbl_hdl,
-      bf_dev_id_t dev_id,
+      dev_target_t dev_tgt,
       pipe_sel_grp_hdl_t sel_grp_hdl,
       pipe_adt_ent_hdl_t *mbr_hdl) = 0;
 
@@ -677,7 +701,7 @@ class IPipeMgrIntf {
       pipe_adt_ent_hdl_t *next_mbr_hdls) = 0;
 
   virtual pipe_status_t pipeMgrGetSelGrpMbrCount(pipe_sess_hdl_t sess_hdl,
-                                                 bf_dev_id_t dev_id,
+                                                 dev_target_t dev_tgt,
                                                  pipe_sel_tbl_hdl_t tbl_hdl,
                                                  pipe_sel_grp_hdl_t sel_grp_hdl,
                                                  uint32_t *count) = 0;
@@ -695,7 +719,7 @@ class IPipeMgrIntf {
 
   virtual pipe_status_t pipeMgrGetEntry(pipe_sess_hdl_t sess_hdl,
                                         pipe_mat_tbl_hdl_t tbl_hdl,
-                                        bf_dev_id_t dev_id,
+                                        struct bf_dev_target_t dev_tgt,
                                         pipe_mat_ent_hdl_t entry_hdl,
                                         pipe_tbl_match_spec_t *pipe_match_spec,
                                         pipe_action_spec_t *pipe_action_spec,
@@ -707,7 +731,7 @@ class IPipeMgrIntf {
   virtual pipe_status_t pipeMgrGetActionDataEntry(
       pipe_sess_hdl_t sess_hdl,
       pipe_adt_tbl_hdl_t tbl_hdl,
-      bf_dev_id_t dev_id,
+      struct bf_dev_target_t dev_tgt,
       pipe_adt_ent_hdl_t entry_hdl,
       pipe_action_data_spec_t *pipe_action_data_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,
@@ -950,7 +974,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
-                                 bf_dev_id_t device_id,
+                                 dev_target_t dev_tgt,
                                  pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                  pipe_adt_ent_hdl_t adt_ent_hdl,
                                  uint32_t pipe_api_flags);
@@ -987,7 +1011,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrSelGrpDel(pipe_sess_hdl_t sess_hdl,
-                                 bf_dev_id_t device_id,
+                                 dev_target_t dev_tgt,
                                  pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                  pipe_sel_grp_hdl_t sel_grp_hdl,
                                  uint32_t pipe_api_flags);
@@ -1008,7 +1032,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                     uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrSelGrpMbrsSet(pipe_sess_hdl_t sess_hdl,
-                                     bf_dev_id_t device_id,
+                                     dev_target_t dev_tgt,
                                      pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                      pipe_sel_grp_hdl_t sel_grp_hdl,
                                      uint32_t num_mbrs,
@@ -1017,7 +1041,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                      uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrSelGrpMbrsGet(pipe_sess_hdl_t sess_hdl,
-                                     bf_dev_id_t device_id,
+                                     dev_target_t dev_tgt,
                                      pipe_sel_tbl_hdl_t sel_tbl_hdl,
                                      pipe_sel_grp_hdl_t sel_grp_hdl,
                                      uint32_t mbrs_size,
@@ -1363,21 +1387,44 @@ class PipeMgrIntf : public IPipeMgrIntf {
 
   bf_dev_pipe_t devPortToPipeId(uint16_t dev_port_id);
 
+
+  pipe_status_t pipeMgrStoreEntries(pipe_sess_hdl_t sess_hdl,
+                                    pipe_mat_tbl_hdl_t tbl_hdl,
+                                    dev_target_t dev_tgt,
+				    bool *store_entries);
+
   pipe_status_t pipeMgrGetFirstEntryHandle(pipe_sess_hdl_t sess_hdl,
                                            pipe_mat_tbl_hdl_t tbl_hdl,
                                            dev_target_t dev_tgt,
-                                           int *entry_handle);
+                                           uint32_t *entry_handle);
+
+  pipe_status_t pipeMgrGetFirstEntry(pipe_sess_hdl_t sess_hdl,
+                                     pipe_mat_tbl_hdl_t tbl_hdl,
+                                     dev_target_t dev_tgt,
+                                     pipe_tbl_match_spec_t *match_spec,
+                                     pipe_action_spec_t *action_spec,
+				     pipe_act_fn_hdl_t *pipe_act_fn_hdl);
+
+  pipe_status_t pipeMgrGetNextNByKey(pipe_sess_hdl_t sess_hdl,
+				     pipe_mat_tbl_hdl_t tbl_hdl,
+				     dev_target_t dev_tgt,
+				     pipe_tbl_match_spec_t *cur_match_spec,
+				     int n,
+				     pipe_tbl_match_spec_t *match_specs,
+				     pipe_action_spec_t **action_specs,
+				     pipe_act_fn_hdl_t *pipe_act_fn_hdls,
+				     uint32_t *num);
 
   pipe_status_t pipeMgrGetNextEntryHandles(pipe_sess_hdl_t sess_hdl,
                                            pipe_mat_tbl_hdl_t tbl_hdl,
                                            dev_target_t dev_tgt,
                                            pipe_mat_ent_hdl_t entry_handle,
                                            int n,
-                                           int *next_entry_handles);
+                                           uint32_t *next_entry_handles);
 
   pipe_status_t pipeMgrGetFirstGroupMember(pipe_sess_hdl_t sess_hdl,
                                            pipe_tbl_hdl_t tbl_hdl,
-                                           bf_dev_id_t dev_id,
+                                           dev_target_t dev_tgt,
                                            pipe_sel_grp_hdl_t sel_grp_hdl,
                                            pipe_adt_ent_hdl_t *mbr_hdl);
 
@@ -1390,7 +1437,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                            pipe_adt_ent_hdl_t *next_mbr_hdls);
 
   pipe_status_t pipeMgrGetSelGrpMbrCount(pipe_sess_hdl_t sess_hdl,
-                                         bf_dev_id_t dev_id,
+                                         dev_target_t dev_tgt,
                                          pipe_sel_tbl_hdl_t tbl_hdl,
                                          pipe_sel_grp_hdl_t sel_grp_hdl,
                                          uint32_t *count);
@@ -1408,7 +1455,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
 
   pipe_status_t pipeMgrGetEntry(pipe_sess_hdl_t sess_hdl,
                                 pipe_mat_tbl_hdl_t tbl_hdl,
-                                bf_dev_id_t dev_id,
+                                struct bf_dev_target_t dev_tgt,
                                 pipe_mat_ent_hdl_t entry_hdl,
                                 pipe_tbl_match_spec_t *pipe_match_spec,
                                 pipe_action_spec_t *pipe_action_spec,
@@ -1420,7 +1467,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
   pipe_status_t pipeMgrGetActionDataEntry(
       pipe_sess_hdl_t sess_hdl,
       pipe_adt_tbl_hdl_t tbl_hdl,
-      bf_dev_id_t dev_id,
+      struct bf_dev_target_t dev_tgt,
       pipe_adt_ent_hdl_t entry_hdl,
       pipe_action_data_spec_t *pipe_action_data_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,

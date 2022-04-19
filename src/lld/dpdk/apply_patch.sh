@@ -17,9 +17,7 @@
 
 apply_patch()
 {
-	local PATCH_FILES=(
-		0001-fix-out-of-bounds-check-label.patch
-	)
+	local PATCH_FILES=()
 
 	DPDK_PATH=${PWD}
 	DPDK_SRC_PATH="${DPDK_PATH}"/dpdk_src

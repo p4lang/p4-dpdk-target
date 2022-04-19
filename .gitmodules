@@ -1,13 +1,23 @@
 [submodule "src/lld/dpdk/dpdk_src"]
 	path = src/lld/dpdk/dpdk_src
 	url = https://github.com/DPDK/dpdk.git
-	ignore = all
+	ignore = dirty
 [submodule "third-party/tdi"]
 	path = third-party/tdi
 	url = https://github.com/p4lang/tdi.git
-[submodule "third-party/target-syslibs"]
-	path = third-party/target-syslibs
-	url = https://github.com/p4lang/target-syslibs.git
+	ignore = dirty
 [submodule "third-party/target-utils"]
 	path = third-party/target-utils
 	url = https://github.com/p4lang/target-utils.git
+[submodule "third-party/target-syslibs"]
+	path = third-party/target-syslibs
+	url = https://github.com/p4lang/target-syslibs.git
+[submodule "third-party/googletest"]
+        path = third-party/googletest
+        url = https://github.com/google/googletest.git
+[submodule "third-party/ptf_grpc/ptf"]
+	path = third-party/ptf_grpc/ptf
+	url = https://github.com/p4lang/ptf
+[submodule "third-party/gmock-global"]
+	path = third-party/gmock-global
+	url = https://github.com/apriorit/gmock-global.git

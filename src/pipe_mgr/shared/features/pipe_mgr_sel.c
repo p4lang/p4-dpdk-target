@@ -75,6 +75,12 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 
 	LOG_TRACE("Entering %s", __func__);
 
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
 		LOG_ERROR("API prologue failed with err: %d", status);
@@ -131,7 +137,7 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_tbl_hdl,
 		u32 sel_grp_hdl,
 		uint32_t num_mbrs,
@@ -142,15 +148,17 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = device_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -230,22 +238,24 @@ cleanup:
 
 int pipe_mgr_get_first_group_member(u32 sess_hdl,
 		u32 tbl_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_grp_hdl,
 		u32 *mbr_hdl)
 {
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -307,7 +317,7 @@ cleanup:
 }
 
 int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t *count)
@@ -315,15 +325,17 @@ int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -383,7 +395,7 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 sel_grp_hdl,
 		uint32_t mbrs_size,
@@ -394,16 +406,18 @@ int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 	u32 i;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -468,7 +482,7 @@ cleanup:
 }
 
 int pipe_mgr_sel_grp_del(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t pipe_api_flags)
@@ -476,15 +490,17 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = device_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {

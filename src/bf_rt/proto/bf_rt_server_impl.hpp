@@ -30,6 +30,10 @@ extern "C" {
 }
 #endif
 
+#ifdef PTF_ENABLED
+#include <ptf_server_impl.hpp>
+#endif
+
 #include <bfruntime.grpc.pb.h>
 #include <google/rpc/status.grpc.pb.h>
 #include <google/rpc/code.grpc.pb.h>
@@ -47,7 +51,6 @@ extern "C" {
 #include <bf_rt/bf_rt_init.hpp>
 #include <bf_rt/bf_rt_info.hpp>
 #include <bf_rt/bf_rt_table.hpp>
-#include <bf_rt/bf_rt_learn.hpp>
 #include <bf_rt/bf_rt_session.hpp>
 #include <bf_rt/bf_rt_table_attributes.hpp>
 #include <bf_rt/bf_rt_table_operations.hpp>
@@ -170,17 +173,6 @@ inline Status to_grpc_status(const bf_status_t &bf_status_from,
 
 // Forward declare
 class ConnectionData;
-
-// TODO These learn functions should not be declared here. Technically,
-// all the functions in server_mgr should not even have to deal with it
-// diretly. Fix it.
-Status learn_callback_register(const ConnectionData &connection_data,
-                               const std::shared_ptr<BfRtSession> session,
-                               const bf_rt_target_t &target);
-
-Status learn_callback_deregister(const ConnectionData &connection_data,
-                                 const std::shared_ptr<BfRtSession> session,
-                                 const bf_rt_target_t &target);
 
 // This class implements the interface of the Service exposed by the grpc
 // server
@@ -442,6 +434,10 @@ class ServerData {
   std::string address_;
   int port_;
   BfRuntimeServiceImpl service_;
+#ifdef PTF_ENABLED
+  ptf::server::ptfServiceImpl ptfservice_;
+#endif
+
   ServerBuilder builder_;
   std::unique_ptr<Server> server_;
 };

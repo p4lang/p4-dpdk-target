@@ -53,10 +53,4 @@ int lld_dpdk_pipeline_disable(void);
 void lld_dpdk_table_rule_dump(char *pipeline, char *table, char *file_name);
 void lld_dpdk_table_stats(char *pipeline, char *table);
 void lld_dpdk_pipeline_build(char *pipeline, char *specfile);
-void lld_dpdk_table_rule_add(char *pipeline, char *table,
-			     enum mat_type action_type,
-			     void *request, void *reply);
-void lld_dpdk_table_rule_delete(char *pipeline, char *table,
-				enum mat_type action_type,
-				void *request, void *reply);
 #endif

@@ -24,7 +24,7 @@
 #include "lld_dpdk_port.h"
 #include "../lldlib_log.h"
 
-int lld_dpdk_tap_port_create(port_attributes_t *port_attrib)
+int lld_dpdk_tap_port_create(struct port_attributes_t *port_attrib)
 {
 	if (!tap_create(port_attrib->port_name)) {
 		LOG_ERROR("Creation of Tap Port %s failed\n",
@@ -36,8 +36,9 @@ int lld_dpdk_tap_port_create(port_attributes_t *port_attrib)
 }
 
 int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
-				   port_attributes_t *port_attrib,
-				   struct pipeline *pipe,
+				   struct port_attributes_t *port_attrib,
+				   struct pipeline *pipe_in,
+				   struct pipeline *pipe_out,
 				   struct mempool *mp)
 {
 	struct rte_swx_port_fd_reader_params params_in;
@@ -61,7 +62,7 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 		params_in.mtu = port_attrib->tap.mtu;
 		params_in.burst_size = 1;
 
-		status = rte_swx_pipeline_port_in_config(pipe->p,
+		status = rte_swx_pipeline_port_in_config(pipe_in->p,
 							port_attrib->port_in_id,
 							"fd",
 							&params_in);
@@ -78,7 +79,7 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 		params_out.fd = tap->fd;
 		params_out.burst_size = 1;
 
-		status = rte_swx_pipeline_port_out_config(pipe->p,
+		status = rte_swx_pipeline_port_out_config(pipe_out->p,
 						port_attrib->port_out_id,
 						"fd",
 						&params_out);
@@ -94,21 +95,22 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 }
 
 int lld_dpdk_tap_port_add(bf_dev_port_t dev_port,
-			  port_attributes_t *port_attrib,
-			  struct pipeline *pipe,
+			  struct port_attributes_t *port_attrib,
+			  struct pipeline *pipe_in,
+			  struct pipeline *pipe_out,
 			  struct mempool *mp)
 {
 	if (lld_dpdk_tap_port_create(port_attrib) != BF_SUCCESS)
 		return BF_INVALID_ARG;
 
-	if (lld_dpdk_pipeline_tap_port_add(dev_port, port_attrib, pipe, mp)
-	    != BF_SUCCESS)
+	if (lld_dpdk_pipeline_tap_port_add(dev_port, port_attrib, pipe_in,
+					   pipe_out, mp) != BF_SUCCESS)
 		return BF_INVALID_ARG;
 
 	return BF_SUCCESS;
 }
 
-int lld_dpdk_link_port_create(port_attributes_t *port_attrib)
+int lld_dpdk_link_port_create(struct port_attributes_t *port_attrib)
 {
 	struct link_params p;
 
@@ -135,8 +137,9 @@ int lld_dpdk_link_port_create(port_attributes_t *port_attrib)
 }
 
 int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
-				    port_attributes_t *port_attrib,
-				    struct pipeline *pipe)
+				    struct port_attributes_t *port_attrib,
+				    struct pipeline *pipe_in,
+				    struct pipeline *pipe_out)
 {
 	struct rte_swx_port_ethdev_reader_params params_in;
 	struct rte_swx_port_ethdev_writer_params params_out;
@@ -158,7 +161,7 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 		params_in.queue_id = 0;
 		params_in.burst_size = 1;
 
-		status = rte_swx_pipeline_port_in_config(pipe->p,
+		status = rte_swx_pipeline_port_in_config(pipe_in->p,
 						 port_attrib->port_in_id,
 						 "ethdev",
 						 &params_in);
@@ -176,7 +179,7 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 		params_out.queue_id = 0;
 		params_out.burst_size = 1;
 
-		status = rte_swx_pipeline_port_out_config(pipe->p,
+		status = rte_swx_pipeline_port_out_config(pipe_out->p,
 						  port_attrib->port_out_id,
 						  "ethdev",
 						  &params_out);
@@ -192,22 +195,23 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 }
 
 int lld_dpdk_link_port_add(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib,
-			   struct pipeline *pipe)
+			   struct port_attributes_t *port_attrib,
+			   struct pipeline *pipe_in,
+			   struct pipeline *pipe_out)
 {
 	if (lld_dpdk_link_port_create(port_attrib) != BF_SUCCESS)
 		return BF_INVALID_ARG;
 
-	if (lld_dpdk_pipeline_link_port_add(dev_port, port_attrib, pipe)
-	    != BF_SUCCESS)
+	if (lld_dpdk_pipeline_link_port_add(dev_port, port_attrib, pipe_in,
+					    pipe_out) != BF_SUCCESS)
 		return BF_INVALID_ARG;
 
 	return BF_SUCCESS;
 }
 
 int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
-			     port_attributes_t *port_attrib,
-			     struct pipeline *pipe,
+			     struct port_attributes_t *port_attrib,
+			     struct pipeline *pipe_in,
 			     struct mempool *mp)
 {
 	struct rte_swx_port_source_params params;
@@ -218,7 +222,7 @@ int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
 	params.pool = mp->m;
 	params.file_name = port_attrib->source.file_name;
 
-	status = rte_swx_pipeline_port_in_config(pipe->p,
+	status = rte_swx_pipeline_port_in_config(pipe_in->p,
 						port_attrib->port_in_id,
 						"source",
 						&params);
@@ -233,8 +237,8 @@ int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
 }
 
 int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
-			port_attributes_t *port_attrib,
-			struct pipeline *pipe)
+			struct port_attributes_t *port_attrib,
+			struct pipeline *pipe_out)
 {
 	struct rte_swx_port_sink_params params;
 	int status;
@@ -246,7 +250,7 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
 	else
 		params.file_name = port_attrib->sink.file_name;
 
-	status = rte_swx_pipeline_port_out_config(pipe->p,
+	status = rte_swx_pipeline_port_out_config(pipe_out->p,
 						  port_attrib->port_out_id,
 						  "sink",
 						  &params);
@@ -260,11 +264,100 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
 	return BF_SUCCESS;
 }
 
-int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
-			port_attributes_t *port_attrib,
-			uint64_t *stats)
+int lld_dpdk_ring_port_create(struct port_attributes_t *port_attrib)
 {
-	struct pipeline *pipe = NULL;
+	struct ring_params p;
+
+	memset(&p, 0, sizeof(p));
+
+	p.size = port_attrib->ring.size;
+	p.numa_node = 0;
+
+	if (!ring_create(port_attrib->port_name, &p)) {
+		LOG_ERROR("Creation of Ring Port %s failed\n",
+			  port_attrib->port_name);
+		return BF_INVALID_ARG;
+	}
+
+	return BF_SUCCESS;
+}
+
+int lld_dpdk_pipeline_ring_port_add(bf_dev_port_t dev_port,
+                                    struct port_attributes_t *port_attrib,
+                                    struct pipeline *pipe_in,
+                                    struct pipeline *pipe_out)
+{
+	struct rte_swx_port_ring_reader_params params_in;
+	struct rte_swx_port_ring_writer_params params_out;
+	struct ring *ring = NULL;
+	int status;
+
+        memset(&params_in, 0, sizeof(params_in));
+        memset(&params_out, 0, sizeof(params_out));
+
+	ring = ring_find(port_attrib->port_name);
+	if (!ring) {
+		LOG_ERROR("Ring Port %s not found\n", port_attrib->port_name);
+		return BF_INVALID_ARG;
+	}
+
+        if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
+            (port_attrib->port_dir == PM_PORT_DIR_RX_ONLY)) {
+                params_in.name = ring->name;
+                params_in.burst_size = 1;
+
+                status = rte_swx_pipeline_port_in_config(pipe_in->p,
+                                                 port_attrib->port_in_id,
+                                                 "ring",
+                                                 &params_in);
+
+                if (status) {
+                        LOG_ERROR("Port in Error for Ring Port %s\n",
+                                  port_attrib->port_name);
+                        return BF_INVALID_ARG;
+                }
+        }
+
+        if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
+            (port_attrib->port_dir == PM_PORT_DIR_TX_ONLY)) {
+                params_out.name = ring->name;
+                params_out.burst_size = 1;
+
+                status = rte_swx_pipeline_port_out_config(pipe_out->p,
+                                                  port_attrib->port_out_id,
+                                                  "ring",
+                                                  &params_out);
+
+                if (status) {
+                        LOG_ERROR("Port out Error for Ring Port %s\n",
+                                  port_attrib->port_name);
+                        return BF_INVALID_ARG;
+                }
+        }
+
+
+	return BF_SUCCESS;
+}
+int lld_dpdk_ring_port_add(bf_dev_port_t dev_port,
+                           struct port_attributes_t *port_attrib,
+                           struct pipeline *pipe_in,
+                           struct pipeline *pipe_out)
+{
+	if (lld_dpdk_ring_port_create(port_attrib) != BF_SUCCESS)
+		return BF_INVALID_ARG;
+
+	if (lld_dpdk_pipeline_ring_port_add(dev_port, port_attrib, pipe_in,
+					    pipe_out) != BF_SUCCESS)
+		return BF_INVALID_ARG;
+
+	return BF_SUCCESS;
+}
+
+int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
+			struct port_attributes_t *port_attrib,
+			u64 *stats)
+{
+	struct pipeline *pipe_in = NULL, *pipe_out = NULL;
 	struct rte_swx_port_in_stats in_stats;
 	struct rte_swx_port_out_stats out_stats;
 	int status;
@@ -272,15 +365,16 @@ int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
 	memset(&in_stats, 0, sizeof(in_stats));
 	memset(&out_stats, 0, sizeof(out_stats));
 
-	pipe = pipeline_find(port_attrib->pipe_name);
-	if (!pipe || !pipe->ctl) {
-		LOG_ERROR("Pipeline %s is not valid\n", port_attrib->pipe_name);
-		return BF_INVALID_ARG;
-	}
-
 	if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
 	    (port_attrib->port_dir == PM_PORT_DIR_RX_ONLY)) {
-		status = rte_swx_ctl_pipeline_port_in_stats_read(pipe->p,
+		pipe_in = pipeline_find(port_attrib->pipe_in);
+		if (!pipe_in || !pipe_in->ctl) {
+			LOG_ERROR("Ingress Pipeline %s is not valid\n",
+				  port_attrib->pipe_in);
+			return BF_INVALID_ARG;
+		}
+
+		status = rte_swx_ctl_pipeline_port_in_stats_read(pipe_in->p,
 						    port_attrib->port_in_id,
 						    &in_stats);
 
@@ -290,14 +384,21 @@ int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
 			return BF_INVALID_ARG;
 		}
 
-		stats[INPUT_PACKETS] = in_stats.n_pkts;
-		stats[INPUT_BYTES] = in_stats.n_bytes;
-		stats[INPUT_EMPTY_POLLS] = in_stats.n_empty;
+		stats[RX_PACKETS] = in_stats.n_pkts;
+		stats[RX_BYTES] = in_stats.n_bytes;
+		stats[RX_EMPTY_POLLS] = in_stats.n_empty;
 	}
 
 	if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
 	    (port_attrib->port_dir == PM_PORT_DIR_TX_ONLY)) {
-		status = rte_swx_ctl_pipeline_port_out_stats_read(pipe->p,
+                pipe_out = pipeline_find(port_attrib->pipe_out);
+                if (!pipe_out || !pipe_out->ctl) {
+                        LOG_ERROR("Egress Pipeline %s is not valid\n",
+                                  port_attrib->pipe_out);
+                        return BF_INVALID_ARG;
+                }
+
+		status = rte_swx_ctl_pipeline_port_out_stats_read(pipe_out->p,
 						    port_attrib->port_out_id,
 						    &out_stats);
 
@@ -307,27 +408,42 @@ int lld_dpdk_port_stats_get(bf_dev_port_t dev_port,
 			return BF_INVALID_ARG;
 		}
 
-		stats[OUTPUT_PACKETS] = out_stats.n_pkts;
-		stats[OUTPUT_BYTES] = out_stats.n_bytes;
+		stats[TX_PACKETS] = out_stats.n_pkts;
+		stats[TX_BYTES] = out_stats.n_bytes;
 	}
 
 	return BF_SUCCESS;
 }
 
 int lld_dpdk_port_add(bf_dev_port_t dev_port,
-		      port_attributes_t *port_attrib)
+		      struct port_attributes_t *port_attrib)
 {
 	int status = BF_SUCCESS;
-	struct pipeline *pipe = NULL;
+	struct pipeline *pipe_in = NULL, *pipe_out = NULL;
 	struct mempool *mp = NULL;
 
-	pipe = pipeline_find(port_attrib->pipe_name);
-	if (!pipe || pipe->ctl) {
-		LOG_ERROR("Pipeline %s is not valid\n", port_attrib->pipe_name);
-		return BF_INVALID_ARG;
+	if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
+            (port_attrib->port_dir == PM_PORT_DIR_RX_ONLY)) {
+		pipe_in = pipeline_find(port_attrib->pipe_in);
+		if (!pipe_in || pipe_in->ctl) {
+			LOG_ERROR("Pipeline %s is not valid\n",
+				  port_attrib->pipe_in);
+			return BF_INVALID_ARG;
+		}
 	}
 
-	if (port_attrib->port_type != BF_DPDK_SINK) {
+	if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
+            (port_attrib->port_dir == PM_PORT_DIR_TX_ONLY)) {
+		pipe_out = pipeline_find(port_attrib->pipe_out);
+		if (!pipe_out || pipe_out->ctl) {
+			LOG_ERROR("Pipeline %s is not valid\n",
+				  port_attrib->pipe_out);
+			return BF_INVALID_ARG;
+		}
+	}
+
+	if ((port_attrib->port_type != BF_DPDK_SINK) &&
+	    (port_attrib->port_type != BF_DPDK_RING)) {
 		mp = mempool_find(port_attrib->mempool_name);
 		if (!mp) {
 			LOG_ERROR("Mempool %s not found\n",
@@ -339,23 +455,32 @@ int lld_dpdk_port_add(bf_dev_port_t dev_port,
 	switch (port_attrib->port_type) {
 	case BF_DPDK_TAP:
 	{
-		status = lld_dpdk_tap_port_add(dev_port, port_attrib, pipe, mp);
+		status = lld_dpdk_tap_port_add(dev_port, port_attrib, pipe_in,
+					       pipe_out, mp);
 		break;
 	}
 	case BF_DPDK_LINK:
 	{
-		status = lld_dpdk_link_port_add(dev_port, port_attrib, pipe);
+		status = lld_dpdk_link_port_add(dev_port, port_attrib, pipe_in,
+						pipe_out);
 		break;
 	}
 	case BF_DPDK_SOURCE:
 	{
-		status = lld_dpdk_source_port_add(dev_port, port_attrib, pipe,
-						  mp);
+		status = lld_dpdk_source_port_add(dev_port, port_attrib,
+						  pipe_in, mp);
 		break;
 	}
 	case BF_DPDK_SINK:
 	{
-		status = lld_dpdk_sink_port_add(dev_port, port_attrib, pipe);
+		status = lld_dpdk_sink_port_add(dev_port, port_attrib,
+						pipe_out);
+		break;
+	}
+	case BF_DPDK_RING:
+	{
+		status = lld_dpdk_ring_port_add(dev_port, port_attrib, pipe_in,
+						pipe_out);
 		break;
 	}
 	default:

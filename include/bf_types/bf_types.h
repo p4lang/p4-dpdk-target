@@ -173,4 +173,20 @@ typedef uint32_t bf_dev_flags_t;
 #define P4_SDE_MAX_SESSIONS 16
 #define P4_SDE_NAME_SUFFIX 16
 
+#define MAC_FORMAT "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx"
+#define MAC_FORMAT_VALUE(var) \
+        (int)var[0], \
+        (int)var[1], \
+        (int)var[2], \
+        (int)var[3], \
+        (int)var[4], \
+        (int)var[5]
+
+#define IP_FORMAT "%u.%u.%u.%u"
+#define IP_FORMAT_VALUE(var) \
+        ((unsigned char*)&var)[3], \
+        ((unsigned char*)&var)[2], \
+        ((unsigned char*)&var)[1], \
+        ((unsigned char*)&var)[0]
+
 #endif

@@ -1,0 +1,16 @@
+#!/bin/bash
+if [ $# -ne 4 ]; then
+    echo "Invalid input"
+    exit
+fi
+port1=$1
+port2=$2
+veth1=$3
+veth2=$4
+#echo "Ports are $port1 and $port2, veths are $veth1 and $veth2"
+brname="brPort$port1-$port2"
+echo "Creating bridge $brname with $veth1 and $veth2"
+brctl addbr $brname
+ifconfig $brname up
+brctl addif $brname $veth1
+brctl addif $brname $veth2

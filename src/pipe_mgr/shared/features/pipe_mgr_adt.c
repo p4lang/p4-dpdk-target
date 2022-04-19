@@ -77,6 +77,12 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 
 	LOG_TRACE("Entering %s", __func__);
 
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
+
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
 		LOG_ERROR("API prologue failed with err: %d", status);
@@ -100,7 +106,7 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 		goto cleanup;
 	}
 
-	new_ent_hdl = P4_SDE_ID_ADD(tbl_state->entry_handle_array);
+	new_ent_hdl = P4_SDE_ID_ALLOC(tbl_state->entry_handle_array);
 	if (new_ent_hdl == ENTRY_HANDLE_ARRAY_SIZE) {
 		LOG_ERROR("entry handle allocator failed");
 		status = BF_NO_SPACE;
@@ -153,7 +159,7 @@ cleanup_map_add:
 	pipe_mgr_adt_delete_entry_data(entry);
 
 cleanup_id:
-	P4_SDE_ID_RMV(tbl_state->entry_handle_array, new_ent_hdl);
+	P4_SDE_ID_FREE(tbl_state->entry_handle_array, new_ent_hdl);
 
 cleanup_tbl_unlock:
 	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
@@ -168,7 +174,7 @@ cleanup:
 
 int pipe_mgr_get_action_data_entry(u32 sess_hdl,
 		u32 tbl_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 entry_hdl,
 		struct pipe_action_data_spec *pipe_action_data_spec,
 		u32 *act_fn_hdl,
@@ -177,15 +183,17 @@ int pipe_mgr_get_action_data_entry(u32 sess_hdl,
 	struct pipe_mgr_adt_entry_info *entry = NULL;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
-	dev_tgt.device_id = dev_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
-
 	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -251,7 +259,7 @@ cleanup:
 }
 
 int pipe_mgr_adt_ent_del(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 adt_tbl_hdl,
 		u32 adt_ent_hdl,
 		uint32_t pipe_api_flags)
@@ -259,14 +267,17 @@ int pipe_mgr_adt_ent_del(u32 sess_hdl,
 	struct pipe_mgr_adt_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
 	int status;
 	u64 key;
 
 	LOG_TRACE("Entering %s", __func__);
-	dev_tgt.device_id = device_id;
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -305,7 +316,7 @@ int pipe_mgr_adt_ent_del(u32 sess_hdl,
 				   pipe_api_flags, &tbl->ctx, adt_ent_hdl,
 				   &(entry->dal_data));
 	if (status == BF_SUCCESS) {
-		P4_SDE_ID_RMV(tbl->state->entry_handle_array, key);
+		P4_SDE_ID_FREE(tbl->state->entry_handle_array, key);
 		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
 		pipe_mgr_adt_delete_entry_data(entry);
 	} else {

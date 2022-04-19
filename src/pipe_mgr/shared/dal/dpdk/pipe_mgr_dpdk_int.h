@@ -42,6 +42,7 @@ struct pipe_mgr_dpdk_immediate_fields {
 
 struct  pipe_mgr_dpdk_action_format {
 	char    action_name[P4_SDE_NAME_LEN];
+	char    target_action_name[P4_SDE_NAME_LEN];
 	uint32_t    action_handle;
 	int     immediate_fields_count;
 	struct pipe_mgr_dpdk_immediate_fields *immediate_field;

@@ -25,8 +25,7 @@
 #define __CTX_JSON_UTILS__
 
 #include <bf_types/bf_types.h>
-#include <target_utils/cJSON.h>
-#include <pipe_mgr/pipe_mgr_intf.h>
+#include <cjson/cJSON.h>
 
 #define STAGE_TABLE_STR "stage_tables"
 /*
@@ -36,7 +35,6 @@
 #define CTX_JSON_MATCH_ATTRIBUTES_UNITS "units"
 #define CTX_JSON_SCHEMA_VERSION "schema_version"
 #define CTX_JSON_CHIP_TARGET "target"
-#define STAGE_TABLE_STR "stage_tables"
 #define CTX_JSON_MATCH_KEY_FIELDS_MATCH_TYPE_EXACT "exact"
 #define CTX_JSON_COMPILER_VERSION "compiler_version"
 #define CTX_JSON_MATCH_KEY_FIELDS_MATCH_TYPE_TERNARY "ternary"
@@ -55,7 +53,6 @@
 #define CTX_JSON_TABLE_TYPE_MATCH "match"
 #define CTX_JSON_TABLE_HOW_REFERENCED "how_referenced"
 #define CTX_JSON_MATCH_ATTRIBUTES_STAGE_TABLES STAGE_TABLE_STR
-#define STAGE_TABLE_STR "stage_tables"
 #define CTX_JSON_MATCH_TABLE_USES_RANGE "uses_range"
 #define CTX_JSON_MATCH_TABLE_IS_RESOURCE_CONTROLLABLE \
   "is_resource_controllable"
@@ -97,6 +94,7 @@
 #define CTX_JSON_TABLE_NAME "name"
 #define CTX_JSON_ACTION_DATA_ENTRY_FORMAT_FIELD_NAME "field_name"
 #define CTX_JSON_ACTION_FORMAT_ACTION_NAME "action_name"
+#define CTX_JSON_ACTION_FORMAT_TARGET_ACTION_NAME "target_action_name"
 #define CTX_JSON_ACTION_FORMAT_ACTION_TABLE_NAME "table_name"
 #define CTX_JSON_ACTION_FORMAT_IMMEDIATE_FIELDS_PARAM_NAME "param_name"
 #define CTX_JSON_P4_PARAMETER_NAME "name"
@@ -521,7 +519,6 @@
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_MATCH_TABLE_MATCH_ATTRIBUTES "match_attributes"
-#define STAGE_TABLE_STR "stage_tables"
 #define CTX_JSON_STAGE_TABLE_ACTION_FORMAT "action_format"
 #define CTX_JSON_HARDWARE_BLOCK_ACTION_FORMAT "action_format"
 #define CTX_JSON_ACTION_FORMAT_ACTION_NAME "action_name"
@@ -878,12 +875,12 @@ int bf_cjson_get_object(cJSON *cjson, char *property, cJSON **ret);
 int bf_cjson_try_get_object(cJSON *cjson, char *property, cJSON **ret);
 int bf_cjson_get_array_item(cJSON *cjson, int i, cJSON **ret);
 int bf_cjson_get_handle(bf_dev_id_t devid,
-                        profile_id_t prof_id,
+			int prof_id,
                         cJSON *cjson,
                         char *property,
                         int *ret);
 int bf_cjson_try_get_handle(bf_dev_id_t devid,
-                            profile_id_t prof_id,
+			    int prof_id,
                             cJSON *cjson,
                             char *property,
                             int *ret);
@@ -910,7 +907,7 @@ int ctx_json_parse_all_match_stage_tables_for_table(
     cJSON **all_stage_tables_cjson,
     int *number_stage_tables);
 int ctx_json_parse_action_for_action_handle(bf_dev_id_t devid,
-                                            profile_id_t prof_id,
+					    int prof_id,
                                             cJSON *actions_cjson,
                                             int action_handle,
                                             cJSON **ret);

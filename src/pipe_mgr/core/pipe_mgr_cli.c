@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "target_utils/clish/shell.h"
+#include "target-utils/clish/shell.h"
 #include <dvm/bf_drv_intf.h>
 #include <stdio.h>
 

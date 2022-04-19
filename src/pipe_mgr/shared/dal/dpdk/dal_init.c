@@ -45,6 +45,7 @@ int dal_remove_device(int dev_id)
  * Trigger from bf_shell which call bf-rt api at runtime.
  */
 int dal_enable_pipeline(bf_dev_id_t dev_id,
+		int profile_id,
 		void *spec_file,
 		enum bf_dev_init_mode_s warm_init_mode)
 {
@@ -57,7 +58,8 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 	LOG_TRACE("Entering %s dev_id %d init_mode %d",
 			__func__, dev_id, warm_init_mode);
 
-	status = pipe_mgr_get_profile(dev_id, &profile);
+	status = pipe_mgr_get_profile(dev_id, profile_id,
+				      &profile);
 	if (status) {
 		LOG_ERROR("not able find profile with device_id  %d",
 				dev_id);
@@ -72,10 +74,10 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		return BF_OBJECT_NOT_FOUND;
 	}
 
-	status = port_mgr_sink_create(profile->pipeline_name);
-	if (status) {
-		LOG_ERROR("sink creation Error %d at line %u: %s\n.",
-			status, __LINE__, __func__);
+	if (!pipeline_port_is_valid(pipe)) {
+		LOG_ERROR("Number of ports added to DPDK Pipeline %s "
+				  "in input direction should be a power of 2",
+				  profile->pipeline_name);
 		return BF_INTERNAL_ERROR;
 	}
 
@@ -96,7 +98,8 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		return BF_UNEXPECTED;
 	}
 
-	status = thread_pipeline_enable(1, profile->pipeline_name);
+	status = thread_pipeline_enable(profile->core_id,
+					profile->pipeline_name);
 	if (status) {
 		LOG_ERROR("error :thread pipeline enable");
 		return BF_UNEXPECTED;

@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include <bf_types/bf_types.h>
+#include <osdep/p4_sde_osdep.h>
 #include <port_mgr/bf_port_if.h>
 
 /**
@@ -34,7 +35,8 @@ extern "C" {
  */
 bf_status_t port_mgr_port_add(bf_dev_id_t dev_id,
 			      bf_dev_port_t dev_port,
-			      port_attributes_t *port_attrib);
+			      struct port_attributes_t *port_attrib);
+
 /**
  * Get all statistics for a port
  * @param dev_id The Device ID
@@ -42,9 +44,29 @@ bf_status_t port_mgr_port_add(bf_dev_id_t dev_id,
  * @param stats Array to hold all the stats read from hardware
  * @return Status of the API call.
  */
-bf_status_t port_mgr_port_this_stat_get(bf_dev_id_t dev_id,
+bf_status_t port_mgr_port_all_stats_get(bf_dev_id_t dev_id,
 					bf_dev_port_t dev_port,
-					uint64_t *stats);
+					u64 *stats);
+
+/**
+ * Get Port ID from MAC address
+ * @param dev_id The Device ID
+ * @param mac MAC Address String
+ * @param port_id Port ID
+ * @return Status of the API call.
+ */
+bf_status_t port_mgr_get_port_id_from_mac(bf_dev_id_t dev_id, char *mac,
+					  u32 *port_id);
+
+/**
+ * Get Port ID from Port Name
+ * @param dev_id The Device ID
+ * @param port_name Port Name
+ * @param port_id Port ID
+ * @return Status of the API call.
+ */
+bf_status_t port_mgr_get_port_id_from_name(bf_dev_id_t dev_id, char *port_name,
+					      u32 *port_id);
 
 #ifdef __cplusplus
 }

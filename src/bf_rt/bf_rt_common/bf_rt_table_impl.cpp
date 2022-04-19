@@ -18,7 +18,7 @@
 //#include <bf_rt_mirror/bf_rt_mirror_table_impl.hpp>
 #include <bf_rt_p4/bf_rt_p4_table_impl.hpp>
 //#include <bf_rt_pktgen/bf_rt_pktgen_table_impl.hpp>
-#include <bf_rt_port/dpdk/bf_rt_port_table_impl.hpp>
+#include "bf_rt_port_table_impl.hpp"
 //#include <bf_rt_pre/bf_rt_pre_table_impl.hpp>
 //#include <bf_rt_tm/bf_rt_tm_table_impl.hpp>
 //#include <bf_rt_tm/bf_rt_tm_table_impl_counters.hpp>

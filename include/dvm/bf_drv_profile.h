@@ -29,7 +29,7 @@
  * @addtogroup dvm-device-mgmt
  * @{
  */
-
+#define MAX_MEMPOOL_OBJS 2
 #define MAX_P4_PIPELINES 4
 #define PROG_NAME_LEN 256
 #define MAX_PROGRAMS_PER_DEVICE MAX_P4_PIPELINES
@@ -42,9 +42,18 @@ typedef struct bf_p4_pipeline {
   char *cfg_file;
   char *runtime_context_file;        // json context
   char *pi_config_file;              // json PI config
+  int core_id;                 // core on which pipeline run
+  int numa_node;         // pipeline uses mempool created this numa node
   int num_pipes_in_scope;            // num pipes in scope
   int pipe_scope[MAX_P4_PIPELINES];  // logical pipe list
 } bf_p4_pipeline_t;
+
+typedef struct asic_fw_profile {
+  char pcie_domain_bdf[PCIE_DOMAIN_BDF_LEN];
+  char iommu_grp_num[IOMMU_GRP_NUM_LEN];
+  int host_id; 
+  int pf_num;
+} asic_fw_profile_t;
 
 typedef struct bf_p4_program {
   char prog_name[PROG_NAME_LEN];
@@ -54,9 +63,21 @@ typedef struct bf_p4_program {
   bf_p4_pipeline_t p4_pipelines[MAX_P4_PIPELINES];
 } bf_p4_program_t;
 
+struct bf_mempool_obj_s {
+	char name[PROG_NAME_LEN];     // name of the mempool
+	int buffer_size;   // buffer size in mempool
+	int pool_size;     // number of buffers in mempool
+	int cache_size;    // these many mempool buffers are available in cache
+	int numa_node;     // mempool created on this numa socket
+};
+
 typedef struct bf_device_profile {
+  bool debug_cli_enable;
   uint8_t num_p4_programs;
   bf_p4_program_t p4_programs[MAX_PROGRAMS_PER_DEVICE];
+  uint8_t num_mempool_objs;
+  struct bf_mempool_obj_s mempool_objs[MAX_MEMPOOL_OBJS];
+  asic_fw_profile_t asic_prof;
   char *bfrt_non_p4_json_dir_path;  // bfrt fixed feature info json files path
   char eal_args[MAX_EAL_LEN]; // eal-args required for dpdk model
 } bf_device_profile_t;

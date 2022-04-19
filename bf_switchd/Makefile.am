@@ -18,6 +18,10 @@ switch_config.c \
 switchd_ucli.c \
 switch_config.h
 
+if IS_PTF_ENABLED
+bf_switchd_lib_sources += \
+bf_switchd_ptf.c
+endif
 export top_srcdir libdir prefix
 
 libbf_switchd_lib_la_SOURCES = $(bf_switchd_lib_sources)

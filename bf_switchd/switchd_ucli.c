@@ -15,9 +15,9 @@
  */
 #include <inttypes.h>
 #include <stdlib.h>
-#include <target_utils/uCli/ucli.h>
-#include <target_utils/uCli/ucli_argparse.h>
-#include <target_utils/uCli/ucli_handler_macros.h>
+#include <target-utils/uCli/ucli.h>
+#include <target-utils/uCli/ucli_argparse.h>
+#include <target-utils/uCli/ucli_handler_macros.h>
 
 #include <osdep/p4_sde_osdep.h>
 

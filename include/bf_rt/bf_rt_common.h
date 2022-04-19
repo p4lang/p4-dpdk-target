@@ -96,16 +96,6 @@ DECLARE_HANDLE(bf_rt_learn_hdl);
 DECLARE_HANDLE(bf_rt_table_operations_hdl);
 
 /**
- * @brief learn_data_hdl and table_data_hdl are the same,
- *  \n hence simple typedef like BfRtLearnData in
- *  \n include/bf_rt_learn.hpp
- */
-typedef bf_rt_table_data_hdl bf_rt_learn_data_hdl;
-
-/* C and C++ void typedefs */
-DECLARE_HANDLE(bf_rt_learn_msg_hdl);
-
-/**
  * @brief Structure definition for configuration target
  */
 typedef struct bf_rt_target_ {

@@ -76,9 +76,6 @@ class BfRtMatchActionTable : public BfRtTableObj {
                          TableApi::MODIFY,
                          TableApi::DELETE,
                          TableApi::CLEAR,
-                         TableApi::DEFAULT_ENTRY_SET,
-                         TableApi::DEFAULT_ENTRY_RESET,
-                         TableApi::DEFAULT_ENTRY_GET,
                          TableApi::GET,
                          TableApi::GET_FIRST,
                          TableApi::GET_NEXT_N,
@@ -277,6 +274,14 @@ class BfRtMatchActionTable : public BfRtTableObj {
                                      const pipe_mat_ent_hdl_t &pipe_entry_hdl,
                                      pipe_tbl_match_spec_t *pipe_match_spec,
                                      BfRtTableData *data) const;
+
+  bf_status_t tableEntryGetNextNByKey(const BfRtSession &session,
+                                      const bf_rt_target_t &dev_tgt,
+                                      const uint64_t &flags,
+                                      pipe_tbl_match_spec_t *pipe_match_spec,
+                                      uint32_t n,
+                                      keyDataPairs *key_data_pairs,
+                                      uint32_t *num_returned) const;
 
   std::unique_ptr<BfRtMatchIdleTableState> idle_table_state;
   // We need this variable to be mutable because we dynamically create/destroy
@@ -754,7 +759,7 @@ class BfRtSelectorTable : public BfRtTableObj {
                                   uint32_t *num_returned) const override;
 
   bf_status_t getOneMbr(const BfRtSession &session,
-                        const uint16_t device_id,
+                        const bf_rt_target_t &dev_tgt,
                         const pipe_sel_grp_hdl_t sel_grp_hdl,
                         pipe_adt_ent_hdl_t *member_hdl) const;
 

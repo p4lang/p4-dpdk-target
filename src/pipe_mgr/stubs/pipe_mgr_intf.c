@@ -300,12 +300,6 @@ pipe_status_t pipe_mgr_stat_table_reset(pipe_sess_hdl_t sess_hdl, dev_target_t d
     return PIPE_SUCCESS;
 }
 
-pipe_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl, dev_target_t dev_target, pipe_stat_tbl_hdl_t stat_tbl_hdl, pipe_stat_ent_idx_t stat_ent_idx, pipe_stat_data_t* stat_data)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
-}
-
 pipe_status_t pipe_mgr_stat_ent_set(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_stat_tbl_hdl_t stat_tbl_hdl, pipe_stat_ent_idx_t stat_ent_idx, pipe_stat_data_t* stat_data)
 {
     LOG_TRACE("STUB:%s\n",__func__);
@@ -539,18 +533,6 @@ bf_dev_pipe_t dev_port_to_pipe_id(uint16_t dev_port_id)
 {
     LOG_TRACE("STUB:%s\n",__func__);
     return 0;
-}
-
-pipe_status_t pipe_mgr_get_first_entry_handle(pipe_sess_hdl_t sess_hdl, pipe_mat_tbl_hdl_t tbl_hdl, dev_target_t dev_tgt, int* entry_handle)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
-}
-
-pipe_status_t pipe_mgr_get_next_entry_handles(pipe_sess_hdl_t sess_hdl, pipe_mat_tbl_hdl_t tbl_hdl, dev_target_t dev_tgt, pipe_mat_ent_hdl_t entry_handle, int n, int* next_entry_handles)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
 }
 
 pipe_status_t pipe_mgr_get_next_group_members(pipe_sess_hdl_t sess_hdl, pipe_tbl_hdl_t tbl_hdl, bf_dev_id_t dev_id, pipe_sel_grp_hdl_t sel_grp_hdl, pipe_adt_ent_hdl_t mbr_hdl, int n, pipe_adt_ent_hdl_t* next_mbr_hdls)

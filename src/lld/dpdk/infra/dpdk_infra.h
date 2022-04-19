@@ -193,9 +193,12 @@ pipeline_create(const char *name,
 struct pipeline *
 pipeline_find(const char *name);
 
+int
+pipeline_port_is_valid(struct pipeline *pipe);
+
 /* Infra related functions */
 int
-dpdk_infra_init(int count, char **arr);
+dpdk_infra_init(int count, char **arr, bool debug_cli_enable);
 
 
 /* Thread related functions */
@@ -213,7 +216,8 @@ thread_init(void);
 int
 thread_main(void *arg);
 
-void table_entry_free(struct rte_swx_table_entry *entry);
+void
+table_entry_free(struct rte_swx_table_entry *entry);
 uint64_t
 get_action_id(struct pipeline *pipe, const char *action_name);
 uint32_t

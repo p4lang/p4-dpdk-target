@@ -179,6 +179,7 @@ static int pipe_mgr_mat_tbl_key_insert_internal(
 		pipe_idx = pipe_id;
 	} */
 
+	pipe_idx = pipe_id;
 	tbl_ctx = &tbl->ctx;
 	tbl_state = tbl->state;
 	match_spec = ms;
@@ -249,6 +250,7 @@ static int pipe_mgr_mat_tbl_key_insert_internal(
 
 	if (pipe_mgr_form_htbl_key(key_sz, match_spec, &key_p) ==
 			BF_NO_SYS_RESOURCES) {
+		P4_SDE_FREE(htbl_node);
 		return BF_NO_SYS_RESOURCES;
 	}
 	htbl_sts =
@@ -264,6 +266,7 @@ static int pipe_mgr_mat_tbl_key_insert_internal(
 				__LINE__,
 				tbl_ctx->handle);
 		ret =  BF_UNEXPECTED;
+		P4_SDE_FREE(htbl_node);
 		goto error;
 	}
 
@@ -274,17 +277,20 @@ error:
 	return ret;
 }
 
-int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
-				struct pipe_tbl_match_spec *ms,
-				bf_dev_pipe_t pipe_id,
-				bool *exists,
-				u32 *mat_ent_hdl)
+static int mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
+			      struct pipe_tbl_match_spec *ms,
+			      bf_dev_pipe_t pipe_id,
+			      bool *exists,
+			      u32 *mat_ent_hdl,
+			      struct pipe_mgr_mat_entry_info **entry)
 {
 	struct pipe_mgr_mat_key_htbl_node *htbl_node = NULL;
 	struct pipe_tbl_match_spec *match_spec;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
 	uint8_t *key_p = NULL;
 	uint8_t pipe_idx = 0;
 	uint32_t key_sz;
+	u64 key;
 
 	/* TBD: do we need to support BF_DEV_PIPE_ALL */
 	/*if (pipe_id == BF_DEV_PIPE_ALL)
@@ -292,22 +298,17 @@ int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
 	else
 		pipe_idx = pipe_id; */
 
+	pipe_idx = pipe_id;
+
 	/* The very first entry getting added into this table
 	 * or duplicate_entry_check is disabled for this table */
 	if (!tbl->ctx.duplicate_entry_check ||
-	    !tbl->state->key_htbl) {
+	    !tbl->state->key_htbl[pipe_idx]) {
 		*exists = false;
 		return BF_SUCCESS;
 	}
 
 	match_spec = ms;
-
-/*if ((pipe_mgr_get_exm_key_with_dkm_mask(tbl_state, ms, dkm_match_spec)) ==
-      PIPE_SUCCESS) {
-    // EXM table has dynamic key mask property. Change key to include bits as
-    // per key-mask.
-    match_spec = dkm_match_spec;
-  } */
 
 	key_sz = match_spec->num_match_bytes;
 	if (tbl->ctx.match_attr.match_type != PIPE_MGR_MATCH_TYPE_EXACT) {
@@ -324,6 +325,9 @@ int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
 
 	if (htbl_node == NULL) {
 		*exists = false;
+		if (key_p)
+			P4_SDE_FREE(key_p);
+		return BF_SUCCESS;
 	} else {
 		*mat_ent_hdl = htbl_node->mat_ent_hdl;
 		*exists = true;
@@ -332,19 +336,59 @@ int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
 		P4_SDE_FREE(key_p);
 	}
 
+	if (!entry)
+		return BF_SUCCESS;
+
+	key = (unsigned long)*mat_ent_hdl;
+
+	map_sts = P4_SDE_MAP_GET(&tbl->state->entry_info_htbl, key,
+				 (void **)entry);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("table entry handle/entry map get failed");
+		return BF_UNEXPECTED;
+	}
 	return BF_SUCCESS;
+}
+
+int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
+				struct pipe_tbl_match_spec *ms,
+				bf_dev_pipe_t pipe_id,
+				bool *exists,
+				u32 *mat_ent_hdl,
+				struct pipe_mgr_mat_entry_info **entry)
+{
+	int status = BF_SUCCESS;
+
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		return BF_UNEXPECTED;
+	}
+
+	status = mat_tbl_key_exists(tbl, ms, pipe_id, exists, mat_ent_hdl,
+				    entry);
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
+
+	return status;
 }
 
 int pipe_mgr_mat_tbl_key_delete_internal(struct bf_dev_target_t dev_tgt,
 		struct pipe_mgr_mat *tbl,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 mat_ent_hdl)
+		struct pipe_tbl_match_spec *match_spec)
 {
 	struct pipe_mgr_mat_key_htbl_node *htbl_node = NULL;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
 	int status = BF_SUCCESS;
 	uint8_t *key_p = NULL;
 	uint8_t pipe_idx = 0;
 	uint32_t key_sz = 0;
+	u32 mat_ent_hdl;
+	bool exists;
+	u64 key;
+
+	pipe_idx = dev_tgt.dev_pipe_id;
 
 	key_sz = match_spec->num_match_bytes;
 	if (tbl->ctx.match_attr.match_type != PIPE_MGR_MATCH_TYPE_EXACT) {
@@ -357,55 +401,249 @@ int pipe_mgr_mat_tbl_key_delete_internal(struct bf_dev_target_t dev_tgt,
 		return BF_NO_SYS_RESOURCES;
 	}
 
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		if (key_p)
+			P4_SDE_FREE(key_p);
+
+		return BF_UNEXPECTED;
+	}
+
+	status = mat_tbl_key_exists(tbl, match_spec, dev_tgt.dev_pipe_id,
+				    &exists, &mat_ent_hdl, NULL);
+	if (status) {
+		LOG_ERROR("Failure in searching key in table");
+		status = BF_UNEXPECTED;
+		goto cleanup_key;
+	}
+
+	if (!exists)
+		goto cleanup_key;
+
+	key = (u64)mat_ent_hdl;
+	map_sts = P4_SDE_MAP_RMV(&tbl->state->entry_info_htbl, key);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("table entry handle/entry map del failed");
+		status = BF_UNEXPECTED;
+	}
+
+	P4_SDE_ID_FREE(tbl->state->entry_handle_array, mat_ent_hdl);
+
 	htbl_node = bf_hashtbl_get_remove(tbl->state->key_htbl[pipe_idx],
 					  key_p);
 	if (htbl_node == NULL) {
 		LOG_ERROR("Not found in match spec based hash table");
-		status = BF_OBJECT_NOT_FOUND;
+		status = (status == BF_SUCCESS) ? BF_OBJECT_NOT_FOUND :
+			 status;
 	}
 
-	if (key_p) {
+cleanup_key:
+	if (key_p)
 		P4_SDE_FREE(key_p);
-	}
+
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
 
 	return status;
 }
 
 int pipe_mgr_mat_tbl_key_delete(struct bf_dev_target_t dev_tgt,
 		struct pipe_mgr_mat *tbl,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 mat_ent_hdl)
+		struct pipe_tbl_match_spec *match_spec)
 {
 	return pipe_mgr_mat_tbl_key_delete_internal(
 			dev_tgt, tbl,
-			match_spec, mat_ent_hdl);
+			match_spec);
 }
 
 int pipe_mgr_mat_tbl_key_insert(struct bf_dev_target_t dev_tgt,
 		struct pipe_mgr_mat *tbl,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 mat_ent_hdl)
+		struct pipe_mgr_mat_entry_info *entry,
+		u32 *ent_hdl)
 {
-	uint32_t num_pipelines = 0;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	u32 new_ent_hdl;
 	int status;
+	u64 key;
 
-	/* If the hash tables are not allocated, allocate it */
-	if (!tbl->state->key_htbl) {
-		num_pipelines =
-			pipe_mgr_get_num_active_pipes(dev_tgt.device_id);
-		tbl->state->key_htbl = (bf_hashtable_t **)P4_SDE_CALLOC
-				       (num_pipelines,
-					sizeof(bf_hashtable_t *));
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		return BF_UNEXPECTED;
+	}
 
-		if (!tbl->state->key_htbl) {
-			LOG_ERROR("%s:%d Malloc failure", __func__, __LINE__);
-			return BF_NO_SYS_RESOURCES;
-		}
+	new_ent_hdl = P4_SDE_ID_ALLOC(tbl->state->entry_handle_array);
+	if (new_ent_hdl == ENTRY_HANDLE_ARRAY_SIZE) {
+		LOG_ERROR("entry handle allocator failed");
+		status = BF_NO_SPACE;
+		goto cleanup;
+	}
+	entry->mat_ent_hdl = new_ent_hdl;
+
+	key = (u64)new_ent_hdl;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl->state->entry_info_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in inserting entry info");
+		status = BF_NO_SYS_RESOURCES;
+		goto cleanup_id;
 	}
 
 	status = pipe_mgr_mat_tbl_key_insert_internal
-			(tbl, match_spec, mat_ent_hdl,
+			(tbl, entry->match_spec, new_ent_hdl,
 			 dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_ERROR("Error in inserting in hash table");
+		goto cleanup_map_add;
+	}
+
+	*ent_hdl = new_ent_hdl;
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock)) {
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
+		status = BF_UNEXPECTED;
+	}
+
+	return status;
+
+cleanup_map_add:
+	P4_SDE_MAP_RMV(&tbl->state->entry_info_htbl, key);
+
+cleanup_id:
+	P4_SDE_ID_FREE(tbl->state->entry_handle_array, new_ent_hdl);
+
+cleanup:
+	P4_SDE_MUTEX_UNLOCK(&tbl->state->lock);
+	return status;
+}
+
+int pipe_mgr_mat_tbl_get_first(struct pipe_mgr_mat *tbl,
+			       bf_dev_pipe_t pipe_id,
+			       u32 *ent_hdl)
+{
+	struct pipe_mgr_mat_entry_info **entry = NULL;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	unsigned long key;
+	int status;
+
+	if (!ent_hdl)
+		return BF_INVALID_ARG;
+
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		return BF_UNEXPECTED;
+	}
+	status = BF_SUCCESS;
+
+	map_sts = P4_SDE_MAP_GET_FIRST(&tbl->state->entry_info_htbl, &key,
+				       (void **)&entry);
+	if (map_sts == BF_MAP_NO_KEY) {
+		key = -1;
+		status = BF_OBJECT_NOT_FOUND;
+	} else if (map_sts) {
+		LOG_ERROR("Retrieving handle for table %d failed",
+			  tbl->ctx.handle);
+		status = BF_UNEXPECTED;
+	}
+
+	*ent_hdl = key;
+
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
+
+	return status;
+}
+
+int pipe_mgr_mat_tbl_get_next_n(struct pipe_mgr_mat *tbl,
+				bf_dev_pipe_t pipe_id,
+				u32 ent_hdl,
+				int n,
+				u32 *next_ent_hdls)
+{
+	struct pipe_mgr_mat_entry_info **entry = NULL;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	unsigned long key;
+	int status;
+	int i;
+
+	if (!next_ent_hdls)
+		return BF_INVALID_ARG;
+
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		return BF_UNEXPECTED;
+	}
+
+	key = ent_hdl;
+	i = 0;
+	while (i < n) {
+		map_sts = P4_SDE_MAP_GET_NEXT(&tbl->state->entry_info_htbl,
+					      &key,
+					      (void **)&entry);
+		if (map_sts != BF_MAP_OK) {
+			next_ent_hdls[i] = -1;
+			break;
+		}
+
+		next_ent_hdls[i] = key;
+		i++;
+	}
+
+	if (i < n)
+		next_ent_hdls[i] = -1;
+
+	if (map_sts == BF_MAP_OK)
+		status = BF_SUCCESS;
+	else if (map_sts == BF_MAP_NO_KEY)
+		status = (i == 0) ? BF_OBJECT_NOT_FOUND : BF_SUCCESS;
+	else
+		status = BF_UNEXPECTED;
+
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
+
+	return status;
+}
+
+int pipe_mgr_mat_tbl_get(struct pipe_mgr_mat *tbl,
+			 bf_dev_pipe_t pipe_id,
+			 u32 ent_hdl,
+			 struct pipe_mgr_mat_entry_info **entry)
+{
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	unsigned long key;
+	int status;
+
+	if (!entry)
+		return BF_INVALID_ARG;
+
+	status = P4_SDE_MUTEX_LOCK(&tbl->state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  tbl->ctx.handle, status);
+		return BF_UNEXPECTED;
+	}
+
+	key = ent_hdl;
+
+	map_sts = P4_SDE_MAP_GET(&tbl->state->entry_info_htbl, key,
+				 (void **)entry);
+	if (map_sts == BF_MAP_OK)
+		status = BF_SUCCESS;
+	else if (map_sts == BF_MAP_NO_KEY)
+		status = BF_OBJECT_NOT_FOUND;
+	else
+		status = BF_UNEXPECTED;
+
+	if (P4_SDE_MUTEX_UNLOCK(&tbl->state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.handle);
 
 	return status;
 }

@@ -61,12 +61,13 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 	struct pipe_mgr_dpdk_stage_table *stage_table = mat_ctx->stage_table;
 	struct pipe_mgr_actions_list *action;
 	struct rte_swx_ctl_action_arg_info *action_arg_info;
-	struct pipe_mgr_dpdk_action_format *act_fmt;
+	struct pipe_mgr_dpdk_action_format *act_fmt = NULL;
 	int status = BF_SUCCESS;
 	uint64_t action_id;
 	uint32_t index;
 	int n_action;
 	int i;
+	void *ptr;
 
 	n_action = meta->dpdk_table_info.n_actions;
 	action = mat_ctx->actions;
@@ -124,7 +125,6 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 					&action_arg_info[index]);
 			if (status) {
 				LOG_ERROR("dpdk action arg info get failed");
-				act_fmt = stage_table->act_fmt;
 				status = BF_UNEXPECTED;
 				goto cleanup;
 			}
@@ -144,10 +144,17 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 	return status;
 
 cleanup:
+	if (act_fmt) {
+		if (act_fmt->arg_info)
+			P4_SDE_FREE(act_fmt->arg_info);
+		P4_SDE_FREE(act_fmt);
+	}
 	act_fmt = stage_table->act_fmt;
 	while(act_fmt) {
 		P4_SDE_FREE(act_fmt->arg_info);
+		ptr = (void *)act_fmt;
 		act_fmt = act_fmt->next;
+		P4_SDE_FREE(ptr);
 	}
 	return status;
 }
@@ -183,7 +190,8 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			return BF_UNEXPECTED;
 		}
 
-		action_id = get_action_id(meta->pipe, act_fmt->action_name);
+		action_id = get_action_id(meta->pipe,
+					  act_fmt->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -403,7 +411,6 @@ int dal_table_ent_add(u32 sess_hdl,
 		      u32 ttl,
 		      u32 pipe_api_flags,
 		      struct pipe_mgr_mat_ctx *mat_ctx,
-		      u32 tbl_ent_hdl,
 		      void **dal_data)
 {
 	struct pipe_action_data_spec *data_spec =
@@ -441,7 +448,8 @@ int dal_table_ent_add(u32 sess_hdl,
 		}
 	}
 
-	status = pipe_mgr_get_profile(dev_tgt.device_id, &profile);
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
 	if (status) {
 		LOG_ERROR("not able find profile with device_id  %d",
 				dev_tgt.device_id);
@@ -537,7 +545,6 @@ int dal_table_ent_add(u32 sess_hdl,
 		goto error;
 	}
 
-	return status;
 error:
 	table_entry_free(entry);
 	return status;
@@ -549,7 +556,7 @@ int dal_table_ent_del_by_match_spec(u32 sess_hdl,
 				    struct pipe_tbl_match_spec *match_spec,
 				    u32 pipe_api_flags,
 				    struct pipe_mgr_mat_ctx *mat_ctx,
-				    u32 tbl_ent_hdl, void *dal_data)
+				    void *dal_data)
 {
 	struct pipe_mgr_dpdk_stage_table *stage_table;
 	struct rte_swx_table_entry *entry;
@@ -621,6 +628,11 @@ exit:
 
 /* currently no DPDK dal data struct for table entries,
    if we have in future then this function should be written */
+int dal_unpack_dal_data(void *dal_data)
+{
+	return BF_SUCCESS;
+}
+
 void dal_delete_table_entry_data(void *dal_data)
 {
 	return;
@@ -629,4 +641,36 @@ void dal_delete_table_entry_data(void *dal_data)
 void dal_delete_adt_table_entry_data(void *dal_adt_data)
 {
 	return;
+}
+
+bool dal_mat_store_entries(struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	/* Always store rule entry states for DPDK target */
+	return true;
+}
+
+
+int dal_mat_get_first_entry(u32 sess_hdl,
+			    struct bf_dev_target_t dev_tgt,
+			    u32 mat_tbl_hdl,
+			    struct pipe_tbl_match_spec *match_spec,
+			    struct pipe_action_spec *act_data_spec,
+			    u32 *act_fn_hdl,
+		            struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	return BF_NOT_SUPPORTED;
+}
+
+int dal_mat_get_next_n_by_key(u32 sess_hdl,
+			       struct bf_dev_target_t dev_tgt,
+			       u32 mat_tbl_hdl,
+			       struct pipe_tbl_match_spec *cur_match_spec,
+			       int n,
+			       struct pipe_tbl_match_spec *match_specs,
+			       struct pipe_action_spec **act_specs,
+			       u32 *act_fn_hdls,
+			       u32 *num,
+		               struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	return BF_NOT_SUPPORTED;
 }

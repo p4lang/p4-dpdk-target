@@ -59,7 +59,8 @@
               "choices" : ["BF_DPDK_TAP",
                            "BF_DPDK_LINK",
                            "BF_DPDK_SOURCE",
-                           "BF_DPDK_SINK"]
+                           "BF_DPDK_SINK",
+			   "BF_DPDK_RING"]
             }
           }
         },
@@ -98,7 +99,20 @@
           "read_only" : false,
           "singleton" : {
             "id" : 5,
-            "name" : "$PIPE",
+            "name" : "$PIPE_IN",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string"
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 6,
+            "name" : "$PIPE_OUT",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -110,7 +124,7 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 6,
+            "id" : 7,
             "name" : "$PORT_IN_ID",
             "repeated" : false,
             "annotations" : [],
@@ -124,7 +138,7 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 7,
+            "id" : 8,
             "name" : "$PORT_OUT_ID",
             "repeated" : false,
             "annotations" : [],
@@ -138,7 +152,7 @@
           "mandatory" : true,
           "read_only" : false,
           "singleton" : {
-            "id" : 8,
+            "id" : 9,
             "name" : "$MEMPOOL",
             "repeated" : false,
             "annotations" : [],
@@ -151,7 +165,7 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 9,
+            "id" : 10,
             "name" : "$PCIE_BDF",
             "repeated" : false,
             "annotations" : [],
@@ -164,7 +178,7 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 10,
+            "id" : 11,
             "name" : "$FILE_NAME",
             "repeated" : false,
             "annotations" : [],
@@ -177,7 +191,7 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 11,
+            "id" : 12,
             "name" : "$DEV_ARGS",
             "repeated" : false,
             "annotations" : [],
@@ -190,8 +204,22 @@
           "mandatory" : false,
           "read_only" : false,
           "singleton" : {
-            "id" : 12,
+            "id" : 13,
             "name" : "$DEV_HOTPLUG_ENABLED",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 14,
+            "name" : "$SIZE",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -230,10 +258,10 @@
       "data" : [
         {
           "mandatory" : false,
-          "read_only" : false,
+          "read_only" : true,
           "singleton" : {
             "id" : 1,
-            "name" : "$Input_Packets",
+            "name" : "$RX_BYTES",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -244,10 +272,10 @@
         },
         {
           "mandatory" : false,
-          "read_only" : false,
+          "read_only" : true,
           "singleton" : {
             "id" : 2,
-            "name" : "$Input_Bytes",
+            "name" : "$RX_PACKETS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -258,10 +286,10 @@
         },
         {
           "mandatory" : false,
-          "read_only" : false,
+          "read_only" : true,
           "singleton" : {
             "id" : 3,
-            "name" : "$Input_Empty_Polls",
+            "name" : "$RX_UNICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -272,10 +300,10 @@
         },
         {
           "mandatory" : false,
-          "read_only" : false,
+          "read_only" : true,
           "singleton" : {
             "id" : 4,
-            "name" : "$Output_Packets",
+            "name" : "$RX_MULTICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -286,10 +314,150 @@
         },
         {
           "mandatory" : false,
-          "read_only" : false,
+          "read_only" : true,
           "singleton" : {
             "id" : 5,
-            "name" : "$Output_Bytes",
+            "name" : "$RX_BROADCAST",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 6,
+            "name" : "$RX_DISCARDS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 7,
+            "name" : "$RX_ERRORS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 8,
+            "name" : "$RX_EMPTY_POLLS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 9,
+            "name" : "$TX_BYTES",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 10,
+            "name" : "$TX_PACKETS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 11,
+            "name" : "$TX_UNICAST",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 12,
+            "name" : "$TX_MULTICAST",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 13,
+            "name" : "$TX_BROADCAST",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 14,
+            "name" : "$TX_DISCARDS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint64",
+              "default_value" : 0
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : true,
+          "singleton" : {
+            "id" : 15,
+            "name" : "$TX_ERRORS",
             "repeated" : false,
             "annotations" : [],
             "type" : {

@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 /* P4 SDE Headers */
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 #include <ctx_json/ctx_json_utils.h>
 #include <osdep/p4_sde_osdep.h>
 
@@ -37,6 +37,7 @@
 
 #define FREE_LIST(head) \
 	{ \
+		void *temp;\
 		while (head) { \
 			temp = head->next; \
 			P4_SDE_FREE(head); \
@@ -96,9 +97,11 @@ static int ctx_json_parse_immediate_field_dpdk_json
 		param_name, P4_SDE_NAME_LEN - 1);
 	immediate_field->param_name[P4_SDE_NAME_LEN-1] = '\0';
 
-	if (param_type)
+	if (param_type) {
 		strncpy(immediate_field->param_type,
-			param_type, P4_SDE_NAME_LEN);
+			param_type, P4_SDE_NAME_LEN - 1);
+		immediate_field->param_type[P4_SDE_NAME_LEN-1] = '\0';
+	}
 
 	immediate_field->param_shift = param_shift;
 	immediate_field->dest_start = dest_start;
@@ -115,14 +118,17 @@ static int ctx_json_parse_action_format_dpdk_json
 	struct pipe_mgr_dpdk_immediate_fields *immediate_field_temp;
 	bf_status_t rc = BF_SUCCESS;
 	char *action_str = NULL;
-	char *action_name;
+	char *action_name, *target_action_name;
 	int action_handle;
 	int err = 0;
-	void *temp;
 
 	err |= bf_cjson_get_string(action_format_cjson,
 			CTX_JSON_ACTION_FORMAT_ACTION_NAME,
 			&action_name);
+
+	err |= bf_cjson_get_string(action_format_cjson,
+			CTX_JSON_ACTION_FORMAT_TARGET_ACTION_NAME,
+			&target_action_name);
 
 	err |= bf_cjson_get_int(action_format_cjson,
 			CTX_JSON_ACTION_FORMAT_ACTION_HANDLE,
@@ -139,6 +145,16 @@ static int ctx_json_parse_action_format_dpdk_json
 
 	strncpy(act_fmt->action_name, action_str, P4_SDE_NAME_LEN - 1);
 	act_fmt->action_name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	action_str = trim_classifier_str(target_action_name);
+	if (!action_str) {
+		LOG_ERROR("action %s trim_classifier_str failed",
+			  target_action_name);
+		return BF_UNEXPECTED;
+	}
+
+	strncpy(act_fmt->target_action_name, action_str, P4_SDE_NAME_LEN - 1);
+	act_fmt->target_action_name[P4_SDE_NAME_LEN - 1] = '\0';
 
 	act_fmt->action_handle = action_handle;
 
@@ -168,6 +184,7 @@ static int ctx_json_parse_action_format_dpdk_json
 					immediate_field_temp);
 			if (rc) {
 				rc = BF_UNEXPECTED;
+				P4_SDE_FREE(immediate_field_temp);
 				goto cleanup_immediate_field;
 			}
 
@@ -189,13 +206,13 @@ cleanup_immediate_field:
 int ctx_json_parse_mat_mat_attr_stage_tables(int dev_id, int prof_id,
 	cJSON *stage_table_list_cjson,
 	void **stage_table,
-	int *stage_table_count)
+	int *stage_table_count,
+	struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	struct pipe_mgr_dpdk_action_format *action_format_temp = NULL;
 	struct pipe_mgr_dpdk_stage_table *stage_tbl_temp = NULL;
 	bf_status_t rc = BF_SUCCESS;
 	int err = 0;
-	void *temp;
 
 	cJSON *stage_table_cjson = NULL;
 
@@ -240,6 +257,7 @@ int ctx_json_parse_mat_mat_attr_stage_tables(int dev_id, int prof_id,
 				 action_format_cjson, action_format_temp);
 			if (rc) {
 				rc = BF_UNEXPECTED;
+				P4_SDE_FREE(action_format_temp);
 				goto cleanup;
 			}
 
@@ -280,12 +298,31 @@ cleanup:
 	return rc;
 }
 
+int dal_ctx_json_parse_global_config(int dev_id, int prof_id,
+		cJSON *root, void **dal_global_config)
+{
+	return BF_SUCCESS;
+}
+
+int dal_post_parse_processing(int dev_id, int prof_id,
+                struct pipe_mgr_p4_pipeline *ctx)
+{
+	return BF_SUCCESS;
+}
+
+
 int dal_parse_ctx_json_parse_stage_tables(int dev_id, int prof_id,
 	cJSON *stage_table_list_cjson,
 	void **stage_table,
-	int *stage_table_count)
+	int *stage_table_count,
+	struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	return ctx_json_parse_mat_mat_attr_stage_tables
 		(dev_id, prof_id, stage_table_list_cjson,
-		 stage_table, stage_table_count);
+		 stage_table, stage_table_count, mat_ctx);
+}
+
+bool dal_mat_store_state(struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	return true;
 }

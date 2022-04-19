@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include "switch_config.h"
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -230,6 +230,38 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
       memset(eal_args, 0, MAX_EAL_LEN);
       strncpy(eal_args, check_and_get_string(p4_device_obj, "eal-args"),
 		MAX_EAL_LEN - 1);
+
+	if (self->asic[0].chip_family == BF_DEV_FAMILY_DPDK) {
+		/* debug_cli_enable flag set to false by default */
+		p4_device->debug_cli_enable = false;
+		if (!strcmp(check_and_get_string(p4_device_obj, "debug-cli"), "enable")) {
+			p4_device->debug_cli_enable = true;
+		}
+
+		cJSON *mempool_obj_arr =
+				cJSON_GetObjectItem(p4_device_obj, "mempools");
+
+		assert(mempool_obj_arr != NULL);
+		assert(cJSON_Array == mempool_obj_arr->type);
+		p4_device->num_mempool_objs =
+				cJSON_GetArraySize(mempool_obj_arr);
+		/* Go over all mempool objs */
+		for (j = 0; j < cJSON_GetArraySize(mempool_obj_arr); ++j) {
+			cJSON *mempool_obj =
+				cJSON_GetArrayItem(mempool_obj_arr, j);
+			struct mempool_obj_s *mempool =
+				&p4_device->mempool_objs[j];
+
+			mempool->name = strdup(get_string(mempool_obj, "name"));
+			mempool->buffer_size =
+					get_int(mempool_obj, "buffer_size");
+			mempool->pool_size = get_int(mempool_obj, "pool_size");
+			mempool->cache_size =
+					get_int(mempool_obj, "cache_size");
+			mempool->numa_node = get_int(mempool_obj, "numa_node");
+		}
+	}
+
       cJSON *p4_program_arr = cJSON_GetObjectItem(p4_device_obj, "p4_programs");
       assert(p4_program_arr != NULL);
       assert(cJSON_Array == p4_program_arr->type);
@@ -306,6 +338,10 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
 
           p4_pipeline->p4_pipeline_name =
               strdup(get_string(p4_pipeline_obj, "p4_pipeline_name"));
+	if (self->asic[0].chip_family == BF_DEV_FAMILY_DPDK) {
+		p4_pipeline->core_id = get_int(p4_pipeline_obj, "core_id");
+		p4_pipeline->numa_node = get_int(p4_pipeline_obj, "numa_node");
+	}
           to_abs_path(p4_pipeline->table_config,
                       p4_pipeline_obj,
                       "context",
@@ -344,6 +380,18 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
       /* Print config */
       printf("P4 profile for dev_id %d\n", device);
       printf("P4 EAL args %s\n", p4_device->eal_args);
+	  printf("Debug CLI %s\n",
+			(p4_device->debug_cli_enable == true) ? "enable" : "disable");
+	printf("num mempool objs %d\n", p4_device->num_mempool_objs);
+	for (j = 0; j < p4_device->num_mempool_objs;  ++j) {
+		struct mempool_obj_s *mempool = &p4_device->mempool_objs[j];
+
+		printf("  mempool_name: %s\n", mempool->name);
+		printf("  buffer_size:  %d\n", mempool->buffer_size);
+		printf("  pool_size:    %d\n", mempool->pool_size);
+		printf("  cache_size:   %d\n", mempool->cache_size);
+		printf("  numa_node:    %d\n", mempool->numa_node);
+	}
       printf("num P4 programs %d\n", p4_device->num_p4_programs);
       for (j = 0; j < p4_device->num_p4_programs; ++j) {
         p4_programs_t *p4_program = &(p4_device->p4_programs[j]);
@@ -352,8 +400,9 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
 	printf("  port_config: %s\n", p4_program->port_config);
         for (k = 0; k < p4_program->num_p4_pipelines; k++) {
           p4_pipeline_config_t *p4_pipeline = &(p4_program->p4_pipelines[k]);
-          printf("  p4_pipeline_name: %s\n", p4_pipeline->p4_pipeline_name);
-
+	  printf("  p4_pipeline_name: %s\n", p4_pipeline->p4_pipeline_name);
+	  printf("  core_id: %d\n", p4_pipeline->core_id);
+	  printf("  numa_node: %d\n", p4_pipeline->numa_node);
           printf("    context: %s\n", p4_pipeline->table_config);
           printf("    config: %s\n", p4_pipeline->cfg_file);
           if (p4_pipeline->num_pipes_in_scope > 0) {
@@ -376,6 +425,7 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
   }
 }
 
+
 static int switch_parse_chip_list(cJSON *root,
                                   bf_switchd_context_t *ctx,
                                   const char *cfg_install_dir) {
@@ -389,7 +439,7 @@ static int switch_parse_chip_list(cJSON *root,
   /* For each chip in the chip_list... */
   for (cJSON *chip = chip_list->child; chip; chip = chip->next) {
     /* Get the asic id. */
-    bf_dev_id_t chip_id = get_int(chip, "instance");
+    int chip_id = get_int(chip, "instance");
 
     /* Get the virtual and slave flags. */
     ctx->asic[chip_id].is_virtual = check_and_get_int(chip, "virtual", 0);
@@ -404,15 +454,17 @@ static int switch_parse_chip_list(cJSON *root,
       fam = "dpdk";
     } else if (!strcasecmp(fam, "dpdk")) {
       ctx->asic[chip_id].chip_family = BF_DEV_FAMILY_DPDK;
-    } else {
+    }
+    else {
       printf("Unexpected chip family \"%s\" for instance %d\n", fam, chip_id);
       return -1;
     }
 
+    ctx->asic[chip_id].configured = true;
+
     /* Display the parsed data. */
     printf("Configuration for dev_id %d\n", chip_id);
     printf("  Family        : %s\n", fam);
-    ctx->asic[chip_id].configured = true;
     if (ctx->asic[chip_id].is_virtual)
       printf("  Virtual   : %d\n", ctx->asic[chip_id].is_virtual);
   }

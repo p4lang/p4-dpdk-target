@@ -28,25 +28,16 @@ std::once_flag IPortMgrIntf::m_onceFlag;
 
 bf_status_t PortMgrIntf::portMgrPortAdd(bf_dev_id_t dev_id,
                                         bf_dev_port_t dev_port,
-                                        port_attributes_t *port_attrib) {
+                                        struct port_attributes_t *port_attrib) {
   return bf_pal_port_add(dev_id, dev_port, port_attrib);
 }
 
-bf_status_t PortMgrIntf::portMgrPortDel(bf_dev_id_t dev_id,
-                                        bf_dev_port_t dev_port) {
-  return bf_pal_port_del(dev_id, dev_port);
-}
-
 // Port Stats
-bf_status_t PortMgrIntf::portMgrPortThisStatGet(bf_dev_id_t dev_id,
-                                                bf_dev_port_t dev_port,
-                                                uint64_t *stat_val) {
-  return bf_pal_port_this_stat_get(dev_id, dev_port, stat_val);
-}
-
-bf_status_t PortMgrIntf::portMgrPortThisStatClear(bf_dev_id_t dev_id,
-                                                  bf_dev_port_t dev_port) {
-	return BF_SUCCESS;
+bf_status_t PortMgrIntf::portMgrPortAllStatsGet(
+    bf_dev_id_t dev_id,
+    bf_dev_port_t dev_port,
+    uint64_t *stats) {
+  return bf_pal_port_all_stats_get(dev_id, dev_port, stats);
 }
 
 }  // namespace bfrt

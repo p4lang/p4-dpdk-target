@@ -26,7 +26,7 @@
 #include <stdio.h>
 
 /* P4 SDE Headers */
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 #include <ctx_json/ctx_json_utils.h>
 #include <osdep/p4_sde_osdep.h>
 
@@ -40,7 +40,8 @@
 #define PORT_CONFIG_JSON_DEV_PORT "dev_port"
 #define PORT_CONFIG_JSON_PORT_NAME "port_name"
 #define PORT_CONFIG_JSON_MEMPOOL_NAME "mempool_name"
-#define PORT_CONFIG_JSON_PIPE_NAME "pipe_name"
+#define PORT_CONFIG_JSON_PIPE_IN "pipe_in"
+#define PORT_CONFIG_JSON_PIPE_OUT "pipe_out"
 #define PORT_CONFIG_JSON_PORT_DIR "port_dir"
 #define PORT_CONFIG_JSON_PORT_IN_ID "port_in_id"
 #define PORT_CONFIG_JSON_PORT_OUT_ID "port_out_id"
@@ -49,11 +50,13 @@
 #define PORT_CONFIG_JSON_LINK_PORT_ATTRIB_NODE "link_port_attributes"
 #define PORT_CONFIG_JSON_SOURCE_PORT_ATTRIB_NODE "source_port_attributes"
 #define PORT_CONFIG_JSON_SINK_PORT_ATTRIB_NODE "sink_port_attributes"
+#define PORT_CONFIG_JSON_RING_PORT_ATTRIB_NODE "ring_port_attributes"
 #define PORT_CONFIG_JSON_PORT_MTU "mtu"
 #define PORT_CONFIG_JSON_PORT_PCIE_BDF "pcie_bdf"
 #define PORT_CONFIG_JSON_PORT_DEV_ARGS "dev_args"
 #define PORT_CONFIG_JSON_PORT_DEV_HOTPLUG_ENABLED "dev_hotplug_enabled"
 #define PORT_CONFIG_JSON_PORT_FILE_NAME "file_name"
+#define PORT_CONFIG_JSON_PORT_SIZE "size"
 
 #define PORT_CONFIG_JSON_FOR_EACH(it, parent) \
 	for ((it) = (parent)->child; (it) != NULL; (it) = (it)->next)
@@ -65,7 +68,7 @@
  */
 struct port_mgr_port_type_map {
 	char port_type_name[P4_SDE_NAME_LEN];  /*!< DPDK Port Type String */
-	dpdk_port_type_t port_type;            /*!< DPDK Port Type Enum */
+	enum dpdk_port_type_t port_type;            /*!< DPDK Port Type Enum */
 };
 
 /**
@@ -75,7 +78,8 @@ static struct port_mgr_port_type_map port_type_map[] = {
 	{"tap", BF_DPDK_TAP},		/*!< DPDK Tap Port */
 	{"link", BF_DPDK_LINK},		/*!< DPDK Link Port */
 	{"source", BF_DPDK_SOURCE},	/*!< DPDK Source Port */
-	{"sink", BF_DPDK_SINK}		/*!< DPDK Sink Port */
+	{"sink", BF_DPDK_SINK},		/*!< DPDK Sink Port */
+	{"ring", BF_DPDK_RING}      /*!< DPDK Ring Port */
 };
 
 /**
@@ -101,7 +105,7 @@ static struct port_mgr_port_dir_map port_dir_map[] = {
  * @param port_type Port Type String
  * @return Port Type Enum
  */
-static dpdk_port_type_t get_port_type_enum(char *port_type)
+static enum dpdk_port_type_t get_port_type_enum(char *port_type)
 {
 	int num_port_type;
 	int i;
@@ -150,7 +154,7 @@ static bf_pm_port_dir_e get_port_dir_enum(char *port_dir)
  * @return Status of the API call
  */
 static int port_config_json_parse_tap_port(cJSON *port_cjson,
-					   tap_port_attributes_t *tap)
+					   struct tap_port_attributes_t *tap)
 {
 	int mtu;
 	cJSON *tap_port_attrib_cjson = NULL;
@@ -178,11 +182,11 @@ static int port_config_json_parse_tap_port(cJSON *port_cjson,
  * @return Status of the API call
  */
 static int port_config_json_parse_link_port(cJSON *port_cjson,
-					    link_port_attributes_t *link)
+					    struct link_port_attributes_t *link)
 {
 	char *pcie_bdf = NULL;
 	char *dev_args = NULL;
-	int dev_hotplug_enabled;
+	int dev_hotplug_enabled = 0;
 	cJSON *link_port_attrib_cjson = NULL;
 	int err = 0;
 
@@ -222,7 +226,7 @@ static int port_config_json_parse_link_port(cJSON *port_cjson,
  * @return Status of the API call
  */
 static int port_config_json_parse_source_port(cJSON *port_cjson,
-					      source_port_attributes_t *source)
+								struct source_port_attributes_t *source)
 {
 	char *file_name = NULL;
 	cJSON *source_port_attrib_cjson = NULL;
@@ -251,7 +255,7 @@ static int port_config_json_parse_source_port(cJSON *port_cjson,
  * @return Status of the API call
  */
 static int port_config_json_parse_sink_port(cJSON *port_cjson,
-					    sink_port_attributes_t *sink)
+					    struct sink_port_attributes_t *sink)
 {
 	char *file_name = NULL;
 	cJSON *sink_port_attrib_cjson = NULL;
@@ -274,6 +278,34 @@ static int port_config_json_parse_sink_port(cJSON *port_cjson,
 }
 
 /**
+ * Parse Ring Port Attributes
+ * @param port_cjson Port cJSON Object
+ * @param ring Ring Port Attributes
+ * @return Status of the API call
+ */
+static int port_config_json_parse_ring_port(cJSON *port_cjson,
+							struct ring_port_attributes_t *ring)
+{
+		int size;
+		cJSON *ring_port_attrib_cjson = NULL;
+		int err = 0;
+
+		err |= bf_cjson_get_object(port_cjson,
+					PORT_CONFIG_JSON_RING_PORT_ATTRIB_NODE,
+					&ring_port_attrib_cjson);
+
+		err |= bf_cjson_get_int(ring_port_attrib_cjson,
+					PORT_CONFIG_JSON_PORT_SIZE,
+					&size);
+
+		if (err)
+			return BF_UNEXPECTED;
+
+		ring->size = size;
+		return BF_SUCCESS;
+}
+
+/**
  * Parse each individual Port Object
  * @param dev_id The Device ID
  * @param port_cjson Port cJSON object
@@ -282,11 +314,11 @@ static int port_config_json_parse_sink_port(cJSON *port_cjson,
  */
 static int port_config_json_parse_port(int dev_id,
 				       cJSON *port_cjson,
-				       port_info_t *port_info)
+				       struct port_info_t *port_info)
 {
 	int dev_port, port_in_id = 0, port_out_id = 0;
 	char *port_name = NULL;
-	char *pipe_name = NULL;
+	char *pipe_in = NULL, *pipe_out = NULL;
 	char *mempool_name = NULL;
 	char *port_type = NULL;
 	char *port_dir = NULL;
@@ -302,9 +334,6 @@ static int port_config_json_parse_port(int dev_id,
 	err |= bf_cjson_get_string(port_cjson, PORT_CONFIG_JSON_MEMPOOL_NAME,
 				&mempool_name);
 
-	err |= bf_cjson_get_string(port_cjson, PORT_CONFIG_JSON_PIPE_NAME,
-				&pipe_name);
-
 	err |= bf_cjson_get_string(port_cjson, PORT_CONFIG_JSON_PORT_DIR,
 				&port_dir);
 
@@ -318,8 +347,6 @@ static int port_config_json_parse_port(int dev_id,
 	strncpy(port_info->port_attrib.mempool_name, mempool_name,
 		MEMPOOL_NAME_LEN - 1);
 	port_info->port_attrib.mempool_name[MEMPOOL_NAME_LEN - 1] = '\0';
-	strncpy(port_info->port_attrib.pipe_name, pipe_name, PIPE_NAME_LEN - 1);
-	port_info->port_attrib.pipe_name[PIPE_NAME_LEN - 1] = '\0';
 
 	if (get_port_dir_enum(port_dir) != PM_PORT_DIR_MAX) {
 		port_info->port_attrib.port_dir = get_port_dir_enum(port_dir);
@@ -331,15 +358,22 @@ static int port_config_json_parse_port(int dev_id,
 
 	if ((port_info->port_attrib.port_dir == PM_PORT_DIR_DEFAULT) ||
 	    (port_info->port_attrib.port_dir == PM_PORT_DIR_RX_ONLY)) {
-		err |= bf_cjson_get_int(port_cjson, PORT_CONFIG_JSON_PORT_IN_ID,
+		err |= bf_cjson_get_int(port_cjson,
+					PORT_CONFIG_JSON_PORT_IN_ID,
 					&port_in_id);
+		err |= bf_cjson_get_string(port_cjson,
+					   PORT_CONFIG_JSON_PIPE_IN,
+					   &pipe_in);
 	}
 
 	if ((port_info->port_attrib.port_dir == PM_PORT_DIR_DEFAULT) ||
 	    (port_info->port_attrib.port_dir == PM_PORT_DIR_TX_ONLY)) {
 		err |= bf_cjson_get_int(port_cjson,
-				PORT_CONFIG_JSON_PORT_OUT_ID,
-				&port_out_id);
+					PORT_CONFIG_JSON_PORT_OUT_ID,
+					&port_out_id);
+		err |= bf_cjson_get_string(port_cjson,
+					PORT_CONFIG_JSON_PIPE_OUT,
+					&pipe_out);
 	}
 
 	err |= bf_cjson_get_string(port_cjson, PORT_CONFIG_JSON_PORT_TYPE,
@@ -350,6 +384,18 @@ static int port_config_json_parse_port(int dev_id,
 
 	port_info->port_attrib.port_in_id = port_in_id;
 	port_info->port_attrib.port_out_id = port_out_id;
+
+	if (pipe_in) {
+		strncpy(port_info->port_attrib.pipe_in, pipe_in,
+			PIPE_NAME_LEN - 1);
+		port_info->port_attrib.pipe_in[PIPE_NAME_LEN - 1] = '\0';
+	}
+
+	if (pipe_out) {
+		strncpy(port_info->port_attrib.pipe_out, pipe_out,
+			PIPE_NAME_LEN - 1);
+		port_info->port_attrib.pipe_out[PIPE_NAME_LEN - 1] = '\0';
+	}
 
 	if (get_port_type_enum(port_type) != BF_DPDK_PORT_MAX) {
 		port_info->port_attrib.port_type =
@@ -389,6 +435,13 @@ static int port_config_json_parse_port(int dev_id,
 			  &port_info->port_attrib.sink);
 		break;
 	}
+	case BF_DPDK_RING:
+	{
+		status = port_config_json_parse_ring_port
+				(port_cjson,
+				&port_info->port_attrib.ring);
+		break;
+	}
 	default:
 		port_mgr_log_error
 		("%s:%d Incorrect Port Type", __func__, __LINE__);
@@ -414,7 +467,7 @@ static int port_config_json_parse_port(int dev_id,
 static int port_config_json_parse_ports(int dev_id,
 					cJSON *root)
 {
-	port_info_t port_info;
+	struct port_info_t port_info;
 	cJSON *ports_cjson = NULL;
 	cJSON *port_cjson = NULL;
 	int status = BF_SUCCESS;
@@ -490,8 +543,7 @@ static int parse_port_config_json(int dev_id,
 	port_config_file_buf = P4_SDE_CALLOC(1, to_allocate);
 	if (!port_config_file_buf) {
 		port_mgr_log_error
-		("%s:%d: Could not allocate memory for "
-		"config file buffer.",
+		("%s:%d: Could not allocate memory for config file buffer.",
 		__func__,
 		__LINE__);
 		goto port_config_file_buf_alloc_err;

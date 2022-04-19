@@ -363,12 +363,25 @@ int pipe_mgr_match_spec_to_ent_hdl(u32 sess_hdl,
 	 struct pipe_tbl_match_spec *match_spec,
 	 u32 *ent_hdl_p);
 
+/*
+ * API function to specifiy if the given MatchAction table stores entries in sofware.
+ *
+ * @param  sess_hdl		Session handle
+ * @param  mat_tbl_hdl		Table handle.
+ * @param  dev_tgt		Device Target.
+ * @param  store_entries   	Specifies if entries are stored in SW.
+ * @return			Status of the API call
+ */
+int pipe_mgr_store_entries(u32 sess_hdl,  u32 mat_tbl_hdl,
+			   struct bf_dev_target_t dev_tgt,
+			   bool *store_entries);
+
 /**
  * Get entry information
  *
  * @param  sess_hdl		Session handle
  * @param  tbl_hdl		Table handle.
- * @param  dev_id		Device ID.
+ * @param  dev_tgt		Device Target.
  * @param  entry_hdl		Entry handle.
  * @param  match_spec		Match spec to populate.
  * @param  act_data_spec	Action data spec to populate.
@@ -391,7 +404,7 @@ int pipe_mgr_match_spec_to_ent_hdl(u32 sess_hdl,
  */
 int pipe_mgr_get_entry(u32 sess_hdl,
 		u32 mat_tbl_hdl,
-		int dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 entry_hdl,
 		struct pipe_tbl_match_spec *match_spec,
 		struct pipe_action_spec *act_data_spec,
@@ -399,6 +412,79 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 		bool from_hw,
 		uint32_t res_get_flags,
 		void *res_data);
+
+/**
+ * Get first entry key of the given table.
+ *
+ * @param  sess_hdl		Session handle.
+ * @param  mat_tbl_hdl		Match Action Table handle.
+ * @param  dev_tgt		Target device/pipe.
+ * @param  match_spec		Match spec to be returned.
+ * @param  act_data_spec	Action data spec to populate.
+ * @param  act_fn_hdl		Action handle to populate.
+ * @return			Status of the API call
+ */
+int pipe_mgr_get_first_entry(u32 sess_hdl,
+			     u32 mat_tbl_hdl,
+			     struct bf_dev_target_t dev_tgt,
+			     struct pipe_tbl_match_spec *match_spec,
+			     struct pipe_action_spec *act_data_spec,
+			     u32 *act_fn_hdl);
+/**
+ * Get first entry handle of the given table.
+ *
+ * @param  sess_hdl		Session handle.
+ * @param  mat_tbl_hdl		Match Action Table handle.
+ * @param  dev_tgt		Target device/pipe.
+ * @param  entry_handle		First entry handle returned.
+ * @return			Status of the API call
+ */
+int pipe_mgr_get_first_entry_handle(u32 sess_hdl,
+				    u32 mat_tbl_hdl,
+				    struct bf_dev_target_t dev_tgt,
+				    u32 *entry_handle);
+
+/**
+ * Get next N entry handle of the given table.
+ *
+ * @param  sess_hdl		Session handle.
+ * @param  mat_tbl_hdl		Match Action Table handle.
+ * @param  dev_tgt		Target device/pipe.
+ * @param  entry_handle		Entry handle to start fetching next N handles.
+ * @param  n			Number of entry handles to be returned.
+ * @param  next_entry_handles	Caller provided array to return 'n' entry handles.
+ * @return			Status of the API call
+ */
+int pipe_mgr_get_next_entry_handles(u32 sess_hdl,
+				    u32 mat_tbl_hdl,
+				    struct bf_dev_target_t dev_tgt,
+				    int entry_handle,
+				    int n,
+				    u32 *next_entry_handles);
+/**
+ * Get Next N entries using key.
+ *
+ * @param  sess_hdl		Session handle.
+ * @param  mat_tbl_hdl		Match Action Table handle.
+ * @param  dev_tgt		Target device/pipe.
+ * @param  cur_match_spec	Match Spec from which next N entries should be returned.
+ * @param  n			Number of entries. Match_specs and act_specs array should be
+ *				of n size.
+ * @param  match_specs		Match specs to be returned.
+ * @param  act_specs		Action specs to be returned. Array of pointers.
+ * @param  act_fn_hdl		Action handles to populate.
+ * @param  num			Number of entries returned.
+ * @return			Status of the API call
+ */
+int pipe_mgr_get_next_n_by_key(u32 sess_hdl,
+			       u32 mat_tbl_hdl,
+			       struct bf_dev_target_t dev_tgt,
+			       struct pipe_tbl_match_spec *cur_match_spec,
+			       int n,
+			       struct pipe_tbl_match_spec *match_specs,
+			       struct pipe_action_spec **act_specs,
+			       u32 *act_fn_hdls,
+			       u32 *num);
 
 /**
  * Get entry information
@@ -422,7 +508,7 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
  * Get action data entry
  *
  * @param  tbl_hdl			Table handle.
- * @param  dev_id			Device ID.
+ * @param  dev_tgt			Device target.
  * @param  pipe_action_data_spec	Action data spec.
  * @param  act_fn_hdl			Action function handle.
  * @param  from_hw			Read from HW.
@@ -430,7 +516,7 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
  */
 int pipe_mgr_get_action_data_entry(u32 sess_hdl,
 		u32 tbl_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 entry_hdl,
 		struct pipe_action_data_spec *pipe_action_data_spec,
 		u32 *act_fn_hdl,
@@ -440,13 +526,13 @@ int pipe_mgr_get_action_data_entry(u32 sess_hdl,
  * delete action data entry
  *
  * @param  tbl_hdl			Table handle.
- * @param  dev_id			Device ID.
+ * @param  dev_tgt			Device target.
  * @param  pipe_action_data_spec	Action data spec.
  * @param  adt_ent_hdl			Action data entry handle.
  * @return				Status of the API call
  */
 int pipe_mgr_adt_ent_del(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 adt_tbl_hdl,
 		u32 adt_ent_hdl,
 		uint32_t pipe_api_flags);
@@ -477,7 +563,7 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
  * @return			Status of the API call
  */
 int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_tbl_hdl,
 		u32 sel_grp_hdl,
 		uint32_t num_mbrs,
@@ -490,14 +576,14 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
  *
  * @param  sess_hdl		Session handle
  * @param  tbl_hdl		Table handle.
- * @param  dev_id		Device ID.
+ * @param  dev_tgt		Device target.
  * @param  sel_grp_hdl		Group handle
  * @param  mbr_hdl		Pointer to the member handle
  * @return			Status of the API call
  */
 int pipe_mgr_get_first_group_member(u32 sess_hdl,
 		u32 tbl_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 sel_grp_hdl,
 		u32 *mbr_hdl);
 
@@ -505,14 +591,14 @@ int pipe_mgr_get_first_group_member(u32 sess_hdl,
  * Get member count for the given selector group
  *
  * @param  sess_hdl	Session handle.
- * @param  dev_id	Device id.
+ * @param  dev_tgt	Device target.
  * @param  tbl_hdl	Selector table handle.
  * @param  grp_hdl	Selector group handle.
  * @param  count	Pointer to the member count.
  * @return		Status of the API call
  */
 int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
-		u32 dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t *count);
@@ -521,7 +607,7 @@ int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
  * Get members for the given selector group
  *
  * @param  sess_hdl		Session handle.
- * @param  dev_id		Device id.
+ * @param  dev_target	Device target.
  * @param  tbl_hdl		Selector table handle.
  * @param  grp_hdl		Selector group handle.
  * @param  mbrs_size		member count requested.
@@ -531,7 +617,7 @@ int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
  * @return			Status of the API call
  */
 int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t mbrs_size,
@@ -543,13 +629,13 @@ int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
  * DELETE group
  *
  * @param  sess_hdl	Session handle.
- * @param  dev_id	Device id.
+ * @param  dev_tgt	Device target.
  * @param  tbl_hdl	Selector table handle.
  * @param  grp_hdl	Selector group handle.
  * @return		Status of the API call
  */
 int pipe_mgr_sel_grp_del(u32 sess_hdl,
-		u32 device_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t pipe_api_flags);

@@ -32,7 +32,7 @@ libutils_la_CFLAGS = $(libdriver_la_CFLAGS)
 
 if IS_BFRT_ENABLED
 libbfrt_la_CFLAGS = $(libdriver_la_CFLAGS)
-libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk
+libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk -I$(top_builddir)third_party/ptf_grpc
 endif # end IS_BFRT_ENABLED
 
 bfrt_sources = \
@@ -100,7 +100,8 @@ port_mgr/port_mgr_dev.c
 
 port_mgr_sources += \
 port_mgr/dpdk/port_mgr_dpdk_port.c \
-port_mgr/dpdk/port_mgr_dpdk_config_json.c
+port_mgr/dpdk/port_mgr_dpdk_config_json.c \
+port_mgr/dpdk/port_mgr_dpdk.c
 
 bf_pm_sources = \
 bf_pal/dev_intf.c \
@@ -110,6 +111,7 @@ pipe_mgr_sources = \
 pipe_mgr/core/pipe_mgr_log.h \
 pipe_mgr/core/pipe_mgr_init.c \
 pipe_mgr/core/pipe_mgr_ctx_json.c \
+pipe_mgr/core/pipe_mgr_ucli.c \
 pipe_mgr/shared/pipe_mgr_shared_intf.h \
 pipe_mgr/shared/infra/pipe_mgr_int.h \
 pipe_mgr/shared/infra/pipe_mgr_shared_init.c \
@@ -121,18 +123,22 @@ pipe_mgr/shared/infra/pipe_mgr_tbl.c \
 pipe_mgr/shared/infra/pipe_mgr_tbl.h \
 pipe_mgr/shared/infra/pipe_mgr_session.c \
 pipe_mgr/shared/infra/pipe_mgr_session.h \
+pipe_mgr/shared/features/pipe_mgr_counters.c \
+pipe_mgr/shared/features/pipe_mgr_counters.h \
 pipe_mgr/shared/features/pipe_mgr_mat.c \
 pipe_mgr/shared/features/pipe_mgr_adt.c \
 pipe_mgr/shared/features/pipe_mgr_sel.c \
 pipe_mgr/shared/dal/dal_mat.h \
 pipe_mgr/stubs/pipe_mgr_intf.c \
-pipe_mgr/shared/dal/dal_init.h
+pipe_mgr/shared/dal/dal_init.h \
+pipe_mgr/shared/dal/dal_counters.h
 
 pipe_mgr_sources += \
 pipe_mgr/shared/dal/dpdk/dal_mat.c \
 pipe_mgr/shared/dal/dpdk/dal_adt.c \
 pipe_mgr/shared/dal/dpdk/dal_sel.c \
 pipe_mgr/shared/dal/dpdk/dal_init.c \
+pipe_mgr/shared/dal/dpdk/dal_counters.c \
 pipe_mgr/shared/dal/dpdk/pipe_mgr_dpdk_ctx_util.h \
 pipe_mgr/shared/dal/dpdk/pipe_mgr_dpdk_ctx_util.c \
 pipe_mgr/core/dal/dpdk/pipe_mgr_ctx_dpdk_json.c
@@ -187,20 +193,27 @@ libbfrt_grpc_server_la_SOURCES = $(grpc_server_sources)
 
 libbfrt_grpc_la_CXXFLAGS = \
 -I$(builddir)/bf_rt/cpp_out \
--I$(top_builddir)/third-party/cpp_out
+-I$(top_builddir)/third-party/grpc/cpp_out
 libbfrt_protobuf_la_CXXFLAGS = \
 -I$(builddir)/bf_rt/cpp_out \
--I$(top_builddir)/third-party/cpp_out
+-I$(top_builddir)/third-party/grpc/cpp_out
 libbfrt_grpc_server_la_CXXFLAGS = \
 -I$(builddir)/bf_rt/cpp_out \
--I$(top_builddir)/third-party/cpp_out \
--I$(srcdir)/bf_rt
+-I$(top_builddir)/third-party/grpc/cpp_out \
+-I$(srcdir)/bf_rt \
+-I$(top_builddir)/third-party/ptf_grpc/protos \
+-I$(top_builddir)/third-party/ptf_grpc/cpp_out
+
+if IS_PTF_ENABLED
+libbfrt_grpc_server_la_CXXFLAGS += \
+-DPTF_ENABLED
+endif
 
 libbfrt_protobuf_la_LIBADD = \
-$(top_builddir)/third-party/libbf_google_protobuf.la \
+$(top_builddir)/third-party/grpc/libbf_google_protobuf.la \
 $(PROTOBUF_LIBS)
 libbfrt_grpc_la_LIBADD = \
-$(top_builddir)/third-party/libbf_google_grpc.la \
+$(top_builddir)/third-party/grpc/libbf_google_grpc.la \
 $(GRPC_LIBS)
 
 noinst_LTLIBRARIES += \
@@ -266,7 +279,14 @@ libbfrt_protobuf.la \
 libbfrt_grpc.la \
 libbfrt_grpc_server.la
 
-PROTOFLAGS = -I$(srcdir)/bf_rt/proto -I$(top_srcdir)/third-party
+if IS_PTF_ENABLED
+libdriver_la_LIBADD += \
+$(top_builddir)/third-party/ptf_grpc/libptf_grpc.la \
+$(top_builddir)/third-party/ptf_grpc/libptf_protobuf.la \
+$(top_builddir)/third-party/ptf_grpc/libptf_grpc_server.la
+endif
+
+PROTOFLAGS = -I$(srcdir)/bf_rt/proto -I$(top_srcdir)/third-party/grpc
 
 BUILT_SOURCES = $(proto_cpp_sources) $(proto_grpc_sources) \
 $(proto_grpc_python_sources)

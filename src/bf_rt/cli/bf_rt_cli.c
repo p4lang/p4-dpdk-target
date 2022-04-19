@@ -18,9 +18,9 @@
 #include <stdio.h>
 #include <bf_rt/bf_rt_init.h>
 #include <bf_rt/bf_rt_common.h>
-#include "target_utils/clish/shell.h"
+#include "target-utils/clish/shell.h"
 #include <dvm/bf_drv_intf.h>
-#include <target_sys/bf_sal/bf_sys_sem.h>
+#include <target-sys/bf_sal/bf_sys_sem.h>
 #include <lld/python_shell_mutex.h>
 /*
  * bfrt_python is not protected by bfshell's command-level lock.

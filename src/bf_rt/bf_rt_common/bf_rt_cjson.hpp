@@ -25,7 +25,7 @@
 
 /* bf_rt_includes */
 
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 
 namespace bfrt {
 

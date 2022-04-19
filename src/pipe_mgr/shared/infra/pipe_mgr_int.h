@@ -181,7 +181,7 @@ struct pipe_mgr_mat_ctx {
 	struct pipe_mgr_actions_list *actions;
 	struct pipe_mgr_match_attribute match_attr;
 	/* Specifies if P4 table entries state should be stored. */
-	bool store_state;
+	bool store_entries;
 	bool duplicate_entry_check;
 	int adt_count;
 	struct action_data_table_refs *adt;
@@ -204,6 +204,10 @@ struct pipe_mgr_mat_state {
 	 * detection and access by match spec.
 	 */
 	bf_hashtable_t **key_htbl;
+	/* Number of hash tables. This is same as number of pipelines.
+	 * For each pipeline, a separate hash table is maintained.
+	 */
+	int num_htbls;
 };
 
 struct pipe_mgr_mat {
@@ -218,6 +222,16 @@ struct pipe_mgr_mat {
 	struct pipe_mgr_mat *next;
 };
 
+/* Contains pipeline global configs and hook for target specific
+ * global configs.
+ */
+
+struct pipe_mgr_global_config {
+	/* hook for target specific configs */
+	void *dal_global_config;
+};
+
+
 /* Contains information about P4 pipeline. Stores information from
  * the context json and run-time rule entries (if rule entry storage
  * is enabled).
@@ -230,6 +244,8 @@ struct pipe_mgr_p4_pipeline {
 	 * pipeline.
 	 */
 	struct pipe_mgr_mat *mat_tables;
+
+
 };
 
 /* P4 Program Pipeline Profile  */
@@ -238,6 +254,7 @@ struct pipe_mgr_profile {
 	p4_sde_rwlock lock;
 
 	int profile_id;
+	int core_id;
 
 	char prog_name[P4_SDE_PROG_NAME_LEN];
 	char pipeline_name[P4_SDE_PROG_NAME_LEN];
@@ -252,8 +269,6 @@ struct pipe_mgr_profile {
 	int schema_version[P4_SDE_VERSION_LEN];
 
 	/* Currently mod_addr action has 24 bit to specify */
-#define MOD_ARRARY_SIZE 0x00FFFFFF
-	p4_sde_id *mod_index_array;
 };
 
 struct pipe_mgr_dev {
@@ -268,17 +283,14 @@ struct pipe_mgr_dev {
 
 	/* Static and Run-time information of P4 pipeline profile. */
 	struct pipe_mgr_profile *profiles;
-
-	/* No of active pipes on this device. */
-	/* TODO: Remove this. num_active_pipes doesn't apply to DPDK. */
-	uint32_t num_active_pipes;
+	/* store global device configs */
+	struct pipe_mgr_global_config global_cfg;
 };
 
 int pipe_mgr_set_dev(struct pipe_mgr_dev **dev,
 		     int dev_id,
 		     struct bf_device_profile *profile);
 struct pipe_mgr_dev *pipe_mgr_get_dev(int dev_id);
-uint32_t pipe_mgr_get_num_active_pipes(int dev_id);
 int pipe_mgr_api_prologue(u32 sess_hdl, struct bf_dev_target_t dev_tgt);
 void pipe_mgr_api_epilogue(u32 sess_hdl, struct bf_dev_target_t dev_tgt);
 void pipe_mgr_delete_act_data_spec(struct pipe_action_spec *ads);
