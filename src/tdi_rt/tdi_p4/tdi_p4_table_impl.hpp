@@ -51,7 +51,35 @@ class MatchActionDirect : public tdi::Table {
  public:
   MatchActionDirect(const tdi::TdiInfo *tdi_info,
                     const tdi::TableInfo *table_info)
-      : tdi::Table(tdi_info, table_info) {
+      : tdi::Table(
+            tdi_info,
+            tdi::SupportedApis({
+                {TDI_TABLE_API_TYPE_ADD, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_SET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_RESET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_FIRST,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_NEXT_N,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_USAGE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_SIZE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_BY_HANDLE,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_KEY_GET, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_HANDLE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+            }),
+            table_info) {
     LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
   }
 

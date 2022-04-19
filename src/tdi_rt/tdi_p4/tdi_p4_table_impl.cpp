@@ -2168,7 +2168,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
   auto table_context_info = static_cast<const MatchActionTableContextInfo *>(
       tableInfoGet()->tableContextInfoGet());
 
-  tdi_id_t req_action_id = 0;
 
   uint32_t res_get_flags = 0;
   pipe_res_get_data_t res_data;
@@ -2178,7 +2177,7 @@ tdi_status_t MatchActionDirect::entryGet_internal(
 
   MatchActionTableData *match_data = static_cast<MatchActionTableData *>(data);
   std::vector<tdi_id_t> dataFields;
-  // const auto &req_action_ids = match_data->actionIdGet();
+  const auto &req_action_id = match_data->actionIdGet();
 
   all_fields_set = match_data->allFieldsSetGet();
   if (all_fields_set) {
@@ -2219,10 +2218,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
       }
     }
   }
-  // All inputs from the data object have been processed. Now reset it
-  // for out data purpose
-  // We reset the data object with act_id 0 and all fields
-  match_data->reset();
   pipe_action_spec = match_data->get_pipe_action_spec();
 
   status = getActionSpec(session,
@@ -2260,8 +2255,6 @@ tdi_status_t MatchActionDirect::entryGet_internal(
     return TDI_INVALID_ARG;
   }
 
-  // TODO(sayanb)
-  // match_data->actionIdSet(action_id);
   // Get the list of dataFields for action_id. The list of active fields needs
   // to be set
   if (all_fields_set) {
@@ -2274,20 +2267,13 @@ tdi_status_t MatchActionDirect::entryGet_internal(
                 status);
       return status;
     }
-// TODO(sayanb)
-#if 0
-    std::vector<tdi_id_t> empty;
-    match_data->setActiveFields(empty);
-#endif
+    match_data->reset(action_id, {});
   } else {
 // dataFields has already been populated
 // with the correct fields since the requested action and actual
 // action have also been verified. Only active fields need to be
 // corrected because all fields must have been set now
-// TODO(sayanb)
-#if 0
-    match_data->setActiveFields(dataFields);
-#endif
+    match_data->reset(action_id, dataFields);
   }
 
   for (const auto &dataFieldId : dataFields) {
@@ -3532,7 +3518,7 @@ tdi_status_t MatchActionIndirectTable::entryGet_internal(
   std::vector<tdi_id_t> dataFields;
   bool all_fields_set = match_data->allFieldsSetGet();
 
-  tdi_id_t req_action_id = match_data->actionIdGet(&req_action_id);
+  tdi_id_t req_action_id = match_data->actionIdGet();
 
   if (all_fields_set) {
     res_get_flags = PIPE_RES_GET_FLAG_ALL;
@@ -3700,7 +3686,7 @@ tdi_status_t MatchActionIndirectTable::entryGet_internal(
             TDI_ASSERT(status == TDI_SUCCESS);
             match_data->setActionMbrId(act_mbr_id);
             // Remove oneof sibling from active fields
-            match_data->removeActiveFields(oneof_siblings);
+            match_data->removeActiveField(oneof_siblings);
           }
         } else if (fieldTypes.find(DataFieldType::SELECTOR_GROUP_ID) !=
                    fieldTypes.end()) {
@@ -3711,7 +3697,7 @@ tdi_status_t MatchActionIndirectTable::entryGet_internal(
             TDI_ASSERT(status == TDI_SUCCESS);
             match_data->setGroupId(sel_grp_id);
             // Remove oneof sibling from active fields
-            match_data->removeActiveFields(oneof_siblings);
+            match_data->removeActiveField(oneof_siblings);
           }
         } else {
           TDI_ASSERT(0);
@@ -3738,10 +3724,10 @@ tdi_status_t MatchActionIndirectTable::entryGet_internal(
   // After going over all the data fields, check whether either one
   // of entry_ttl or hit_state was set, remove if not.
   if (!res_data.has_ttl) {
-    match_data->removeActiveFields({ttl_field_id});
+    match_data->removeActiveField({ttl_field_id});
   }
   if (!res_data.has_hit_state) {
-    match_data->removeActiveFields({hs_field_id});
+    match_data->removeActiveField({hs_field_id});
   }
   return TDI_SUCCESS;
 }

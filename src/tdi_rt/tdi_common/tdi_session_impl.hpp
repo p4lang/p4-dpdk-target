@@ -36,11 +36,13 @@ class TdiSessionImpl : public tdi::Session {
 
   ~TdiSessionImpl();
 
+  tdi_status_t create();
+
   tdi_status_t destroy();
 
   tdi_status_t completeOperations() const;
 
-  const tdi_id_t &handleGet(const tdi_mgr_type_e& mgr_type) const { return session_handle_; }
+  tdi_id_t handleGet(const tdi_mgr_type_e &mgr_type) const { return session_handle_; }
 
   const bool &isValid() const { return valid_; }
 
@@ -61,7 +63,6 @@ class TdiSessionImpl : public tdi::Session {
   tdi_status_t abortTransaction() const;
 
   // Hidden
-  tdi_status_t sessionCreateInternal();
   const bool &isInBatch() const { return in_batch_; }
   const bool &isInPipeBatch() const { return in_pipe_mgr_batch_; }
   void setPipeBatch(const bool batch) const { in_pipe_mgr_batch_ = batch; }

@@ -24,7 +24,7 @@ namespace tdi {
 namespace pna {
 namespace rt {
 
-tdi_status_t TdiSessionImpl::sessionCreateInternal() {
+tdi_status_t TdiSessionImpl::create() {
   tdi_status_t status = TDI_SUCCESS;
   auto *pipeMgr = PipeMgrIntf::getInstance();
   pipe_sess_hdl_t sessHndl = 0;

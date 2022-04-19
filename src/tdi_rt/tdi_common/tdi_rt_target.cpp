@@ -124,7 +124,7 @@ Device::Device(const tdi_dev_id_t &device_id,
 
 tdi_status_t Device::createSession(std::shared_ptr<tdi::Session>* session) const {
   auto session_t = std::make_shared<TdiSessionImpl>();
-  tdi_status_t status = session_t->sessionCreateInternal();
+  tdi_status_t status = session_t->create();
 
   *session = session_t;
   if (status != TDI_SUCCESS)
