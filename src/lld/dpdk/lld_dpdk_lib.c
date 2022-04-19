@@ -25,12 +25,17 @@
 #include "lld_dpdk_lib.h"
 #include "../lldlib_log.h"
 #include <dvm/bf_drv_profile.h>
+
+#include <rte_swx_pipeline.h>
 #include <rte_swx_port_fd.h>
 #include <rte_swx_port_ethdev.h>
 
 #include "infra/dpdk_infra.h"
 #include "infra/dpdk_cli.h"
+
 #define MAX_EAL_ARGS 64
+#define DEFAULT_NUMA_NODE 0
+
 static char *dpdk_args[] = {"dummy", "-n", "4", "-c", "3"};
 static char *dpdk_arr[MAX_EAL_ARGS];
 
@@ -62,26 +67,38 @@ static size_t parse(char *arr)
 	return idx;
 }
 
+static int
+lld_dpdk_pipeline_mirror_config(struct rte_swx_pipeline *p, void *mir_cfg)
+{
+	int rc = BF_SUCCESS;
+	struct rte_swx_pipeline_mirroring_params mir_params;
+
+	mir_params.n_slots = ((struct rte_swx_pipeline_mirroring_params *)mir_cfg)->n_slots;
+	mir_params.n_sessions = ((struct rte_swx_pipeline_mirroring_params *)mir_cfg)->n_sessions;
+
+	if (rte_swx_pipeline_mirroring_config(p, &mir_params)) {
+		LOG_ERROR("Could not configure the pipeline mirror params.");
+		rc = BF_UNEXPECTED;
+	}
+
+	return rc;
+}
+
 int lld_dpdk_init(bf_device_profile_t *profile)
 {
-	char send_buff[BUFF_SIZE] = {0};
-	char recv_buff[BUFF_SIZE] = {0};
 	size_t arr_size = sizeof(dpdk_args) / sizeof(*dpdk_args);
 	size_t parse_size = 0;
 	char *pipeline_name = NULL;
 	char *eal_args = NULL;
+	struct mempool *mempool = NULL;
+	struct mempool_params mempool_p;
+	bf_p4_program_t *p4_program = NULL;
+	bf_p4_pipeline_t *p4_pipeline = NULL;
+	struct bf_mempool_obj_s *mempool_obj = NULL;
+	struct pipeline *pipe = NULL;
+	int i, j;
 
 	LOG_TRACE("%s Start...", __func__);
-
-	/* FIXME: now only one pipeline is created.
-	 * revisit when we have mutiple pipeline */
-	pipeline_name = profile->p4_programs[0].
-		p4_pipelines[0].p4_pipeline_name;
-
-	if (!pipeline_name) {
-		LOG_ERROR("pipeline name is null");
-		return BF_UNEXPECTED;
-	}
 
 	eal_args = profile->eal_args;
 
@@ -94,104 +111,61 @@ int lld_dpdk_init(bf_device_profile_t *profile)
 		LOG_TRACE("%s:%d EALargs present", __func__, __LINE__);
 		parse_size = parse(eal_args);
 		if (parse_size)
-			dpdk_infra_init(parse_size, dpdk_arr);
+			dpdk_infra_init(parse_size, dpdk_arr,
+							profile->debug_cli_enable);
 	}
 
 	if (parse_size == 0) {
 		LOG_TRACE("%s Init with default args", __func__);
-		dpdk_infra_init(arr_size, dpdk_args);
+		dpdk_infra_init(arr_size, dpdk_args,
+						profile->debug_cli_enable);
 	}
 
-	snprintf(send_buff, BUFF_SIZE, "mempool MEMPOOL0 buffer 2304 pool 1K "
-		 "cache 256 cpu 0");
-	cli_process(send_buff, recv_buff, BUFF_SIZE);
-	LOG_TRACE("%s:%d recv_buff is %s", __func__, __LINE__, recv_buff);
-	memset(recv_buff, 0, sizeof(recv_buff));
-	snprintf(send_buff, BUFF_SIZE, "pipeline %s create 0", pipeline_name);
-	cli_process(send_buff, recv_buff, BUFF_SIZE);
-	LOG_TRACE("%s:%d recv_buff is %s", __func__, __LINE__, recv_buff);
-	memset(recv_buff, 0, sizeof(recv_buff));
+	for (i = 0; i < profile->num_mempool_objs; i++) {
+		mempool_obj = &profile->mempool_objs[i];
+		mempool_p.buffer_size = mempool_obj->buffer_size;
+		mempool_p.pool_size   = mempool_obj->pool_size;
+		mempool_p.cache_size  = mempool_obj->cache_size;
+		mempool_p.cpu_id      = mempool_obj->numa_node;
+		LOG_TRACE("%s:%d Creating Mempool %s",
+			  __func__, __LINE__, mempool_obj->name);
+
+		mempool = mempool_create(mempool_obj->name, &mempool_p);
+		if (!mempool) {
+			LOG_ERROR("Error in Creating Mempool %s",
+				  mempool_obj->name);
+			return BF_UNEXPECTED;
+		}
+	}
+
+	for (i = 0; i < profile->num_p4_programs; i++) {
+		p4_program = &(profile->p4_programs[i]);
+		for (j = 0; j < p4_program->num_p4_pipelines; j++) {
+                        p4_pipeline = &(p4_program->p4_pipelines[j]);
+                        pipeline_name = p4_pipeline->p4_pipeline_name;
+                        if (!pipeline_name) {
+                                LOG_ERROR("Pipeline name is null");
+                                return BF_UNEXPECTED;
+                        }
+                        LOG_TRACE("%s:%d Creating Pipeline %s",
+				  __func__, __LINE__, pipeline_name);
+
+			pipe = pipeline_create(pipeline_name,
+					p4_pipeline->numa_node);
+			if (!pipe) {
+				LOG_ERROR("Error in Creating Pipeline %s",
+					  pipeline_name);
+				return BF_UNEXPECTED;
+			}
+
+			if (lld_dpdk_pipeline_mirror_config(pipe->p, &p4_pipeline->mir_cfg)) {
+				LOG_ERROR("Error in Setting Mirror Config for pipeline %s",
+					  pipeline_name);
+				return BF_UNEXPECTED;
+			}
+		}
+	}
+
 	LOG_TRACE("%s End...\n", __func__);
 	return 0;
-}
-
-void lld_dpdk_table_rule_add(char *pipeline, char *table,
-			     enum mat_type action_type,
-			     void *request, void *reply)
-{
-	char send_buff[BUFF_SIZE] = {0};
-	char recv_buff[BUFF_SIZE] = {0};
-
-	LOG_TRACE("%s Start...\n", __func__);
-	switch (action_type) {
-	case VXLAN_ENCAP:
-	{
-		// Not implemented yet.
-		break;
-	}
-	case SIMPLE_L3:
-	{
-		struct simple_l3_mav *match_action_fields =
-					(struct simple_l3_mav *)request;
-
-		u32 match_key = match_action_fields->match_key;
-		u32 port_num = match_action_fields->fwd_port;
-
-		if (port_num != UINT32_MAX_VAL) {
-		    // Add the Entry with send to fwd_port action.
-		    snprintf(send_buff, BUFF_SIZE,
-				"pipeline %s table %s rule add "
-				"match 0x%x action send "
-				"fwd_port H(%d)\n",
-				pipeline, table, match_key, port_num);
-		} else {
-		    // Add the Entry with drop action.
-		    snprintf(send_buff, BUFF_SIZE,
-				"pipeline %s table %s rule add "
-				"match 0x%x action drop_1\n",
-				pipeline, table, match_key);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-	cli_process(send_buff, recv_buff, BUFF_SIZE);
-	memcpy(reply, recv_buff, BUFF_SIZE);
-	LOG_TRACE("%s Exit...\n", __func__);
-}
-
-void lld_dpdk_table_rule_delete(char *pipeline, char *table,
-				enum mat_type action_type,
-				void *request, void *reply)
-{
-	char send_buff[BUFF_SIZE] = {0};
-	char recv_buff[BUFF_SIZE] = {0};
-
-	LOG_TRACE("%s Start...\n", __func__);
-	switch (action_type) {
-	case VXLAN_ENCAP:
-	{
-		// Not implemented yet.
-		break;
-	}
-	case SIMPLE_L3:
-	{
-		struct simple_l3_mav *match_action_fields =
-					(struct simple_l3_mav *)request;
-
-		u32 match_key = match_action_fields->match_key;
-
-		// Delete the table entry.
-		snprintf(send_buff, BUFF_SIZE,
-			    "pipeline %s table %s rule delete "
-			    "match 0x%x\n", pipeline, table, match_key);
-		break;
-	}
-	default:
-		break;
-	}
-	cli_process(send_buff, recv_buff, BUFF_SIZE);
-	memcpy(reply, recv_buff, BUFF_SIZE);
-	LOG_TRACE("%s Exit...\n", __func__);
 }

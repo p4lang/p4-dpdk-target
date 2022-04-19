@@ -36,6 +36,7 @@ int pipe_mgr_shared_add_device(int dev_id,
 int pipe_mgr_shared_remove_device(int dev_id);
 int pipe_mgr_get_int_sess_hdl(int *sess_hdl);
 int pipe_mgr_get_num_profiles(int dev_id, uint32_t *num_profiles);
+int pipe_mgr_is_pipe_valid(int dev_id, uint32_t dev_pipe_id);
 int pipe_mgr_set_profile(int dev_id,
 			 int profile_id,
 			 struct bf_p4_program *p4_program,
@@ -46,10 +47,13 @@ int pipe_mgr_init_dev(int dev_id,
 int pipe_mgr_get_profile_ctx(struct bf_dev_target_t dev_tgt,
 			     struct pipe_mgr_p4_pipeline **parsed_pipe_ctx);
 int pipe_mgr_get_profile(int dev_id,
+			 int profile_id,
 			 struct pipe_mgr_profile **profile);
 bf_status_t pipe_mgr_shared_enable_pipeline(bf_dev_id_t dev_id,
+		int profile_id,
 		void *spec_file,
 		enum bf_dev_init_mode_s warm_init_mode);
 void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx);
 void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state);
+bool pipe_mgr_mat_store_entries(struct pipe_mgr_mat_ctx *mat_ctx);
 #endif

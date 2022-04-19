@@ -20,6 +20,7 @@
 #include "../../core/pipe_mgr_log.h"
 #include "../infra/pipe_mgr_ctx_util.h"
 #include "../infra/pipe_mgr_tbl.h"
+#include "pipe_mgr_counters.h"
 
 void pipe_mgr_delete_act_data_spec(struct pipe_action_spec *ads)
 {
@@ -167,6 +168,12 @@ static int pipe_mgr_mat_unpack_entry_data(struct bf_dev_target_t dev_tgt,
 		return status;
 	}
 
+	status = dal_unpack_dal_data(entry->dal_data);
+	if (status) {
+		LOG_ERROR("dal_data unpack failed");
+		return status;
+	}
+
 	return BF_SUCCESS;
 }
 
@@ -174,7 +181,6 @@ static int pipe_mgr_mat_pack_entry_data(struct bf_dev_target_t dev_tgt,
 		struct pipe_tbl_match_spec *match_spec,
 		u32 act_fn_hdl,
 		struct pipe_action_spec *act_data_spec,
-		u32 ent_hdl,
 		struct pipe_mgr_mat *tbl,
 		struct pipe_mgr_mat_entry_info **entry_info)
 {
@@ -184,7 +190,6 @@ static int pipe_mgr_mat_pack_entry_data(struct bf_dev_target_t dev_tgt,
 	entry = P4_SDE_CALLOC(1, sizeof(*entry));
 	if (!entry)
 		return BF_NO_SYS_RESOURCES;
-	entry->mat_ent_hdl = ent_hdl;
 	entry->act_fn_hdl = act_fn_hdl;
 
 	status = pipe_mgr_mat_pack_match_spec(&(entry->match_spec),
@@ -229,31 +234,53 @@ int pipe_mgr_match_spec_to_ent_hdl
 
 	LOG_TRACE("Entering %s", __func__);
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
 	if (status) {
 		LOG_TRACE("Exiting %s", __func__);
 		return status;
 	}
 
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		goto epilogue;
+	}
+
+	if (!tbl->ctx.store_entries) {
+		LOG_ERROR("Not supported.Rule entries are not stored");
+		status = BF_NOT_SUPPORTED;
+		goto epilogue;
+	}
+
 	status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
 					     dev_tgt.dev_pipe_id,
-					     &exists, ent_hdl_p);
+					     &exists, ent_hdl_p, NULL);
 	if (status) {
 		LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
-		return status;
+		goto epilogue;
 	}
 
 	if (!exists) {
 		LOG_TRACE("entry not found");
-		return BF_OBJECT_NOT_FOUND;
+		status = BF_OBJECT_NOT_FOUND;
 	}
 
+epilogue:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+	LOG_TRACE("Exiting %s", __func__);
 	return status;
 }
 
 int pipe_mgr_get_entry(u32 sess_hdl,
 		u32 mat_tbl_hdl,
-		int dev_id,
+		struct bf_dev_target_t dev_tgt,
 		u32 entry_hdl,
 		struct pipe_tbl_match_spec *match_spec,
 		struct pipe_action_spec *act_data_spec,
@@ -263,19 +290,16 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 		void *res_data)
 {
 	struct pipe_mgr_mat_entry_info *entry;
-	struct pipe_mgr_mat_state *tbl_state;
-	p4_sde_map_sts map_sts = BF_MAP_OK;
-	struct bf_dev_target_t dev_tgt;
 	struct pipe_mgr_mat *tbl;
-	unsigned long key;
 	int status;
 
 	LOG_TRACE("Entering %s", __func__);
-	dev_tgt.device_id = dev_id;
-	/* TODO: Why does this API (many other pipe_mgr_get_* API) use
-	 *	 only dev_id and not dev_tgt which has pipe_id as well?
-	 */
-	dev_tgt.dev_pipe_id = PIPE_MGR_DEFAULT_PIPE_ID;
+
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -291,55 +315,33 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 		goto cleanup;
 	}
 
-	tbl_state = tbl->state;
-	key = (unsigned long) entry_hdl;
-
-	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
-	if (status) {
-		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
-			  mat_tbl_hdl, status);
-		status = BF_UNEXPECTED;
+	if (!tbl->ctx.store_entries) {
+		LOG_ERROR("Not supported. Rule entries are not stored");
+		status = BF_NOT_SUPPORTED;
 		goto cleanup;
 	}
 
-	map_sts = P4_SDE_MAP_GET(&tbl_state->entry_info_htbl, key,
-				 (void **)&entry);
-	if (map_sts != BF_MAP_OK) {
-		if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
-			LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
-		LOG_TRACE("Exiting %s", __func__);
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
+	status = pipe_mgr_mat_tbl_get(tbl, dev_tgt.dev_pipe_id, entry_hdl,
+				      &entry);
+	if (status) {
+		LOG_ERROR("Failed to retrieve entry for hdl: %d", entry_hdl);
+		goto cleanup;
+
 	}
 	status = pipe_mgr_mat_unpack_entry_data(dev_tgt, match_spec,
 			act_fn_hdl, act_data_spec,
 			entry_hdl, tbl, entry);
-	if (status) {
+
+	if (status)
 		LOG_ERROR("Unpacking enty data failed for entry hdl %d\n",
 			  entry_hdl);
-		goto cleanup_tbl_unlock;
-	}
-
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
-		status = BF_UNEXPECTED;
-		goto cleanup;
-	}
-
-	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
-
-	LOG_TRACE("Exiting %s", __func__);
-	return status;
-
-cleanup_tbl_unlock:
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
-		LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
 
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
 
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
+
 }
 
 int pipe_mgr_mat_ent_add(u32 sess_hdl,
@@ -352,14 +354,17 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 			 u32 *ent_hdl_p)
 {
 	struct pipe_mgr_mat_entry_info *entry;
-	struct pipe_mgr_mat_state *tbl_state;
 	struct pipe_mgr_mat *tbl;
-	p4_sde_map_sts map_sts = BF_MAP_OK;
-	u32 new_ent_hdl;
+	bool exists;
 	int status;
-	u64 key;
 
 	LOG_TRACE("Entering %s", __func__);
+
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -375,67 +380,51 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 		goto cleanup;
 	}
 
-	tbl_state = tbl->state;
-	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
-	if (status) {
-		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
-			  mat_tbl_hdl, status);
-		status = BF_UNEXPECTED;
-		goto cleanup;
-	}
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
+						     dev_tgt.dev_pipe_id,
+						     &exists, ent_hdl_p,
+						     NULL);
+		if (status) {
+			LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
+			goto cleanup;
+		}
 
-	new_ent_hdl = P4_SDE_ID_ADD(tbl_state->entry_handle_array);
-	if (new_ent_hdl == ENTRY_HANDLE_ARRAY_SIZE) {
-		LOG_ERROR("entry handle allocator failed");
-		status = BF_NO_SPACE;
-		goto cleanup_tbl_unlock;
+		if (exists) {
+			LOG_ERROR("duplicate entry found in table = %s",
+					tbl->ctx.name);
+			status = BF_UNEXPECTED;
+			goto cleanup;
+		}
 	}
 
 	status = pipe_mgr_mat_pack_entry_data(dev_tgt, match_spec,
 			act_fn_hdl, act_data_spec,
-			new_ent_hdl, tbl, &entry);
+			tbl, &entry);
 	if (status) {
 		LOG_ERROR("Entry encoding failed");
-		goto cleanup_id;
+		goto cleanup;
 	}
 
 	status = dal_table_ent_add(sess_hdl, dev_tgt, mat_tbl_hdl, match_spec,
 				   act_fn_hdl, act_data_spec, ttl,
-				   pipe_api_flags, &tbl->ctx, new_ent_hdl,
+				   pipe_api_flags, &tbl->ctx,
 				   &(entry->dal_data));
 
-	/* allocate entry handle and map the entry*/
-	/* insert the match_key/entry handle mapping in to the hash */
-	if (status == BF_SUCCESS) {
-		key = (u64) new_ent_hdl;
-		/* Insert into the entry_handle-entry map */
-		map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl, key,
-					 (void *)entry);
-		if (map_sts != BF_MAP_OK) {
-			LOG_ERROR("Error in inserting entry info");
-			status = BF_NO_SYS_RESOURCES;
-			goto cleanup_map_add;
-		}
-		/* Insert the match_spec-entry_handle hash*/
-		status = pipe_mgr_mat_tbl_key_insert(dev_tgt,
-				tbl,
-				entry->match_spec,
-				new_ent_hdl);
-		if (status) {
-			LOG_ERROR("Error in inserting match_spec-entry_handle"
-					" hash");
-			P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
-			goto cleanup_map_add;
-		}
-	} else {
+	if (status) {
 		LOG_ERROR("dal_table_ent_add failed");
-		goto cleanup_map_add;
+		goto cleanup_entry;
 	}
 
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
-		status = BF_UNEXPECTED;
-		goto cleanup_map_add;
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_key_insert(dev_tgt,
+				tbl,
+				entry,
+				ent_hdl_p);
+		if (status) {
+			LOG_ERROR("Error in inserting entry in table");
+			goto cleanup_entry;
+		}
 	}
 
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
@@ -443,15 +432,8 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
 
-cleanup_map_add:
+cleanup_entry:
 	pipe_mgr_mat_delete_entry_data(entry);
-
-cleanup_id:
-	P4_SDE_ID_RMV(tbl_state->entry_handle_array, new_ent_hdl);
-
-cleanup_tbl_unlock:
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
-		LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
 
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
@@ -467,15 +449,18 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 				       u32 pipe_api_flags)
 {
 	struct pipe_mgr_mat_entry_info *entry;
-	struct pipe_mgr_mat_state *tbl_state;
-	p4_sde_map_sts map_sts = BF_MAP_OK;
 	struct pipe_mgr_mat *tbl;
-	unsigned long key;
 	u32 mat_ent_hdl;
 	bool exists;
 	int status;
 
 	LOG_TRACE("Entering %s", __func__);
+
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
 
 	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
 	if (status) {
@@ -491,75 +476,274 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 		goto cleanup;
 	}
 
-	tbl_state = tbl->state;
-	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
-	if (status) {
-		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
-			  mat_tbl_hdl, status);
-		status = BF_UNEXPECTED;
-		goto cleanup;
-	}
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
+						     dev_tgt.dev_pipe_id,
+						     &exists, &mat_ent_hdl,
+						     &entry);
+		if (status) {
+			LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
+			goto cleanup;
+		}
 
-	status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
-					     dev_tgt.dev_pipe_id,
-					     &exists, &mat_ent_hdl);
-	if (status) {
-		LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
-		goto cleanup_tbl_unlock;
-	}
-
-	if (!exists) {
-		LOG_TRACE("entry not found");
-		goto cleanup_tbl_unlock;
-	}
-
-	key = (unsigned long) mat_ent_hdl;
-
-	map_sts = P4_SDE_MAP_GET(&tbl->state->entry_info_htbl, key,
-				 (void **)&entry);
-	if (map_sts != BF_MAP_OK) {
-		LOG_ERROR("table entry handle/entry map get failed");
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
+		if (!exists) {
+			LOG_ERROR("entry not found in table = %s",
+					tbl->ctx.name);
+			status = BF_UNEXPECTED;
+			goto cleanup;
+		}
 	}
 
 	status = dal_table_ent_del_by_match_spec(sess_hdl, dev_tgt, mat_tbl_hdl,
 						 match_spec, pipe_api_flags,
-						 &tbl->ctx, mat_ent_hdl,
+						 &tbl->ctx,
 						 entry->dal_data);
-
 	if (status) {
 		LOG_ERROR("dal table entry del failed");
-		goto cleanup_tbl_unlock;
+		goto cleanup;
 	}
 
-	map_sts = P4_SDE_MAP_RMV(&tbl->state->entry_info_htbl, key);
-	if (map_sts != BF_MAP_OK) {
-		LOG_ERROR("table entry handle/entry map del failed");
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_key_delete(dev_tgt,
+						     tbl,
+						     match_spec);
+		if (status) {
+			LOG_ERROR("table entry del failed");
+			goto cleanup;
+		}
+		pipe_mgr_mat_delete_entry_data(entry);
 	}
 
-	status = pipe_mgr_mat_tbl_key_delete(dev_tgt,
-					tbl,
-					match_spec,
-					mat_ent_hdl);
-	if (status) {
-		LOG_ERROR("table entry match_spec/entry_handle del failed");
-		goto cleanup_tbl_unlock;
-	}
-
-	P4_SDE_ID_RMV(tbl->state->entry_handle_array, mat_ent_hdl);
-
-	pipe_mgr_mat_delete_entry_data(entry);
-
-cleanup_tbl_unlock:
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
-		LOG_ERROR("Unlock of table %d failed", mat_tbl_hdl);
 
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
 
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
+}
+
+int pipe_mgr_get_first_entry_handle(u32 sess_hdl,
+				    u32 mat_tbl_hdl,
+				    struct bf_dev_target_t dev_tgt,
+				    u32 *entry_handle)
+{
+	struct pipe_mgr_mat *tbl;
+	int status;
+
+	LOG_TRACE("Entering %s", __func__);
+
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
+
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  mat_tbl_hdl);
+		goto cleanup;
+	}
+
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_get_first(tbl, dev_tgt.dev_pipe_id,
+						    entry_handle);
+	} else {
+		LOG_ERROR("Not supported. Entries are not stored in SDE");
+		status = BF_NOT_SUPPORTED;
+	}
+
+cleanup:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+int pipe_mgr_get_next_entry_handles(u32 sess_hdl,
+				    u32 mat_tbl_hdl,
+				    struct bf_dev_target_t dev_tgt,
+				    int entry_handle,
+				    int n,
+				    u32 *next_entry_handles)
+{
+	struct pipe_mgr_mat *tbl;
+	int status;
+
+	LOG_TRACE("Entering %s", __func__);
+
+        status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+        if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+                return status;
+	}
+
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  mat_tbl_hdl);
+		goto cleanup;
+	}
+
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_mat_tbl_get_next_n(tbl, dev_tgt.dev_pipe_id,
+						     entry_handle, n,
+						     next_entry_handles);
+	} else {
+		LOG_ERROR("Not supported. Entries are not stored in SDE");
+		next_entry_handles[0] = -1;
+		status = BF_NOT_SUPPORTED;
+	}
+
+cleanup:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+int pipe_mgr_store_entries(u32 sess_hdl,  u32 mat_tbl_hdl,
+                           struct bf_dev_target_t dev_tgt,
+                           bool *store_entries)
+{
+        struct pipe_mgr_mat *tbl;
+        int status;
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+        status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+        if (status) {
+                LOG_ERROR("API prologue failed with err: %d", status);
+                LOG_TRACE("Exiting %s", __func__);
+                return false;
+        }
+
+        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        if (status) {
+                LOG_ERROR("Retrieving context json object for table %d failed",
+                          mat_tbl_hdl);
+                goto cleanup;
+        }
+
+        *store_entries = tbl->ctx.store_entries;
+
+cleanup:
+        pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+        LOG_TRACE("Exiting %s", __func__);
+        return status;
+}
+
+int pipe_mgr_get_first_entry(u32 sess_hdl,
+                             u32 mat_tbl_hdl,
+                             struct bf_dev_target_t dev_tgt,
+                             struct pipe_tbl_match_spec *match_spec,
+                             struct pipe_action_spec *act_data_spec,
+                             u32 *act_fn_hdl)
+{
+        struct pipe_mgr_mat *tbl;
+        int status;
+
+        LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+        status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+        if (status) {
+                LOG_ERROR("API prologue failed with err: %d", status);
+                LOG_TRACE("Exiting %s", __func__);
+                return status;
+        }
+
+        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        if (status) {
+                LOG_ERROR("Retrieving context json object for table %d failed",
+                          mat_tbl_hdl);
+                goto cleanup;
+        }
+
+        status = dal_mat_get_first_entry(sess_hdl, dev_tgt, mat_tbl_hdl,
+                                         match_spec, act_data_spec, act_fn_hdl,
+                                         &tbl->ctx);
+        if (status != BF_SUCCESS && status != BF_OBJECT_NOT_FOUND)
+                LOG_ERROR("Getting first entry failed for table %d",
+                          mat_tbl_hdl);
+
+cleanup:
+        pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+        LOG_TRACE("Exiting %s", __func__);
+        return status;
+}
+
+int pipe_mgr_get_next_n_by_key(u32 sess_hdl,
+                               u32 mat_tbl_hdl,
+                               struct bf_dev_target_t dev_tgt,
+                               struct pipe_tbl_match_spec *cur_match_spec,
+                               int n,
+                               struct pipe_tbl_match_spec *match_specs,
+                               struct pipe_action_spec **act_specs,
+                               u32 *act_fn_hdls,
+                               u32 *num)
+{
+        struct pipe_mgr_mat *tbl;
+        int status;
+
+        LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+        status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+        if (status) {
+                LOG_ERROR("API prologue failed with err: %d", status);
+                LOG_TRACE("Exiting %s", __func__);
+                return status;
+        }
+
+        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        if (status) {
+                LOG_ERROR("Retrieving context json object for table %d failed",
+                          mat_tbl_hdl);
+                goto cleanup;
+        }
+
+        status = dal_mat_get_next_n_by_key(sess_hdl, dev_tgt, mat_tbl_hdl,
+                                           cur_match_spec, n, match_specs,
+                                           act_specs, act_fn_hdls, num,
+                                           &tbl->ctx);
+        if (status)
+                LOG_ERROR("Getting next n entries failed for table %d",
+                          mat_tbl_hdl);
+
+cleanup:
+        pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+        LOG_TRACE("Exiting %s", __func__);
+        return status;
 }

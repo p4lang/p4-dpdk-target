@@ -29,15 +29,30 @@ int pipe_mgr_mat_tbl_key_exists(struct pipe_mgr_mat *tbl,
 				struct pipe_tbl_match_spec *ms,
 				bf_dev_pipe_t pipe_id,
 				bool *exists,
-				u32 *mat_ent_hdl);
+				u32 *mat_ent_hdl,
+				struct pipe_mgr_mat_entry_info **entry);
 
 int pipe_mgr_mat_tbl_key_insert(struct bf_dev_target_t dev_tgt,
 		struct pipe_mgr_mat *tbl,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 mat_ent_hdl);
+		struct pipe_mgr_mat_entry_info *entry,
+		u32 *ent_hdl);
 
 int pipe_mgr_mat_tbl_key_delete(struct bf_dev_target_t dev_tgt,
 		struct pipe_mgr_mat *tbl,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 mat_ent_hdl);
+		struct pipe_tbl_match_spec *match_spec);
+
+int pipe_mgr_mat_tbl_get_first(struct pipe_mgr_mat *tbl,
+			       bf_dev_pipe_t pipe_id,
+			       u32 *ent_hdl);
+
+int pipe_mgr_mat_tbl_get_next_n(struct pipe_mgr_mat *tbl,
+				bf_dev_pipe_t pipe_id,
+				u32 ent_hdl,
+				int n,
+				u32 *next_ent_hdls);
+
+int pipe_mgr_mat_tbl_get(struct pipe_mgr_mat *tbl,
+			 bf_dev_pipe_t pipe_id,
+			 u32 ent_hdl,
+			 struct pipe_mgr_mat_entry_info **entry);
 #endif /* __PIPE_MGR_TBL_H__ */

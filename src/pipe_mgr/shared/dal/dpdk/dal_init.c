@@ -45,6 +45,7 @@ int dal_remove_device(int dev_id)
  * Trigger from bf_shell which call bf-rt api at runtime.
  */
 int dal_enable_pipeline(bf_dev_id_t dev_id,
+		int profile_id,
 		void *spec_file,
 		enum bf_dev_init_mode_s warm_init_mode)
 {
@@ -53,11 +54,15 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 	const char *err_msg;
 	uint32_t err_line;
 	int status;
+	uint32_t i, n_ports;
+	struct rte_swx_ctl_pipeline_info pipeline;
+	uint64_t net_port_mask;
 
 	LOG_TRACE("Entering %s dev_id %d init_mode %d",
 			__func__, dev_id, warm_init_mode);
 
-	status = pipe_mgr_get_profile(dev_id, &profile);
+	status = pipe_mgr_get_profile(dev_id, profile_id,
+				      &profile);
 	if (status) {
 		LOG_ERROR("not able find profile with device_id  %d",
 				dev_id);
@@ -72,10 +77,10 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		return BF_OBJECT_NOT_FOUND;
 	}
 
-	status = port_mgr_sink_create(profile->pipeline_name);
-	if (status) {
-		LOG_ERROR("sink creation Error %d at line %u: %s\n.",
-			status, __LINE__, __func__);
+	if (!pipeline_port_is_valid(pipe)) {
+		LOG_ERROR("Number of ports added to DPDK Pipeline %s "
+				  "in input direction should be a power of 2",
+				  profile->pipeline_name);
 		return BF_INTERNAL_ERROR;
 	}
 
@@ -89,6 +94,30 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		return BF_UNEXPECTED;
 	}
 
+	if (strncmp(profile->pipe_ctx.arch_name, "pna", 3))
+		goto create_pipeline;
+
+	rte_swx_ctl_pipeline_info_get(pipe->p, &pipeline);
+	n_ports = pipeline.n_ports_in > pipeline.n_ports_out ?
+		pipeline.n_ports_in : pipeline.n_ports_out;
+	for (i = 0; i < n_ports; i++) {
+		net_port_mask = pipe->net_port_mask[i / 64];
+		if (net_port_mask & (1 << i)) {
+			status = rte_swx_ctl_pipeline_regarray_write
+				(pipe->p, PNA_DIR_REG_NAME, i, 0);
+			if (status)
+				LOG_ERROR("set 0 to dir_reg failed Err:%d\n",
+					  status);
+		} else {
+			status = rte_swx_ctl_pipeline_regarray_write
+				(pipe->p, PNA_DIR_REG_NAME, i, 1);
+			if (status)
+				LOG_ERROR("set 1 to dir_reg failed Err:%d\n",
+					  status);
+		}
+	}
+
+create_pipeline:
 	pipe->ctl = rte_swx_ctl_pipeline_create(pipe->p);
 	if (!pipe->ctl) {
 		LOG_ERROR("Pipeline control create failed.");
@@ -96,7 +125,8 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		return BF_UNEXPECTED;
 	}
 
-	status = thread_pipeline_enable(1, profile->pipeline_name);
+	status = thread_pipeline_enable(profile->core_id,
+					profile->pipeline_name);
 	if (status) {
 		LOG_ERROR("error :thread pipeline enable");
 		return BF_UNEXPECTED;

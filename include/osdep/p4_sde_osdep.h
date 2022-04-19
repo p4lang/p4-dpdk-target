@@ -6,8 +6,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <endian.h>
 
-#include <target_sys/bf_sal/bf_sys_intf.h>
+#include <target-sys/bf_sal/bf_sys_intf.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -78,4 +79,7 @@ typedef bf_sys_rwlock_t p4_sde_rwlock;
 /* LOG */
 #define P4_SDE_LOG(module, level, ...) \
 		bf_sys_log_and_trace(module, level, __VA_ARGS__)
+
+/* Timer */
+#define P4_SDE_USLEEP(usecs) bf_sys_usleep(usecs)
 #endif

@@ -95,7 +95,7 @@ class BfRtPortStatTableData : public BfRtTableDataObj {
   BfRtPortStatTableData(const BfRtTableObj *tbl_obj,
                         const std::vector<bf_rt_id_t> &fields)
       : BfRtTableDataObj(tbl_obj) {
-    std::memset(u64FieldDataArray, 0, BF_DPDK_NUM_COUNTERS * sizeof(uint64_t));
+    std::memset(u64FieldDataArray, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
     set_active_fields(fields);
   }
   ~BfRtPortStatTableData() = default;
@@ -134,7 +134,7 @@ class BfRtPortStatTableData : public BfRtTableDataObj {
                                   const size_t &s) const;
   bool all_fields_set;
   std::set<bf_rt_id_t> fieldPresent;
-  uint64_t u64FieldDataArray[BF_DPDK_NUM_COUNTERS];
+  uint64_t u64FieldDataArray[BF_PORT_NUM_COUNTERS];
   std::vector<bf_rt_id_t> activeFields;
   const uint32_t AllStatsBoundry = 20;
 };

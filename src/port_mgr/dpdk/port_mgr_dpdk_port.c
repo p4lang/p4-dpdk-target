@@ -25,37 +25,32 @@
 #include "lld/dpdk/lld_dpdk_port.h"
 #include "port_mgr/port_mgr.h"
 
-/*
- * port info
- * FIXME: fix when supporting multiple pipelines
- */
-static uint32_t last_port_id;
-static bool is_last_port_sink;
-
-#define DEFAULT_SINK_PORT_ID 255
-
 bf_status_t port_mgr_port_add(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
-			      port_attributes_t *port_attrib)
+			      struct port_attributes_t *port_attrib)
 {
 	bf_status_t status = BF_SUCCESS;
 
 	port_mgr_log_trace("Entering %s", __func__);
 
+        /*Add the Port to Name String Hash Map */
+        status = port_mgr_add_name(port_attrib->port_name, dev_port);
+        if (status != BF_SUCCESS)
+                return status;
+
+        /* Add the Port Info to Hash Map */
+        status = port_mgr_set_port_info(dev_port, port_attrib);
+        if (status != BF_SUCCESS) {
+		port_mgr_remove_name(port_attrib->port_name);
+                return status;
+	}
+
 	/* Invoke LLD DPDK API to Add Port */
 	status = lld_dpdk_port_add(dev_port, port_attrib);
-	if (status != BF_SUCCESS)
+	if (status != BF_SUCCESS) {
+		port_mgr_remove_name(port_attrib->port_name);
+		port_mgr_remove_port_info(dev_port);
 		return status;
-	last_port_id = (last_port_id < port_attrib->port_out_id) ?
-                  port_attrib->port_out_id:last_port_id;
-	if (port_attrib->port_type == BF_DPDK_SINK)
-		is_last_port_sink = 1;
-	else
-		is_last_port_sink = 0;
-
-	/* Add the Port Info to Hash Map */
-	status = port_mgr_set_port_info(dev_port, port_attrib);
-	if (status != BF_SUCCESS)
-		return status;
+	}
 
 	port_mgr_log_trace("Exiting %s", __func__);
 	return status;
@@ -63,21 +58,17 @@ bf_status_t port_mgr_port_add(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 
 bf_status_t port_mgr_port_all_stats_get(bf_dev_id_t dev_id,
 					bf_dev_port_t dev_port,
-					uint64_t *stats)
+					u64 *stats)
 {
-	port_info_t *port_info = NULL;
+	struct port_info_t *port_info = NULL;
 	bf_status_t status = BF_SUCCESS;
 
 	port_mgr_log_trace("Entering %s", __func__);
 
 	/* Get the Port Info from Hash Map */
 	port_info = port_mgr_get_port_info(dev_port);
-	if (!port_info) {
-		port_mgr_log_error("%s: failed to get port info, dev port %d",
-				   __func__, dev_port);
-		status = BF_OBJECT_NOT_FOUND;
-		return status;
-	}
+	if (!port_info)
+		return BF_OBJECT_NOT_FOUND;
 
 	/* Invoke LLD DPDK API to get Port Stats */
 	status = lld_dpdk_port_stats_get(dev_port, &port_info->port_attrib,
@@ -90,37 +81,28 @@ bf_status_t port_mgr_port_all_stats_get(bf_dev_id_t dev_id,
 	return status;
 }
 
-/* create a sink port from pipeline enable for first time */
-bf_status_t port_mgr_sink_create(const char *pipe_name) {
-	port_attributes_t port_attrib = {0};
-	bf_status_t status = BF_SUCCESS;
-	int port_id;
-
-	port_mgr_log_trace("Entering %s", __func__);
-
-	if (is_last_port_sink) {
-		port_mgr_log_trace("Last port is already sink port %s", __func__);
-		return status;
-	}
-	port_id = DEFAULT_SINK_PORT_ID;
-	port_attrib.port_type = BF_DPDK_SINK;
-	port_attrib.port_dir = PM_PORT_DIR_TX_ONLY;
-	strcpy(port_attrib.port_name, "sink");
-	strcpy(port_attrib.sink.file_name, "none");
-	strncpy(port_attrib.pipe_name, pipe_name, PIPE_NAME_LEN);
-	port_attrib.port_out_id = port_id;
-	port_attrib.port_out_id = last_port_id + 1;
-
-	/* Invoke LLD DPDK API to Add Port */
-	status = lld_dpdk_port_add(port_id, &port_attrib);
-	if (status != BF_SUCCESS)
-		return status;
-
-	/* Add the Port Info to Hash Map */
-	status = port_mgr_set_port_info(port_id, &port_attrib);
-	if (status != BF_SUCCESS)
-		return status;
-
-	port_mgr_log_trace("Exiting %s", __func__);
-	return status;
+bf_status_t port_mgr_get_port_id_from_mac(bf_dev_id_t dev_id, char *mac,
+					  u32 *port_id)
+{
+	printf("STUB:%s DPDK\n", __func__);
+	return BF_SUCCESS;
 }
+
+bf_status_t port_mgr_get_port_id_from_name(bf_dev_id_t dev_id, char *port_name,
+					   u32 *port_id)
+{
+        u32 *dev_port_obj = NULL;
+
+        if (!port_name || !port_id)
+                return BF_INVALID_ARG;
+
+        dev_port_obj = port_mgr_get_port_from_name(port_name);
+
+        if (!dev_port_obj) {
+                port_mgr_log_trace("%s : Could not fetch Dev Port", __func__);
+                return BF_INVALID_ARG;
+        }
+        *port_id = *dev_port_obj;
+        return BF_SUCCESS;
+}
+

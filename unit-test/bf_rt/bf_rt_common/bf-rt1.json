@@ -1,0 +1,22 @@
+{
+    "schema_version" : "1.0.0",
+    "tables" : [
+      {
+        "name" : "pipe.Ingress.l2_fwd_rx",
+        "id" : 33598764,
+        "table_type" : "MatchAction_Direct",
+        "size" : 1024,
+        "annotations" : [
+          {
+            "name" : "@rte_flow_item_type(\"RTE_FLOW_ITEM_TYPE_IPV4\")"
+            },
+            {
+            "name" : "@rte_flow_item_type(\"RTE_FLOW_ITEM_TYPE_IPV6\")"
+            },
+            {
+            "name" : "@rte_flow_item_type(\"RTE_FLOW_ITEM_TYPE_ETH\")"
+            }
+        ]
+    }
+]
+}

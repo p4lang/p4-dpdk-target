@@ -118,9 +118,11 @@ static void bf_switchd_parse_options(bf_switchd_context_t *ctx,
     }
     switch (c) {
       case OPT_INSTALLDIR:
+	free(ctx->install_dir);
         ctx->install_dir = strdup(optarg);
         break;
       case OPT_CONFFILE:
+	free(ctx->conf_file);
         ctx->conf_file = strdup(optarg);
         break;
       case OPT_SKIP_P4:
@@ -177,6 +179,7 @@ static void bf_switchd_parse_options(bf_switchd_context_t *ctx,
         }
         break;
       case OPT_P4RT_SERVER:
+	free(ctx->p4rt_server);
         ctx->p4rt_server = strdup(optarg);
         break;
       case OPT_SHELL_NO_WAIT:

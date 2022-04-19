@@ -29,14 +29,17 @@ enum PortCfgDataFieldId {
   PORT_TYPE_ID = 2,
   PORT_DIR_ID = 3,
   MTU_ID = 4,
-  PIPE_ID = 5,
-  PORT_IN_ID = 6,
-  PORT_OUT_ID = 7,
-  MEMPOOL_ID = 8,
-  PCIE_BDF_ID = 9,
-  FILE_NAME_ID = 10,
-  DEV_ARGS_ID = 11,
-  DEV_HOTPLUG_ENABLED_ID = 12,
+  PIPE_IN_ID = 5,
+  PIPE_OUT_ID = 6,
+  PORT_IN_ID = 7,
+  PORT_OUT_ID = 8,
+  MEMPOOL_ID = 9,
+  PCIE_BDF_ID = 10,
+  FILE_NAME_ID = 11,
+  DEV_ARGS_ID = 12,
+  DEV_HOTPLUG_ENABLED_ID = 13,
+  SIZE_ID = 14,
+  NET_PORT_ID = 15,
 };
 
 void BfRtPortCfgTable::mapInit() {
@@ -48,6 +51,7 @@ void BfRtPortCfgTable::mapInit() {
   portTypeMap["BF_DPDK_LINK"] = BF_DPDK_LINK;
   portTypeMap["BF_DPDK_SOURCE"] = BF_DPDK_SOURCE;
   portTypeMap["BF_DPDK_SINK"] = BF_DPDK_SINK;
+  portTypeMap["BF_DPDK_RING"] = BF_DPDK_RING;
 }
 
 bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
@@ -66,7 +70,7 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
   const std::unordered_map<bf_rt_id_t, std::string> &strData =
       port_data.getStrFieldDataMap();
 
-  port_attributes_t port_attrib;
+  struct port_attributes_t port_attrib;
 
   memset(&port_attrib, 0, sizeof(port_attrib));
 
@@ -74,11 +78,10 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
       (u32Data.empty()) ||
       (strData.find(PORT_NAME_ID) == strData.end()) ||
       (strData.find(PORT_TYPE_ID) == strData.end()) ||
-      (strData.find(PORT_DIR_ID) == strData.end()) ||
-      (strData.find(PIPE_ID) == strData.end())) {
+      (strData.find(PORT_DIR_ID) == strData.end())) {
        LOG_ERROR(
           "%s:%d %s ERROR : Port Cfg table entry add requires port name, port type"
-          ", port dir and pipeline name",
+          " and port dir",
           __func__,
           __LINE__,
           table_name_get().c_str());
@@ -108,9 +111,6 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
   strncpy(port_attrib.port_name, strData.at(PORT_NAME_ID).c_str(),
           PORT_NAME_LEN - 1);
   port_attrib.port_name[PORT_NAME_LEN - 1] = '\0';
-  strncpy(port_attrib.pipe_name, strData.at(PIPE_ID).c_str(),
-          PIPE_NAME_LEN - 1);
-  port_attrib.pipe_name[PIPE_NAME_LEN - 1] = '\0';
 
   if (strData.find(MEMPOOL_ID) != strData.end()) {
       strncpy(port_attrib.mempool_name, strData.at(MEMPOOL_ID).c_str(),
@@ -126,12 +126,28 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
       }
   }
 
+  if (u32Data.find(NET_PORT_ID) != u32Data.end())
+	  port_attrib.net_port =  u32Data.at(NET_PORT_ID);
+
   if ((portDirMap.at(strData.at(PORT_DIR_ID)) == PM_PORT_DIR_DEFAULT) ||
       (portDirMap.at(strData.at(PORT_DIR_ID)) == PM_PORT_DIR_RX_ONLY)) {
       if (u32Data.find(PORT_IN_ID) != u32Data.end()) {
           port_attrib.port_in_id =  u32Data.at(PORT_IN_ID);
       } else {
           LOG_ERROR("%s:%d %s ERROR : Port In ID needed",
+                     __func__,
+                     __LINE__,
+                     table_name_get().c_str());
+          return BF_INVALID_ARG;
+      }
+
+      if (strData.find(PIPE_IN_ID) != strData.end()) {
+          strncpy(port_attrib.pipe_in, strData.at(PIPE_IN_ID).c_str(),
+                  PIPE_NAME_LEN - 1);
+          port_attrib.pipe_in[PIPE_NAME_LEN - 1] = '\0';
+
+      } else {
+          LOG_ERROR("%s:%d %s ERROR : Pipe In needed",
                      __func__,
                      __LINE__,
                      table_name_get().c_str());
@@ -145,6 +161,19 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
           port_attrib.port_out_id =  u32Data.at(PORT_OUT_ID);
       } else {
           LOG_ERROR("%s:%d %s ERROR :  Port Out ID needed",
+                     __func__,
+                     __LINE__,
+                     table_name_get().c_str());
+          return BF_INVALID_ARG;
+      }
+
+      if (strData.find(PIPE_OUT_ID) != strData.end()) {
+          strncpy(port_attrib.pipe_out, strData.at(PIPE_OUT_ID).c_str(),
+                  PIPE_NAME_LEN - 1);
+          port_attrib.pipe_out[PIPE_NAME_LEN - 1] = '\0';
+
+      } else {
+          LOG_ERROR("%s:%d %s ERROR : Pipe Out needed",
                      __func__,
                      __LINE__,
                      table_name_get().c_str());
@@ -216,6 +245,17 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
           return BF_INVALID_ARG;
       }
       break;
+    case BF_DPDK_RING:
+      if (u32Data.find(SIZE_ID) != u32Data.end()) {
+          port_attrib.ring.size =  u32Data.at(SIZE_ID);
+      } else {
+          LOG_ERROR("%s:%d %s ERROR : Ring Port needs size",
+                     __func__,
+                     __LINE__,
+                     table_name_get().c_str());
+          return BF_INVALID_ARG;
+      }
+      break;
     default:
       LOG_ERROR("%s:%d ERROR : Incorrect Port Type",
                  __func__,
@@ -239,11 +279,7 @@ bf_status_t BfRtPortCfgTable::tableEntryAdd(const BfRtSession & /*session*/,
 bf_status_t BfRtPortCfgTable::tableEntryDel(const BfRtSession & /*session*/,
                                             const bf_rt_target_t &dev_tgt,
                                             const BfRtTableKey &key) const {
-  const BfRtPortCfgTableKey &port_key =
-      static_cast<const BfRtPortCfgTableKey &>(key);
-  uint32_t dev_port = port_key.getId();
-  auto *portMgr = PortMgrIntf::getInstance();
-  return portMgr->portMgrPortDel(dev_tgt.dev_id, dev_port);
+  return BF_SUCCESS;
 }
 
 bf_status_t BfRtPortCfgTable::keyReset(BfRtTableKey *key) const {
@@ -394,19 +430,23 @@ bf_status_t BfRtPortStatTable::tableEntryGet_internal(
   auto *portMgr = PortMgrIntf::getInstance();
   bf_status_t status = BF_SUCCESS;
 
-      // all fields
-      uint64_t stats = 0;
+  // all fields
+  uint64_t stats[BF_PORT_NUM_COUNTERS];
 
-      status = portMgr->portMgrPortThisStatGet(dev_tgt.dev_id, dev_port, &stats);
-      if (status != BF_SUCCESS) {
-        LOG_ERROR("%s:%d %s: Error getting all stat for dev_port %d",
-                  __func__,
-                  __LINE__,
-                  table_name_get().c_str(),
-                  dev_port);
+  memset(stats, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
 
-        return status;
-      }
+  status = portMgr->portMgrPortAllStatsGet(dev_tgt.dev_id, dev_port, stats);
+  if (status != BF_SUCCESS) {
+      LOG_ERROR("%s:%d %s: Error getting all stat for dev_port %d",
+                __func__,
+                __LINE__,
+                table_name_get().c_str(),
+                dev_port);
+
+      return status;
+  }
+
+  port_data->setAllValues(stats);
   return status;
 }
 

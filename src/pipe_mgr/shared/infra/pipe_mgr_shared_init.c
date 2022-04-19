@@ -25,6 +25,7 @@
 #include "../dal/dal_init.h"
 #include "../pipe_mgr_shared_intf.h"
 #include "pipe_mgr_session.h"
+#include "../dal/dal_mat.h"
 
 /* Pointer to global pipe_mgr context */
 static struct pipe_mgr_ctx *pipe_mgr_ctx_obj;
@@ -66,16 +67,6 @@ static void free_dev(struct pipe_mgr_dev *dev)
 		P4_SDE_FREE(dev->profiles);
 	}
 	P4_SDE_FREE(dev);
-}
-
-uint32_t pipe_mgr_get_num_active_pipes(bf_dev_id_t dev_id)
-{
-	struct pipe_mgr_dev *dev = NULL;
-
-	dev = pipe_mgr_get_dev(dev_id);
-	if (!dev)
-		return 0;
-	return dev->num_active_pipes;
 }
 
 int pipe_mgr_set_dev(struct pipe_mgr_dev **dev,
@@ -122,9 +113,6 @@ int pipe_mgr_set_dev(struct pipe_mgr_dev **dev,
 		dev_info->profiles[i].profile_id = i;
 	}
 
-	/* TODO: Currently only one pipeline is supported*/
-	dev_info->num_active_pipes = 1;
-
 	map_sts = P4_SDE_MAP_ADD(&pipe_mgr_ctx_obj->dev_map, dev_id, dev_info);
 	if (map_sts != BF_MAP_OK) {
 		free_dev(dev_info);
@@ -164,6 +152,7 @@ int pipe_mgr_set_profile(int dev_id,
 		strncpy(profile->cfg_file,
 			p4_pipeline->cfg_file,
 			PIPE_MGR_CFG_FILE_LEN - 1);
+		profile->core_id = p4_pipeline->core_id;
 	}
 	if (parsed_pipe_ctx)
 		profile->pipe_ctx = *parsed_pipe_ctx;
@@ -179,6 +168,22 @@ int pipe_mgr_get_num_profiles(int dev_id, uint32_t *num_profiles)
 		return BF_NOT_READY;
 
 	*num_profiles = dev->num_pipeline_profiles;
+	return BF_SUCCESS;
+}
+
+int pipe_mgr_is_pipe_valid(int dev_id, uint32_t dev_pipe_id)
+{
+	struct pipe_mgr_dev *dev;
+
+        dev = pipe_mgr_get_dev(dev_id);
+        if (!dev)
+                return BF_NOT_READY;
+
+	if (dev_pipe_id >= dev->num_pipeline_profiles) {
+		LOG_ERROR("%s : Invalid Pipe ID : %d", __func__, dev_pipe_id);
+		return BF_INVALID_ARG;
+	}
+
 	return BF_SUCCESS;
 }
 
@@ -263,13 +268,15 @@ int pipe_mgr_shared_remove_device(int dev_id)
 }
 
 bf_status_t pipe_mgr_shared_enable_pipeline(bf_dev_id_t dev_id,
+		int profile_id,
 		void *spec_file,
 		enum bf_dev_init_mode_s warm_init_mode)
 {
 	bf_status_t status = BF_SUCCESS;
 
 	LOG_TRACE("Entering %s device %u", __func__, dev_id);
-	status = dal_enable_pipeline(dev_id, spec_file, warm_init_mode);
+	status = dal_enable_pipeline(dev_id, profile_id, spec_file,
+				     warm_init_mode);
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
 }
@@ -385,21 +392,15 @@ int pipe_mgr_get_int_sess_hdl(int *sess_hdl)
 }
 
 int pipe_mgr_get_profile(int dev_id,
+			 int profile_id,
 			 struct pipe_mgr_profile **profile)
 {
 	struct pipe_mgr_dev *dev;
-	int profile_id;
 
 	dev = pipe_mgr_get_dev(dev_id);
 	if (!dev)
 		return BF_NOT_READY;
 
-	/* TODO: Currently only one profile is supported. Profile_id
-	 * is same as dev_tgt.dev_pipe_id for now.
-	 * Support for mapping dev_tgt to appropriate profile
-	 * id should added. For now profile_id is hard_coded to 0.
-	 */
-	profile_id = PIPE_MGR_DEFAULT_PIPE_ID;
 	*profile = &dev->profiles[profile_id];
 	return BF_SUCCESS;
 }
@@ -412,7 +413,8 @@ int pipe_mgr_get_profile_ctx(struct bf_dev_target_t dev_tgt,
 	struct pipe_mgr_profile *profile;
 	int status;
 
-	status = pipe_mgr_get_profile(dev_tgt.device_id, &profile);
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
 	if (status)
 		return status;
 	*parsed_pipe_ctx = &profile->pipe_ctx;
@@ -451,7 +453,7 @@ int pipe_mgr_api_prologue(u32 sess_hdl, struct bf_dev_target_t dev_tgt)
 
 	/* TODO: Validate dev_tgt.pipe_id and use it to index profiles array. */
 	status = P4_SDE_RWLOCK_RDLOCK
-			(&dev->profiles[PIPE_MGR_DEFAULT_PIPE_ID].lock);
+			(&dev->profiles[dev_tgt.dev_pipe_id].lock);
 	if (status) {
 		status = BF_UNEXPECTED;
 		goto rel_lock;
@@ -493,10 +495,10 @@ void pipe_mgr_api_epilogue(u32 sess_hdl, struct bf_dev_target_t dev_tgt)
 
 	/* TODO: Validate dev_tgt.pipe_id and use it to index profiles array. */
 	status = P4_SDE_RWLOCK_UNLOCK
-			(&dev->profiles[PIPE_MGR_DEFAULT_PIPE_ID].lock);
+			(&dev->profiles[dev_tgt.dev_pipe_id].lock);
 	if (status)
 		LOG_ERROR("Unlocking Pipleline %d failed",
-			  PIPE_MGR_DEFAULT_PIPE_ID);
+			  dev_tgt.dev_pipe_id);
 
 	pipe_mgr_api_exit(sess_hdl);
 	return;
@@ -504,6 +506,8 @@ void pipe_mgr_api_epilogue(u32 sess_hdl, struct bf_dev_target_t dev_tgt)
 
 void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state)
 {
+	int i;
+
 	if (!mat_state)
 		return;
 
@@ -512,6 +516,11 @@ void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state)
 
 	P4_SDE_MAP_DESTROY(&mat_state->entry_info_htbl);
 	P4_SDE_MUTEX_DESTROY(&mat_state->lock);
+
+	for (i = 0; i < mat_state->num_htbls; i++)
+		bf_hashtbl_delete(mat_state->key_htbl[i]);
+
+	P4_SDE_FREE(mat_state->key_htbl);
 	P4_SDE_FREE(mat_state);
 }
 
@@ -572,4 +581,9 @@ int pipe_mgr_client_cleanup(u32 sess_hdl)
 
 	LOG_TRACE("Exiting %s with status %d", __func__, status);
 	return status;
+}
+
+bool pipe_mgr_mat_store_entries(struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	return dal_mat_store_entries(mat_ctx);
 }

@@ -1,0 +1,261 @@
+==========
+ASSERTIONS
+==========
+
+When using Googletest, you start by writing assertions (Macros), which are 
+statements that check whether a condition is true. An assertion’s result 
+can be success, nonfatal failure, or fatal failure. If a fatal failure 
+occurs, it aborts the current function; otherwise, the program continues 
+normally.
+
+A test group/suite contains one or many tests. You should group your tests
+into test suites that reflect the structure of the tested code.Each test may
+contain several assertions. A test program can contain multiple test suites.
+
+Googletest assertions are macros that resemble function calls. You test a 
+class or function by making assertions about its behavior. When an assertion 
+fails, Googletest prints the assertion’s source file and line number 
+location, along with a failure message. You may also supply a custom failure 
+message which will be appended to Googletest’s message.
+
+The assertions come in pairs that test the same thing but have different 
+effects on the current function. ASSERT_* versions generate fatal failures 
+when they fail and abort the current function. EXPECT_* versions generate 
+nonfatal failures, which don’t abort the current function. Usually EXPECT_* 
+are preferred, as they allow more than one failure to be reported in a test. 
+However, you should use ASSERT_* if it doesn’t make sense to continue when 
+the assertion in question fails.
+
+These assertions validate the expected result against the actual 
+result and then the assertion succeeds if both expected result and 
+actual results matches, else the assertion fails. See the below 
+assertion format,
+            ASSERT_EQ(actual_output, expected_output);
+
+            EXPECT_EQ(actual_output, expected_output);
+
+==============
+Creating Tests
+==============
+
+Use the TEST() macro to define and name a test function. These are ordinary 
+C++ functions that don’t return a value. You need to use two arguments for 
+defining a test. The first argument is the test suite name, and the other 
+argument is test name. Defining a test follows the below structure,
+            TEST(test_group_name, test_name){
+                ...CPP Statements...
+                ...Assertions...
+            }
+           
+Inside this function, C++ statements can be used for data preparation. 
+You can use the various Googletest assertions to check values. The C++ 
+statements and the assertions make up the test body. The test’s result is 
+determined by the assertions; if any assertion in the test fails (either 
+fatally or non-fatally), or if the test crashes, the entire test fails. 
+Otherwise, it succeeds.
+
+=================
+Writing Testcases
+=================
+
+*) See the "Code Organisation" section to Know the directory structure for 
+   writing the testcases.
+*) Maintain one or more CPP files to write the testcases.
+*) Programmer can associate any number of testcases with a particular 
+   test group/test suite. Those testcases can be defined as follows.
+                TEST(suite_name, testcase_name)
+*) Checks can be written inside the defined testcases. The checks can be 
+   written using the existing macros. All the macros required to write 
+   testcases can be used by including “#include <gtest/gtest.h>”.
+*) Programmer should also include the source file for which the testcases are 
+   being written. If the source file is C code, you need to use extern “C” to 
+   include that file.
+*) Main function should be written from which all testcases are called.
+
+==================
+Mocking functions
+==================
+
+There are two important steps that one need to follow, to mock any function.
+*) Define a mock for the function: If the function belongs to a class, then Mock 
+   class should be created and inside that mock function should be defined. Else,
+   define mock function globally.
+*) Specify mock’s behavior such that whenever the mock function is called, a 
+   specific value should be returned.
+
+The syntax for defining a mock is as follows,
+MOCK_METHODn(function_name, return_type (arguments));
+Here, n indicates the number of arguments.
+
+Once, mock functions are defined, while testing, you can pass mock object. So, 
+once mock is defined, it’s behavior should be specified. This step is known as 
+setting up expectations. The behavior should be specified in test file before 
+the testable function is called.
+
+There are two ways how you can specify its behavior. EXPECT_CALL() & ON_CALL().
+
+EXCEPT_CALL(mockclass_obj, mocked_function(arguments))
+.Times(n)
+.WillOnce(Return(return_value))
+
+‘n’ is the number of times you  expect the mocked function to be called.
+‘return_value’ is the value that the mocked function should return.
+If n > 1, then you can define WillOnce() n times so that, for each time mock 
+function is called, you will have a specific return value.
+
+For example,
+EXCEPT_CALL(obj, func (1, 1))
+.Times(3)
+.WillOnce(Return(1))
+.WillOnce(Return(2)).WillOnce(Return(3))
+
+If func(1, 1) is called three times, 1 is returned first, 2 is returned second 
+and 3 is returned last. You can also use WillRepeatedly instead of WillOnce.
+
+ON_CALL(mockclass_obj, mocked_function(arguments))
+.WillByDefault(Return(return_value))
+
+You must always put a mock method definition (MOCK_METHOD) in public: section 
+of the mock class, regardless of the method being mocked being public, protected, 
+or private in the base class. This allows ON_CALL and EXPECT_CALL to reference the 
+mock function from outside of the mock class. (Yes, C++ allows a subclass to change 
+the access level of a virtual function in the base class.)
+
+*) If you are trying to mock a virtual method of a class, your mock class 
+   should inherit the class which defines that virtual method.
+*) If you are mocking a non-virtual method of a class, your mock class need
+   not inherit any class.
+*) While mocking a global/C-style function, there is no need to create mock
+   class. Mock functions can be defined globally in testcase file.
+
+
+==================
+Code Organisation
+==================
+
+While writing testcases, one need to follow well defined hierarachy.
+For example, the tescases for src/pipe_mgr/core/pipe_mgr_ctx_json.c, 
+should be created under unit-test/pipe_mgr/core/.
+
+Similarly, the testcases for src/bf_rt/bf_rt_common/bf_rt_info_impl.cpp
+should be created under unit-test/bf_rt/bf_rt_common/.
+
+Unit-test is the main test directory, we create many directories,
+sub-directories under unit-test folder to maintain hierarchy.
+
+In the current scenario, the unit-test folder will have two directories
+bf_rt, pipe_mgr. The CMakeLists.txt file in the unit-test folder should
+include bf_rt, pipe_mgr as sub directories. If you want to write tescases
+for a function in other folder of src, that directory structure should be
+created under unit-test folder and the respective sub directories should
+be added in the CMakeLists.txt.
+
+Under all the directories in unit-test, respective sub directories should
+be created and the same need to be mentioned in the CMakeLists.txt file
+of each directory.
+
+======================
+Writing CMakeLists.txt
+======================
+
+Building the testcases is important. While building, test files and source files 
+are executed, and if the code is error free, the output is generated.
+
+*) Once testcase file is ready, one need to build & execute them to get the test 
+   results.
+*) Googletest follows CMAKE build system. So, it is mandatory to create 
+   CMakeLists.txt file to continue with build process.
+*) In the cmake file, it is required to specify the required libraries and include 
+   paths, linker directories, so that, the building process will be smooth.
+
+A simple cmake file (CMakeLists.txt) may look as follows:
+
+cmake_minimum_required(VERSION 2.6)
+include_directories(directory_path)
+#Adding libary link directories
+link_directories(directory_path)
+set(CMAKE_EXE_LINKER_FLAGS "-lgtest -lgmock)   
+add_executable(output_name source_file_name.cpp)
+target_link_libraries(bf_rt_out ${CMAKE_EXE_LINKER_FLAGS})
+
+
+=================
+Build & Execution
+=================
+
+*) Once testcase file and the respective CMakeLists.txt is ready, one need to
+   build & execute them to get the test results.
+*) This build is included in the p4-sde build. So, one can just run the "make"
+   command from "unit-test" directory to build all the testcases. The resultant
+   binaries will get stored in p4-sde/install/unit_test_result directory.
+*) To run all the tests that were built, the programmer can just make use of
+   "make runtest" from unit-test folder which executes all the testcases and
+   displays the output.
+*) To generate the HTML code coverage reports one can use "make coverage". The
+   resultant files will be generated under p4-sde/install/unit_test_report
+   directory.
+*) The test results of individual testcases can be seen by executing
+   “./output_filename” under p4-sde/install/unit_test_result directory.
+*) Output file displays the testcase results. It will have information about the 
+   number of tests ran, number of checks performed, number of failures etc.,
+
+Note: Multiple testcase files can be put under a single binary, or each testcase file 
+      can have separate binary according to the programmer’s requirement.
+
+=================
+Report Generation
+=================
+
+There is a privilage to get the HTML code coverage reports of the source file which 
+is being tested. That can be done by using "make coverage" command, the respective 
+code coverage report will be generated in "unit_test_report" directory under
+p4-sde/install.
+
+Apart from this, one can generate XML, JSON report of test results by following 
+below mentioned instructions.
+
+Generating XML report:
+        Googletest can emit a detailed XML report to a file in addition to its 
+        normal textual output. The report contains the duration of each test, and 
+        thus can help you identify slow tests.
+        To generate the XML report, set the --gtest_output flag to the string 
+        "xml:path_to_output_file", which will create the file at the given location. 
+        You can also just use the string "xml", in which case the output can be found 
+        in the test_detail.xml file in the current directory.
+        If the obtained binary is out, “./out --gtest_output=xml:file_name.xml” or 
+        “./out --gtest_output=xml” will generate the XML report.
+
+Generating JSON report:
+        Googletest can also emit a JSON report as an alternative format to XML. To 
+        generate the JSON report, set the --gtest_output flag to the string 
+        "json:path_to_output_file", which will create the file at the given location. 
+        You can also just use the string "json", in which case the output can be found 
+        in the test_detail.json file in the current directory.
+        If the obtained binary is out, “./out --gtest_output=json:file_name.json” or 
+        “./out --gtest_output=json” will generate the JSON report.
+
+We need to execute these commands from the directory where the output binaries get
+stored i.e., p4-sde/install/unit_test_result.
+If you specify a directory (for example, "xml:output/directory/", Googletest will create 
+the XML file in that directory, named after the test executable (e.g., out.xml for 
+executable named out). If the file already exists, Googletest will pick a different name 
+(e.g., out_1.xml) to avoid overwriting it.
+
+====
+BKMs
+====
+The below mentioned BKMs are recommended to be followed:
+
+    *) Build system must have greater than 2GB of free ram.
+    *) Test source files to follow the below directory structure.
+       <root-dir>/unit-test/<src_dir>/<src_file_name>_<ut description>_ut.cpp
+       Note: <ut description> can be optional. This can be a function name.
+    *) It's advised to keep the number of checks inside a test source file under 5k as 
+       more than 5K test checks will significantly increase build time.
+    *) Testcases for a single source file, can be written in multiple test files. All 
+       these test files can be put under one UT binary, or each test file can have a 
+       separate binary. Opting for the latter provides developer granular control over 
+       running specific testcases.
+    *) CMAKE infra for build system.
+    *) Integration of coverage tools like GCOV is recommended. (Already included to 
+       generate HTML code coverge report).

@@ -17,9 +17,7 @@
 
 apply_patch()
 {
-	local PATCH_FILES=(
-		0001-fix-out-of-bounds-check-label.patch
-	)
+	local PATCH_FILES=(001-port-support-packet-mirroring.patch 002-pipeline-support-packet-mirroring.patch 003-examples-pipeline-support-packet-mirroring.patch 004-examples-pipeline-add-packet-mirroring-example.patch 005-pipeline-support-packet-recirculation.patch 006-examples-pipeline-add-packet-recirculation-example.patch)
 
 	DPDK_PATH=${PWD}
 	DPDK_SRC_PATH="${DPDK_PATH}"/dpdk_src

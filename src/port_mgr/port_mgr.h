@@ -41,7 +41,27 @@ struct port_mgr_ctx_t {
 	 * target device
 	 */
 	p4_sde_map port_info_map;         /*!< Port Info Hash Map */
+        /* Maps port name string hash
+	 * to port id 
+         */
+	p4_sde_map port_name_map;         /*!< Port Name Hash to ID Map */
 };
+
+/**
+ * Platform specific port initialization
+ *
+ * @param void
+ * @return void
+ */
+void port_mgr_platform_init(void);
+
+/**
+ * Platform specific port cleanup
+ *
+ * @param void
+ * @return void
+ */
+void port_mgr_platform_cleanup(void);
 
 /**
  * Get the Global Port Manager Context
@@ -64,7 +84,7 @@ void port_mgr_ctx_cleanup(struct port_mgr_ctx_t *ctx);
  * @return Status of the API Call
  */
 int port_mgr_set_port_info(bf_dev_port_t dev_port,
-			   port_attributes_t *port_attrib);
+			   struct port_attributes_t *port_attrib);
 
 /**
  * Remove entry from Port Info Hash Map
@@ -78,7 +98,29 @@ int port_mgr_remove_port_info(bf_dev_port_t dev_port);
  * @param dev_port Port ID
  * @return port_info_t Port Info Structure
  */
-port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port);
+struct port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port);
+
+/**
+ * Get an entry from Port Name Hash Map
+ * @param port_name Port Name
+ * @return Port ID
+ */
+u32 *port_mgr_get_port_from_name(char *port_name);
+
+/**
+ * Add entry to Port Name Hash Map
+ * @param port_name Port Name
+ * @param dev_port Port ID
+ * @return Status of the API Call
+ */
+int port_mgr_add_name(char *port_name, u32 dev_port);
+
+/**
+ * Remove entry from Port Name Hash Map
+ * @param port_name Port Name
+ * @return Status of the API Call
+ */
+int port_mgr_remove_name(char *port_name);
 
 #ifdef __cplusplus
 }

@@ -9,6 +9,7 @@ SRCS-y += dpdk_cli.c
 SRCS-y += dpdk_infra.c
 SRCS-y += dpdk_obj.c
 SRCS-y += dpdk_thread.c
+SRCS-y += dpdk_conn.c
 PC_FILE := $(shell find $(install_dir) -name libdpdk.pc)
 PKG_CONFIG_PATH := $(shell dirname $(PC_FILE))
 

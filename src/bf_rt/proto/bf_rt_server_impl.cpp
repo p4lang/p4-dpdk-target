@@ -374,137 +374,6 @@ bf_status_t idletime_callback(const bf_rt_target_t &target,
   return BF_SUCCESS;
 }
 
-bf_status_t learn_callback(const bf_rt_target_t &bf_rt_target,
-                           const std::shared_ptr<BfRtSession> session,
-                           std::vector<std::unique_ptr<BfRtLearnData>> vec,
-                           bf_rt_learn_msg_hdl *learn_msg_hdl,
-                           const void *cookie) {
-  // Retrieve the client_id from the cookie
-  const auto cookie_data = reinterpret_cast<uintptr_t>(cookie);
-  uint32_t client_id = getClientIdFromCookie(cookie_data);
-  SetFwdConfigLockGuard read_lock(BfRtServer::getInstance().setFwdRwLockget(),
-                                  false);
-  if (!read_lock) {
-    LOG_ERROR(" %s:%d Failed to acquire read lock for client %d",
-              __func__,
-              __LINE__,
-              client_id);
-    return BF_IN_USE;
-  }
-
-  // Get the connection data for this client
-  std::shared_ptr<const ConnectionData> connection_sp;
-  auto grpc_status =
-      BfRtServer::getInstance().getConnection(client_id, &connection_sp);
-  if (!grpc_status.ok()) {
-    LOG_ERROR("%s:%d Unable to retrieve connection data for client with id %d",
-              __func__,
-              __LINE__,
-              client_id);
-    return BF_UNEXPECTED;
-  }
-
-  const BoundProgram *bound_program = nullptr;
-  grpc_status = connection_sp->boundProgramGet(&bound_program);
-  if (!grpc_status.ok() || !bound_program) {
-    LOG_ERROR(
-        "%s:%d Unable to retrieve bound_program data for client with id %d",
-        __func__,
-        __LINE__,
-        client_id);
-    return BF_UNEXPECTED;
-  }
-
-  const auto info = bound_program->bfRtInfoGet();
-  if (!info) {
-    LOG_ERROR("%s:%d BfRtInfo obj retrieved for the client is null",
-              __func__,
-              __LINE__);
-    BF_RT_DBGCHK(0);
-    return BF_UNEXPECTED;
-  }
-
-  const BfRtLearn *learn;
-  auto bf_status = vec.front()->getParent(&learn);
-  if (bf_status != BF_SUCCESS) {
-    LOG_ERROR("%s:%d Error getting learn_obj", __func__, __LINE__);
-    return bf_status;
-  }
-
-  bf_rt_id_t learn_id;
-  bf_status = learn->learnIdGet(&learn_id);
-  if (bf_status != BF_SUCCESS) {
-    LOG_ERROR("%s:%d Error getting ID for learn obj", __func__, __LINE__);
-    return bf_status;
-  }
-
-  std::vector<bf_rt_id_t> field_ids;
-  bf_status = learn->learnFieldIdListGet(&field_ids);
-  if (bf_status != BF_SUCCESS) {
-    LOG_ERROR("%s:%d Error getting field_list for learn obj %d",
-              __func__,
-              __LINE__,
-              learn_id);
-    return bf_status;
-  }
-
-  bfrt_proto::StreamMessageResponse response;
-  auto digest = response.mutable_digest();
-  digest->set_digest_id(learn_id);
-  digest->set_list_id(0);
-  auto target = digest->mutable_target();
-  target->set_device_id(bf_rt_target.dev_id);
-  target->set_pipe_id(bf_rt_target.pipe_id);
-  target->set_direction(bf_rt_target.direction);
-  target->set_prsr_id(bf_rt_target.prsr_id);
-  // TODO(msharif) Save the learn_msg_hdl, when DigestListAck is implemented.
-  for (const auto &learn_data : vec) {
-    auto data = digest->add_data();
-    size_t size_bits, size;
-    uint8_t *val;
-    for (const auto &field_id : field_ids) {
-      learn->learnFieldSizeGet(field_id, &size_bits);
-      size = (size_bits + 7) / 8;
-      val = new uint8_t[size];
-      bf_status = learn_data->getValue(field_id, size, val);
-      if (bf_status != BF_SUCCESS) {
-        LOG_ERROR("%s:%d Error getting value for field_id %d",
-                  __func__,
-                  __LINE__,
-                  field_id);
-        return bf_status;
-      }
-
-      auto field = data->add_fields();
-      field->set_field_id(field_id);
-      // For learn data, learn fields are all treated as byte stream. There is
-      // no possibility of a learn field being a float value
-      field->set_stream(val, size);
-      delete[] val;
-    }
-  }
-
-  // Ack the learn digest so that the hardware can learn more
-  bf_status = learn->bfRtLearnNotifyAck(session, learn_msg_hdl);
-  if (bf_status != BF_SUCCESS) {
-    LOG_ERROR(
-        "%s:%d Error while acknowledging the learn notification for learn obj "
-        "%d learn_msg_hdl %d",
-        __func__,
-        __LINE__,
-        learn_id,
-        learn_msg_hdl->unused);
-  }
-
-  LOG_DBG("%s:%d Learn notification: %s",
-          __func__,
-          __LINE__,
-          digest->DebugString().c_str());
-  connection_sp->sendStreamMessage(response);
-
-  return BF_SUCCESS;
-}
-
 }  // callbacks namespace
 
 namespace {
@@ -1255,57 +1124,6 @@ Status getAttributeMeterByteCountAdj(const BfRtSession &session,
   read_attribute_response->set_table_id(table_id);
   read_attribute_response->mutable_byte_count_adj()->set_byte_count_adjust(
       meter_byte_count);
-  return Status();
-}
-
-Status setAttributeDynHashing(const BfRtSession &session,
-                              const bf_rt_target_t &target,
-                              const BfRtTable &table,
-                              const bfrt_proto::DynHashing &dyn_hashing) {
-  std::unique_ptr<BfRtTableAttributes> attr;
-  // 1. Allocate attribute
-  // 2. Entry params set on attribute
-  // 3. Attribute set on Table
-  auto bf_status = table.attributeAllocate(
-      TableAttributesType::DYNAMIC_HASH_ALG_SEED, &attr);
-  check_and_return(bf_status, "Failed to allocate Attribute for dyn hashing");
-  auto alg_hdl = static_cast<uint32_t>(dyn_hashing.alg());
-  auto seed = static_cast<uint64_t>(dyn_hashing.seed());
-  bf_status = attr->dynHashingSet(alg_hdl, seed);
-  check_and_return(bf_status, "Failed to set Dynamic Hashing");
-  bf_status = table.tableAttributesSet(session, target, 0, *attr.get());
-  check_and_return(bf_status, "Failed to set Attribute for dyn hashing");
-  return Status();
-}
-
-Status getAttributeDynHashing(const BfRtSession &session,
-                              const bf_rt_target_t &target,
-                              const BfRtTable &table,
-                              bfrt_proto::ReadResponse *response) {
-  // 1. Allocate attribute
-  std::unique_ptr<BfRtTableAttributes> attr;
-  auto bf_status = table.attributeAllocate(
-      TableAttributesType::DYNAMIC_HASH_ALG_SEED, &attr);
-  check_and_return(bf_status, "Failed to allocate Attribute for dyn hashing");
-  // 2. Attribute get on Table
-  bf_status = table.tableAttributesGet(session, target, 0, attr.get());
-  check_and_return(bf_status, "Failed to get Attribute for dynamic hashing");
-
-  // 3. get on the attribute object
-  uint32_t alg_hdl;
-  uint64_t seed;
-  bf_status = attr->dynHashingGet(&alg_hdl, &seed);
-  check_and_return(bf_status, "Failed to get Dynamic Hashing");
-
-  // 4. set response
-  auto read_attribute_response =
-      response->add_entities()->mutable_table_attribute();
-
-  bf_rt_id_t table_id;
-  table.tableIdGet(&table_id);
-  read_attribute_response->set_table_id(table_id);
-  read_attribute_response->mutable_dyn_hashing()->set_alg(alg_hdl);
-  read_attribute_response->mutable_dyn_hashing()->set_seed(seed);
   return Status();
 }
 
@@ -2381,10 +2199,6 @@ Status read_attribute(const BfRtInfo &info,
       grpc_status = getAttributeEntryScope(session, target, *table, response);
       break;
     }
-    case (bfrt_proto::TableAttribute::kDynHashing): {
-      grpc_status = getAttributeDynHashing(session, target, *table, response);
-      break;
-    }
     case (bfrt_proto::TableAttribute::kByteCountAdj): {
       grpc_status =
           getAttributeMeterByteCountAdj(session, target, *table, response);
@@ -2483,20 +2297,6 @@ Status read_id(const BfRtInfo &info,
           break;
         }
       }
-      break;
-    }
-    case bfrt_proto::ObjectId::kLearnObject: {
-      const BfRtLearn *learn_obj;
-      auto &learn_msg = request.learn_object();
-      bf_status = info.bfrtLearnFromNameGet(learn_msg.learn_name(), &learn_obj);
-      check_and_return(bf_status, "Learn Obj not found.");
-      if (learn_msg.data_field_name().action() != "") {
-        check_and_return(BF_INVALID_ARG,
-                         "Action IDs not applicable for Learn objs");
-      }
-      bf_status =
-          learn_obj->learnFieldIdGet(learn_msg.data_field_name().field(), &id);
-      check_and_return(bf_status, "Failed to get Learn ID");
       break;
     }
     default: {
@@ -2626,52 +2426,13 @@ Status make_data(const BfRtTable &table,
     case BfRtTable::TableType::PORT_HDL_INFO:
     case BfRtTable::TableType::PORT_FRONT_PANEL_IDX_INFO:
     case BfRtTable::TableType::PORT_STR_INFO:
-    case BfRtTable::TableType::PKTGEN_PORT_CFG:
-    case BfRtTable::TableType::PKTGEN_APP_CFG:
-    case BfRtTable::TableType::PKTGEN_PKT_BUFF_CFG:
-    case BfRtTable::TableType::PKTGEN_PORT_MASK_CFG:
-    case BfRtTable::TableType::PKTGEN_PORT_DOWN_REPLAY_CFG:
     case BfRtTable::TableType::MATCH_DIRECT:
     case BfRtTable::TableType::ACTION_PROFILE:
     case BfRtTable::TableType::MATCH_INDIRECT:
     case BfRtTable::TableType::MATCH_INDIRECT_SELECTOR:
     case BfRtTable::TableType::SELECTOR:
-    case BfRtTable::TableType::TM_QUEUE_CFG:
-    case BfRtTable::TableType::TM_QUEUE_MAP:
-    case BfRtTable::TableType::TM_QUEUE_COLOR:
-    case BfRtTable::TableType::TM_QUEUE_BUFFER:
-    case BfRtTable::TableType::TM_QUEUE_SCHED_CFG:
-    case BfRtTable::TableType::TM_QUEUE_SCHED_SHAPING:
-    case BfRtTable::TableType::TM_PIPE_CFG:
-    case BfRtTable::TableType::TM_PIPE_SCHED_CFG:
-    case BfRtTable::TableType::TM_PORT_SCHED_CFG:
-    case BfRtTable::TableType::TM_PORT_SCHED_SHAPING:
-    case BfRtTable::TableType::TM_MIRROR_DPG:
-    case BfRtTable::TableType::TM_PORT_DPG:
-    case BfRtTable::TableType::TM_PPG_CFG:
-    case BfRtTable::TableType::TM_PORT_CFG:
-    case BfRtTable::TableType::TM_PORT_BUFFER:
-    case BfRtTable::TableType::TM_PORT_FLOWCONTROL:
-    case BfRtTable::TableType::TM_PORT_GROUP_CFG:
-    case BfRtTable::TableType::TM_PORT_GROUP:
-    case BfRtTable::TableType::DYN_HASH_ALGO:
     case BfRtTable::TableType::MIRROR_CFG:
-    case BfRtTable::TableType::DEV_CFG:
-    case BfRtTable::TableType::TM_POOL_CFG:
-    case BfRtTable::TableType::TM_POOL_SKID:
-    case BfRtTable::TableType::TM_POOL_APP:
-    case BfRtTable::TableType::TM_POOL_COLOR:
-    case BfRtTable::TableType::TM_POOL_APP_PFC:
-    case BfRtTable::TableType::TM_COUNTER_IG_PORT:
-    case BfRtTable::TableType::TM_COUNTER_EG_PORT:
-    case BfRtTable::TableType::TM_COUNTER_QUEUE:
-    case BfRtTable::TableType::TM_COUNTER_POOL:
-    case BfRtTable::TableType::TM_COUNTER_PIPE:
-    case BfRtTable::TableType::TM_COUNTER_PORT_DPG:
-    case BfRtTable::TableType::TM_COUNTER_MIRROR_PORT_DPG:
-    case BfRtTable::TableType::TM_COUNTER_PPG:
-    case BfRtTable::TableType::TM_CFG:
-    case BfRtTable::TableType::TM_PIPE_MULTICAST_FIFO: {
+    case BfRtTable::TableType::DEV_CFG: {
       if (action_id == 0) {
         std::vector<bf_rt_id_t> all_fields;
         bf_status = table.dataFieldIdListGet(&all_fields);
@@ -2988,12 +2749,6 @@ Status write_attribute(const BfRtInfo &info,
           setAttributeEntryScope(session, target, *table, entry_scope);
       break;
     }
-    case (bfrt_proto::TableAttribute::kDynHashing): {
-      auto &dyn_hashing = request.dyn_hashing();
-      grpc_status =
-          setAttributeDynHashing(session, target, *table, dyn_hashing);
-      break;
-    }
     case (bfrt_proto::TableAttribute::kByteCountAdj): {
       auto &byte_count_adj = request.byte_count_adj();
       grpc_status = setAttributeMeterByteCountAdj(
@@ -3141,81 +2896,6 @@ void prepareDeadlineTspec(const ServerContext &context,
   }
 }
 }  // anonymous namespace
-
-Status learn_callback_register(const ConnectionData &connection_data,
-                               const std::shared_ptr<BfRtSession> session,
-                               const bf_rt_target_t &target) {
-  std::vector<const BfRtLearn *> learns;
-
-  const BoundProgram *bound_program = nullptr;
-  auto grpc_status = connection_data.boundProgramGet(&bound_program);
-  grpc_check_and_return(grpc_status, "Unable to get bound_program");
-  if (bound_program == nullptr) {
-    LOG_ERROR("BF_RT_SERVER:%s:%s %d",
-              "Unable to get bound_program",
-              __func__,
-              __LINE__);
-    return grpc_status;
-  }
-  const auto info = bound_program->bfRtInfoGet();
-  auto bf_status = info->bfrtInfoGetLearns(&learns);
-  check_and_return(bf_status, "Unable to find learn objects from BfRtInfo");
-
-  const auto client_id = connection_data.clientIdGet();
-  for (const auto &learn : learns) {
-    std::string learn_name;
-    bf_status = learn->learnNameGet(&learn_name);
-    bf_status = learn->bfRtLearnCallbackRegister(
-        session,
-        target,
-        callbacks::learn_callback,
-        reinterpret_cast<const void *>(
-            formCookieFromDeviceAndClient(target.dev_id, client_id)));
-    check_and_return(bf_status,
-                     "Callback register fails for learn filter %s",
-                     learn_name.c_str());
-  }
-
-  LOG_DBG("%s:%d Learn callback registered for client %d P4 %s",
-          __func__,
-          __LINE__,
-          client_id,
-          bound_program->p4NameGet().c_str());
-  return Status();
-}
-
-Status learn_callback_deregister(const ConnectionData &connection_data,
-                                 const std::shared_ptr<BfRtSession> session,
-                                 const bf_rt_target_t &target) {
-  std::vector<const BfRtLearn *> learns;
-
-  const BoundProgram *bound_program = nullptr;
-  auto grpc_status = connection_data.boundProgramGet(&bound_program);
-  grpc_check_and_return(grpc_status, "Unable to get bound_program");
-  if (bound_program == nullptr) {
-    LOG_ERROR("BF_RT_SERVER:%s:%s %d",
-              "Unable to get bound_program",
-              __func__,
-              __LINE__);
-    return grpc_status;
-  }
-
-  const auto info = bound_program->bfRtInfoGet();
-  auto bf_status = info->bfrtInfoGetLearns(&learns);
-  check_and_return(bf_status, "Callback deregister fails.");
-
-  for (const auto &learn : learns) {
-    bf_status = learn->bfRtLearnCallbackDeregister(session, target);
-    check_and_return(bf_status, "Callback deregister fails.");
-  }
-
-  LOG_DBG("%s:%d Learn callback deregistered for client %d P4 %s",
-          __func__,
-          __LINE__,
-          connection_data.clientIdGet(),
-          bound_program->p4NameGet().c_str());
-  return Status();
-}
 
 Status BfRuntimeServiceImpl::GetForwardingPipelineConfig(
     ServerContext * /*context */,

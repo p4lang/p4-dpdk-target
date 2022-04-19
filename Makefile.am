@@ -4,7 +4,19 @@ KDIR := /lib/modules/$(shell uname -r)/build
 versiondir = $(datadir)
 nobase_dist_version_DATA = VERSION
 
-SUBDIRS = third-party include src doc bf_switchd
+SUBDIRS = third-party third-party/grpc
+
+if IS_GRPC_ENABLED
+if IS_PTF_ENABLED
+SUBDIRS += third-party/ptf_grpc
+endif
+endif
+
+SUBDIRS += include src doc bf_switchd
+
+if IS_UT_ENABLED
+SUBDIRS += unit-test
+endif
 
 target_sysdir = $(datadir)/target_sys
 dist_target_sys_DATA = \

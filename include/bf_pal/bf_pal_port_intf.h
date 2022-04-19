@@ -18,6 +18,7 @@
 
 #include <bf_types/bf_types.h>
 #include <port_mgr/bf_port_if.h>
+#include <osdep/p4_sde_osdep.h>
 
 /**
  * @brief Port add function
@@ -28,8 +29,8 @@
  * @return Status of the API call
  */
 bf_status_t bf_pal_port_add(bf_dev_id_t dev_id,
-                            bf_dev_port_t dev_port,
-			    port_attributes_t *port_attrib);
+			    bf_dev_port_t dev_port,
+			    struct port_attributes_t *port_attrib);
 
 /**
  * @brief Port delete function
@@ -40,26 +41,37 @@ bf_status_t bf_pal_port_add(bf_dev_id_t dev_id,
 bf_status_t bf_pal_port_del(bf_dev_id_t dev_id, bf_dev_port_t dev_port);
 
 /**
- * @brief Get a particular stat of a port
+ * @brief Get all the stats of a port (User must ensure that that sufficient
+ * space fot stats array has been allocated
  * @param dev_id Device id
  * @param dev_port Device port number
- * @param ctr_type Enum type to hold the id of the stats counter
- * @param stat_val Counter value
+ * @param stats Array to hold all the stats read from hardware
  * @return Status of the API call
  */
-bf_status_t bf_pal_port_this_stat_get(bf_dev_id_t dev_id,
-                                      bf_dev_port_t dev_port,
-                                      uint64_t *stat_val);
+bf_status_t bf_pal_port_all_stats_get(bf_dev_id_t dev_id,
+				      bf_dev_port_t dev_port,
+				      u64 *stats);
 
 /**
- * @brief Clear a particular stats counter for a particular port
+ * @brief Get Port ID from MAC
  * @param dev_id Device id
- * @param dev_port Device port number
- * @param ctr_type Enum type to hold the id of the stats counter
+ * @param mac MAC Address
+ * @param port_id Port ID
  * @return Status of the API call
  */
-bf_status_t bf_pal_port_this_stat_clear(bf_dev_id_t dev_id,
-                                        bf_dev_port_t dev_port);
+bf_status_t bf_pal_get_port_id_from_mac(bf_dev_id_t dev_id, char *mac,
+					u32 *port_id);
+
+/**
+ * @brief Get Port ID from Port Name
+ * @param dev_id Device id
+ * @param port_name Port Name
+ * @param port_id Port ID
+ * @return Status of the API call
+ */
+bf_status_t bf_pal_get_port_id_from_name(bf_dev_id_t dev_id, char *port_name,
+					 u32 *port_id);
+
 /**
  * @brief Get the dev port number
  * @param dev_id Device id
@@ -68,8 +80,8 @@ bf_status_t bf_pal_port_this_stat_clear(bf_dev_id_t dev_id,
  * @return Status of the API call
  */
 bf_status_t bf_pal_port_str_to_dev_port_map(bf_dev_id_t dev_id,
-                                            char *port_str,
-                                            bf_dev_port_t *dev_port);
+					    char *port_str,
+					    bf_dev_port_t *dev_port);
 
 /**
  * @brief Get the dev port number
@@ -79,12 +91,22 @@ bf_status_t bf_pal_port_str_to_dev_port_map(bf_dev_id_t dev_id,
  * @return Status of the API call
  */
 bf_status_t bf_pal_dev_port_to_port_str_map(bf_dev_id_t dev_id,
-                                            bf_dev_port_t dev_port,
-                                            char *port_str);
+					    bf_dev_port_t dev_port,
+					    char *port_str);
 /**
  * @brief Create port/chnl-port mapping during bf-switchd init
  * @param dev_id Device id
  * @return Status of the API call
  */
 bf_status_t bf_pal_create_port_info(bf_dev_id_t dev_id);
+
+/**
+ * @brief Get Port Info from Port ID
+ * @param dev_id Device id
+ * @param dev_port Port id
+ * @param port_info Port Information
+ * @return Status of the API call
+ */
+bf_status_t bf_pal_port_info_get(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
+				 struct port_info_t **port_info);
 #endif

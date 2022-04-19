@@ -25,12 +25,6 @@
 #include <dvm/bf_drv_intf.h>
 #include <lib/bf_switchd_lib_init.h>
 
-/* must match with those defined in kernle module */
-#define BF_SWITCHD_INT_MODE_NONE 0
-#define BF_SWITCHD_INT_MODE_INTX 1
-#define BF_SWITCHD_INT_MODE_MSI 2
-#define BF_SWITCHD_INT_MODE_MSIX 3
-
 #define BF_SWITCHD_MSIX_NONE 0
 #define BF_SWITCHD_MSIX_HOSTIF 1
 #define BF_SWITCHD_MSIX_TBUS 2

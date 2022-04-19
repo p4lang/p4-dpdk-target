@@ -20,9 +20,9 @@
 #include <string.h>
 
 /* P4 SDE Headers */
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 #include <osdep/p4_sde_osdep_utils.h>
-#include <target_utils/id/id.h>
+#include <target-utils/id/id.h>
 #include <ctx_json/ctx_json_utils.h>
 #include <osdep/p4_sde_osdep.h>
 
@@ -37,6 +37,7 @@
 #include "dal/dal_parse.h"
 
 #define NOACTION_STR "NoAction"
+#define PIPE_MGR_TABLE_SIZE_DEFAULT 256
 
 char *trim_classifier_str(char *str) {
 	char *temp_p = NULL;
@@ -92,6 +93,62 @@ static int ctx_json_parse_version(cJSON *root)
 
 	LOG_DBG("Compiler version %s\n", version);
 	return BF_SUCCESS;
+}
+
+static int ctx_json_compile_command(cJSON *root, struct pipe_mgr_p4_pipeline
+				    *pkg_ctx)
+{
+	char *comp_cmd = NULL, *str, *token;
+	int err = 0;
+
+	err = bf_cjson_get_string(root, CTX_JSON_COMPILE_COMMAND, &comp_cmd);
+	if (err)
+		return BF_OBJECT_NOT_FOUND;
+
+	str = strstr(comp_cmd, "--arch");
+	token = strtok(str, " ");
+	token = strtok(NULL, " ");
+	if (token)
+		strncpy(pkg_ctx->arch_name, token, 3);
+
+	return BF_SUCCESS;
+}
+
+struct pipe_mgr_target_map {
+	char target_name[P4_SDE_NAME_LEN];
+	enum pipe_mgr_target target_type;
+};
+
+static struct pipe_mgr_target_map target_map[] = {
+	{"DPDK", PIPE_MGR_TARGET_DPDK}
+};
+
+static int ctx_json_parse_target(cJSON *root,
+		struct pipe_mgr_p4_pipeline *pkg_ctx)
+{
+	int num_target_type;
+	char *target = NULL;
+	int err = 0;
+	int i;
+
+	err = bf_cjson_get_string(root, CTX_JSON_CHIP_TARGET, &target);
+	if (err) {
+		LOG_ERROR("target get failed");
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	num_target_type = sizeof(target_map)/sizeof(struct pipe_mgr_target_map);
+
+	for (i = 0; i < num_target_type; i++) {
+		if (strncmp(target, target_map[i].target_name,
+					P4_SDE_NAME_LEN) == 0) {
+			pkg_ctx->target = target_map[i].target_type;
+		return BF_SUCCESS;
+		}
+	}
+
+	LOG_ERROR("Invaild target type = %s", target);
+	return BF_UNEXPECTED;
 }
 
 static int ctx_json_parse_mat_key_fields_json
@@ -291,14 +348,17 @@ static int ctx_json_parse_mat_actions_json
 		p4_para_temp = P4_SDE_CALLOC
 					(1,
 					sizeof(*p4_para_temp));
-		if (!p4_para_temp)
-			return BF_NO_SYS_RESOURCES;
+		if (!p4_para_temp) {
+			rc = BF_NO_SYS_RESOURCES;
+			goto cleanup_p4_para;
+		}
 
 		rc |= ctx_json_parse_p4_parameters_json
 				(dev_id, prof_id,
 				 p4_parameter_cjson, p4_para_temp);
 		if (rc) {
 			rc = BF_UNEXPECTED;
+			P4_SDE_FREE(p4_para_temp);
 			goto cleanup_p4_para;
 		}
 
@@ -400,23 +460,57 @@ static int ctx_json_parse_mat_sel_json
 	return BF_SUCCESS;
 }
 
+static int pipe_mgr_match_attr_set_match_type
+		(struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	struct pipe_mgr_match_key_fields *match_fields;
+	int match_fields_count;
+	int i;
+
+	match_fields = mat_ctx->mat_key_fields;
+	match_fields_count = mat_ctx->mat_key_fields_count;
+
+	if (!match_fields)
+		return BF_SUCCESS;
+
+	/*
+	 * TODO : Table with multiple match kind support
+	 *
+	 */
+	for (i = 0; i < match_fields_count; i++) {
+		if (match_fields->match_type == PIPE_MGR_MATCH_TYPE_TERNARY) {
+			mat_ctx->match_attr.match_type =
+				PIPE_MGR_MATCH_TYPE_TERNARY;
+			return BF_SUCCESS;
+		}
+
+		if (match_fields->match_type == PIPE_MGR_MATCH_TYPE_LPM) {
+                        mat_ctx->match_attr.match_type =
+                                PIPE_MGR_MATCH_TYPE_LPM;
+                        return BF_SUCCESS;
+                }
+
+		match_fields = match_fields->next;
+	}
+
+	mat_ctx->match_attr.match_type = PIPE_MGR_MATCH_TYPE_EXACT;
+	return BF_SUCCESS;
+}
+
 static int ctx_json_parse_mat_match_attribute_json
 	   (int dev_id, int prof_id,
 	    cJSON *match_attribute_cjson,
-	    struct pipe_mgr_match_attribute *match_attr)
+	    struct pipe_mgr_mat_ctx *mat_ctx)
 {
+	struct pipe_mgr_match_attribute *match_attr;
 	bf_status_t rc = BF_SUCCESS;
-	char *match_type = NULL;
 	int err = 0;
 
-	err |= bf_cjson_try_get_string(match_attribute_cjson,
-			CTX_JSON_MATCH_ATTRIBUTES_MATCH_TYPE,
-			&match_type);
+	match_attr = &mat_ctx->match_attr;
 
-	if (err)
+	rc = pipe_mgr_match_attr_set_match_type(mat_ctx);
+	if (rc != BF_SUCCESS)
 		return BF_UNEXPECTED;
-	if (match_type)
-		match_attr->match_type = get_match_type_enum(match_type);
 
 	cJSON *stage_table_cjson = NULL;
 
@@ -429,7 +523,8 @@ static int ctx_json_parse_mat_match_attribute_json
 	rc |= dal_parse_ctx_json_parse_stage_tables
 		(dev_id, prof_id, stage_table_cjson,
 		 &match_attr->stage_table,
-		 &match_attr->stage_table_count);
+		 &match_attr->stage_table_count,
+		 mat_ctx);
 	if (rc)
 		return BF_UNEXPECTED;
 
@@ -445,6 +540,10 @@ static int ctx_json_parse_match_table_json
 	struct pipe_mgr_actions_list *actions_temp;
 	struct action_data_table_refs *adt_temp;
 	struct selection_table_refs *sel_temp;
+	bool idle_timeout_auto_delete = false;
+	cJSON *match_key_fields_cjson = NULL;
+	cJSON *match_key_field_cjson = NULL;
+	cJSON *match_attribute_cjson = NULL;
 	cJSON *actions_list_cjson = NULL;
 	bool is_resource_controllable;
 	cJSON *adt_list_cjson = NULL;
@@ -452,15 +551,17 @@ static int ctx_json_parse_match_table_json
 	bf_status_t rc = BF_SUCCESS;
 	cJSON *actions_cjson = NULL;
 	int default_action_handle;
+	bool add_on_miss = false;
 	cJSON *adt_cjson = NULL;
 	cJSON *sel_cjson = NULL;
 	char *table_name = NULL;
 	char *direction = NULL;
+	int adt_handle = 0;
 	char *name = NULL;
 	bool uses_range;
 	int handle = 0;
+	int size = 0;
 	int err = 0;
-	int size;
 
 	err |= bf_cjson_get_string
 			(table_cjson, CTX_JSON_TABLE_NAME, &name);
@@ -469,7 +570,24 @@ static int ctx_json_parse_match_table_json
 	err |= bf_cjson_get_handle
 			(dev_id, prof_id,
 			table_cjson, CTX_JSON_TABLE_HANDLE, &handle);
+
+	err |= bf_cjson_try_get_handle
+			(dev_id, prof_id,
+			table_cjson,
+		CTX_JSON_SELECTION_TABLE_BOUND_TO_ACTION_DATA_TABLE_HANDLE,
+		&adt_handle);
+
 	err |= bf_cjson_try_get_int(table_cjson, CTX_JSON_TABLE_SIZE, &size);
+	if (!size)
+		size = PIPE_MGR_TABLE_SIZE_DEFAULT;
+
+	err |= bf_cjson_try_get_bool
+		(table_cjson, CTX_JSON_TABLE_ADD_ON_MISS,
+		 &add_on_miss);
+
+	err |= bf_cjson_try_get_bool
+		(table_cjson, CTX_JSON_TABLE_IDLE_TIMEOUT_AUTO_DELETE,
+		 &idle_timeout_auto_delete);
 
 	err |= bf_cjson_try_get_handle(dev_id,
 			prof_id,
@@ -499,10 +617,11 @@ static int ctx_json_parse_match_table_json
 		mat_ctx->direction[P4_SDE_NAME_LEN - 1] = '\0';
 	}
 	mat_ctx->handle = handle;
+	mat_ctx->adt_handle = adt_handle;
 	mat_ctx->size = size;
+	mat_ctx->add_on_miss = add_on_miss;
+	mat_ctx->idle_timeout_auto_delete = idle_timeout_auto_delete;
 	mat_ctx->is_resource_controllable = is_resource_controllable;
-
-	cJSON *match_key_fields_cjson = NULL;
 
 	err |= bf_cjson_try_get_object
 		(table_cjson, CTX_JSON_MATCH_TABLE_MATCH_KEY_FIELDS,
@@ -511,14 +630,14 @@ static int ctx_json_parse_match_table_json
 	if (!match_key_fields_cjson)
 		goto skip_match_tbl_attribute;
 
-	cJSON *match_key_field_cjson = NULL;
-
 	CTX_JSON_FOR_EACH(match_key_field_cjson, match_key_fields_cjson) {
 		mat_key_fields_temp =
 			P4_SDE_CALLOC
 				(1, sizeof(*mat_key_fields_temp));
-		if (!mat_key_fields_temp)
-			return BF_NO_SYS_RESOURCES;
+		if (!mat_key_fields_temp) {
+			rc = BF_NO_SYS_RESOURCES;
+			goto cleanup_mat_key_fields;
+		}
 
 		rc |= ctx_json_parse_mat_key_fields_json
 				(dev_id, prof_id,
@@ -526,6 +645,7 @@ static int ctx_json_parse_match_table_json
 				mat_key_fields_temp);
 		if (rc) {
 			rc = BF_UNEXPECTED;
+			P4_SDE_FREE(mat_key_fields_temp);
 			goto cleanup_mat_key_fields;
 		}
 
@@ -536,8 +656,6 @@ static int ctx_json_parse_match_table_json
 		mat_ctx->mat_key_fields_count++;
 	}
 
-	cJSON *match_attribute_cjson = NULL;
-
 	err |= bf_cjson_try_get_object
 		(table_cjson,
 		CTX_JSON_MATCH_TABLE_MATCH_ATTRIBUTES,
@@ -545,17 +663,17 @@ static int ctx_json_parse_match_table_json
 
 	if (err) {
 		rc = BF_UNEXPECTED;
-		goto cleanup_mat_actions;
+		goto cleanup_mat_key_fields;
 	}
 
 	if (match_attribute_cjson) {
 		rc = ctx_json_parse_mat_match_attribute_json
 			(dev_id, prof_id,
 			 match_attribute_cjson,
-			 &mat_ctx->match_attr);
+			 mat_ctx);
 		if (rc) {
 			rc = BF_UNEXPECTED;
-			goto cleanup_mat_actions;
+			goto cleanup_mat_key_fields;
 		}
 	}
 
@@ -569,7 +687,7 @@ static int ctx_json_parse_match_table_json
 			adt_temp = P4_SDE_CALLOC(1, sizeof(*adt_temp));
 			if (!adt_temp) {
 				rc = BF_NO_SYS_RESOURCES;
-				goto cleanup_mat_actions;
+				goto cleanup_mat_adt;
 			}
 
 			rc |= ctx_json_parse_mat_adt_json
@@ -577,6 +695,7 @@ static int ctx_json_parse_match_table_json
 				 adt_cjson, adt_temp);
 			if (rc) {
 				rc = BF_UNEXPECTED;
+				P4_SDE_FREE(adt_temp);
 				goto cleanup_mat_adt;
 			}
 
@@ -597,7 +716,7 @@ static int ctx_json_parse_match_table_json
 			sel_temp = P4_SDE_CALLOC(1, sizeof(*sel_temp));
 			if (!sel_temp) {
 				rc = BF_NO_SYS_RESOURCES;
-				goto cleanup_mat_adt;
+				goto cleanup_mat_sel;
 			}
 
 			rc |= ctx_json_parse_mat_sel_json
@@ -605,7 +724,8 @@ static int ctx_json_parse_match_table_json
 				 sel_cjson, sel_temp);
 			if (rc) {
 				rc = BF_UNEXPECTED;
-				goto cleanup_mat_adt;
+				P4_SDE_FREE(sel_temp);
+				goto cleanup_mat_sel;
 			}
 
 			if (mat_ctx->sel_tbl)
@@ -626,7 +746,7 @@ skip_match_tbl_attribute:
 			actions_temp = P4_SDE_CALLOC(1, sizeof(*actions_temp));
 			if (!actions_temp) {
 				rc = BF_NO_SYS_RESOURCES;
-				goto cleanup_mat_key_fields;
+				goto cleanup_mat_actions;
 			}
 
 			rc |= ctx_json_parse_mat_actions_json
@@ -634,6 +754,7 @@ skip_match_tbl_attribute:
 				 actions_cjson, actions_temp);
 			if (rc) {
 				rc = BF_UNEXPECTED;
+				P4_SDE_FREE(actions_temp);
 				goto cleanup_mat_actions;
 			}
 
@@ -654,28 +775,28 @@ skip_match_tbl_attribute:
 			name);
 
 	mat_ctx->duplicate_entry_check = 1;
-	/* Default is to store P4 table entries state in P4 SDE.
-	 * TODO: It should be driven from context.json file instead of
-	 * hard coding.
-	 */
-	mat_ctx->store_state = true;
-
 	return rc;
 
-cleanup_mat_adt:
-	PIPE_MGR_FREE_LIST(mat_ctx->adt);
-	mat_ctx->adt = NULL;
 cleanup_mat_actions:
 	PIPE_MGR_FREE_LIST(mat_ctx->actions);
 	mat_ctx->actions = NULL;
+cleanup_mat_sel:
+        PIPE_MGR_FREE_LIST(mat_ctx->sel_tbl);
+        mat_ctx->sel_tbl = NULL;
+cleanup_mat_adt:
+	PIPE_MGR_FREE_LIST(mat_ctx->adt);
+	mat_ctx->adt = NULL;
 cleanup_mat_key_fields:
 	PIPE_MGR_FREE_LIST(mat_ctx->mat_key_fields);
 	mat_ctx->mat_key_fields = NULL;
 	return rc;
 }
 
-static int alloc_mat_state(struct pipe_mgr_mat_state *mat_state)
+static int alloc_mat_state(int dev_id, struct pipe_mgr_mat_state *mat_state)
 {
+	unsigned int num_pipelines;
+	int status;
+
 	mat_state->entry_handle_array =
 		P4_SDE_ID_INIT(ENTRY_HANDLE_ARRAY_SIZE, false);
 	if (!mat_state->entry_handle_array)
@@ -685,7 +806,29 @@ static int alloc_mat_state(struct pipe_mgr_mat_state *mat_state)
 	if (P4_SDE_MUTEX_INIT(&mat_state->lock))
 		return BF_NO_SYS_RESOURCES;
 
+	status = pipe_mgr_get_num_profiles(dev_id, &num_pipelines);
+	if (status != BF_SUCCESS)
+		return status;
+	if (num_pipelines < 1) {
+		LOG_ERROR("Invalid number of pipelines: %d", num_pipelines);
+		return BF_UNEXPECTED;
+	}
+	mat_state->key_htbl = (bf_hashtable_t **)P4_SDE_CALLOC(num_pipelines,
+						sizeof(bf_hashtable_t *));
+	if (!mat_state->key_htbl)
+		return BF_NO_SYS_RESOURCES;
+	mat_state->num_htbls = num_pipelines;
 	return BF_SUCCESS;
+}
+
+/* This funtion can be used to establish the inter table relations.
+ */
+static int post_parse_processing
+	   (int dev_id, int prof_id,
+	    cJSON *root,
+	    struct pipe_mgr_p4_pipeline *ctx)
+{
+	return dal_post_parse_processing(dev_id, prof_id,ctx);
 }
 
 static int ctx_json_parse_tables_json
@@ -722,8 +865,10 @@ static int ctx_json_parse_tables_json
 				P4_SDE_CALLOC
 					(1,
 					sizeof(*mat_temp));
-			if (!mat_temp)
-				return BF_NO_SYS_RESOURCES;
+			if (!mat_temp) {
+				rc = BF_NO_SYS_RESOURCES;
+				goto mat_tbl_cleanup;
+			}
 			rc |= ctx_json_parse_match_table_json
 					(dev_id, prof_id,
 					 table_cjson, &mat_temp->ctx);
@@ -731,7 +876,9 @@ static int ctx_json_parse_tables_json
 				rc = BF_UNEXPECTED;
 				goto mat_tbl_cleanup;
 			}
-			if (mat_temp->ctx.store_state) {
+			mat_temp->ctx.store_entries =
+				pipe_mgr_mat_store_entries(&mat_temp->ctx);
+			if (mat_temp->ctx.store_entries) {
 				mat_temp->state = P4_SDE_CALLOC
 						(1,
 						 sizeof(*mat_temp->state));
@@ -739,7 +886,7 @@ static int ctx_json_parse_tables_json
 					rc = BF_NO_SYS_RESOURCES;
 					goto mat_tbl_cleanup;
 				}
-				rc = alloc_mat_state(mat_temp->state);
+				rc = alloc_mat_state(dev_id, mat_temp->state);
 				if (rc)
 					goto mat_tbl_cleanup;
 			}
@@ -755,6 +902,8 @@ mat_tbl_cleanup:
 	/* Free the node that is not in the list. */
 	if (mat_temp && mat_temp->state) {
 		pipe_mgr_free_mat_state(mat_temp->state);
+		P4_SDE_FREE(mat_temp);
+	} else if (mat_temp) {
 		P4_SDE_FREE(mat_temp);
 	}
 	pipe_mgr_free_pipe_ctx(ctx);
@@ -896,8 +1045,28 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 		goto version_parse_err;
 	}
 
+	rc = ctx_json_compile_command(root, pkg_ctx);
+	if (rc) {
+		LOG_ERROR
+			("%s:%d: Failed to parse compile_cmd from ContextJSON",
+			 __func__, __LINE__);
+		goto version_parse_err;
+	}
+
+	rc = ctx_json_parse_target(root, pkg_ctx);
+	if (rc) {
+		LOG_ERROR
+			("%s:%d: Failed to parse version from ContextJSON",
+			 __func__, __LINE__);
+		goto version_parse_err;
+	}
+
 	rc = ctx_json_parse_tables_json(dev_id, profile_id, root, pkg_ctx);
 
+	if (rc)
+		goto version_parse_err;
+
+	rc = post_parse_processing(dev_id, profile_id, root, pkg_ctx);
 	if (rc)
 		goto version_parse_err;
 
@@ -914,6 +1083,8 @@ ctx_file_fread_err:
 ctx_file_buffer_alloc_err:
 	fclose(file);
 ctx_file_fopen_err:
+	if (pkg_ctx)
+		P4_SDE_FREE(pkg_ctx);
 	return NULL;
 }
 
@@ -941,9 +1112,6 @@ int pipe_mgr_ctx_import(int dev_id,
 		return status;
 	}
 
-	/* TODO: Remove warning once we have multi pipeline support. */
-	if (num_profiles > 1)
-		LOG_WARN("Multiple pipeline profiles are not supported yet.");
 	/* Process the context for all profiles */
 	for (p = 0; p < num_profiles; p++) {
 		if (inp_profile) {

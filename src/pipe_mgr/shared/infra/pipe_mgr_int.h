@@ -155,6 +155,7 @@ struct pipe_mgr_adt_entry_info {
 	u32 adt_ent_hdl;
 	u32 act_fn_hdl;
 	struct pipe_action_spec *act_data_spec;
+	u32 reference_count;
 	void *dal_data;
 };
 
@@ -170,6 +171,12 @@ struct pipe_mgr_mat_ctx {
 	uint32_t handle;
 	char name[P4_SDE_TABLE_NAME_LEN];
 	int size;
+	/* Specifies if Add on miss enabled or not */
+	bool add_on_miss;
+	/* Specifies if auto deletion of entries
+	   that have not been matched for expire time
+	   interval is enabled or not */
+	bool idle_timeout_auto_delete;
 	int default_action_handle;
 	/*  TODO: Applicability of this has to be revisited. */
 	bool is_resource_controllable;
@@ -181,12 +188,13 @@ struct pipe_mgr_mat_ctx {
 	struct pipe_mgr_actions_list *actions;
 	struct pipe_mgr_match_attribute match_attr;
 	/* Specifies if P4 table entries state should be stored. */
-	bool store_state;
+	bool store_entries;
 	bool duplicate_entry_check;
 	int adt_count;
 	struct action_data_table_refs *adt;
 	int sel_tbl_count;
 	struct selection_table_refs *sel_tbl;
+	uint32_t adt_handle;
 	int stage_table_count;
 	void *stage_table;
 };
@@ -204,6 +212,10 @@ struct pipe_mgr_mat_state {
 	 * detection and access by match spec.
 	 */
 	bf_hashtable_t **key_htbl;
+	/* Number of hash tables. This is same as number of pipelines.
+	 * For each pipeline, a separate hash table is maintained.
+	 */
+	int num_htbls;
 };
 
 struct pipe_mgr_mat {
@@ -218,10 +230,36 @@ struct pipe_mgr_mat {
 	struct pipe_mgr_mat *next;
 };
 
+/* Contains pipeline global configs and hook for target specific
+ * global configs.
+ */
+
+struct pipe_mgr_global_config {
+	/* hook for target specific configs */
+	void *dal_global_config;
+};
+
+
+/* This is the mirror profile configuration, parameters for
+ * mirror profile configuration are taken from P4runtime.
+ */
+struct pipe_mgr_mir_prof {
+#ifndef IS_MEV_ENABLED
+	uint32_t port_id;                /* out port id */
+	uint32_t truncate_length;        /* truncate_length */
+	int fast_clone;                  /* flag to decide fast or slow mirroring. */
+#endif
+};
+
 /* Contains information about P4 pipeline. Stores information from
  * the context json and run-time rule entries (if rule entry storage
  * is enabled).
  */
+
+enum pipe_mgr_target {
+	PIPE_MGR_TARGET_DPDK = 0
+};
+
 struct pipe_mgr_p4_pipeline {
 	/* Number of tables as per context json. */
 	int num_mat_tables;
@@ -230,6 +268,10 @@ struct pipe_mgr_p4_pipeline {
 	 * pipeline.
 	 */
 	struct pipe_mgr_mat *mat_tables;
+	enum pipe_mgr_target target;
+	char arch_name[P4_SDE_ARCH_NAME_LEN];
+
+
 };
 
 /* P4 Program Pipeline Profile  */
@@ -238,6 +280,7 @@ struct pipe_mgr_profile {
 	p4_sde_rwlock lock;
 
 	int profile_id;
+	int core_id;
 
 	char prog_name[P4_SDE_PROG_NAME_LEN];
 	char pipeline_name[P4_SDE_PROG_NAME_LEN];
@@ -252,8 +295,6 @@ struct pipe_mgr_profile {
 	int schema_version[P4_SDE_VERSION_LEN];
 
 	/* Currently mod_addr action has 24 bit to specify */
-#define MOD_ARRARY_SIZE 0x00FFFFFF
-	p4_sde_id *mod_index_array;
 };
 
 struct pipe_mgr_dev {
@@ -268,17 +309,14 @@ struct pipe_mgr_dev {
 
 	/* Static and Run-time information of P4 pipeline profile. */
 	struct pipe_mgr_profile *profiles;
-
-	/* No of active pipes on this device. */
-	/* TODO: Remove this. num_active_pipes doesn't apply to DPDK. */
-	uint32_t num_active_pipes;
+	/* store global device configs */
+	struct pipe_mgr_global_config global_cfg;
 };
 
 int pipe_mgr_set_dev(struct pipe_mgr_dev **dev,
 		     int dev_id,
 		     struct bf_device_profile *profile);
 struct pipe_mgr_dev *pipe_mgr_get_dev(int dev_id);
-uint32_t pipe_mgr_get_num_active_pipes(int dev_id);
 int pipe_mgr_api_prologue(u32 sess_hdl, struct bf_dev_target_t dev_tgt);
 void pipe_mgr_api_epilogue(u32 sess_hdl, struct bf_dev_target_t dev_tgt);
 void pipe_mgr_delete_act_data_spec(struct pipe_action_spec *ads);

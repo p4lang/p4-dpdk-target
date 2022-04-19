@@ -19,7 +19,7 @@
 
 extern "C" {
 #include <bf_types/bf_types.h>
-#include <target_sys/bf_sal/bf_sys_mem.h>
+#include <target-sys/bf_sal/bf_sys_mem.h>
 #include <port_mgr/bf_port_if.h>
 }
 
@@ -37,15 +37,12 @@ class IPortMgrIntf {
 
   virtual bf_status_t portMgrPortAdd(bf_dev_id_t dev_id,
                                      bf_dev_port_t dev_port,
-                                     port_attributes_t *port_attrib) = 0;
-  //
-  virtual bf_status_t portMgrPortDel(bf_dev_id_t dev_id,
-                                     bf_dev_port_t dev_port) = 0;
-  virtual bf_status_t portMgrPortThisStatGet(bf_dev_id_t dev_id,
-                                             bf_dev_port_t dev_port,
-                                             uint64_t *stat_val) = 0;
-  virtual bf_status_t portMgrPortThisStatClear(bf_dev_id_t dev_id,
-                                               bf_dev_port_t dev_port) = 0;
+                                     struct port_attributes_t *port_attrib) = 0;
+  virtual bf_status_t portMgrPortAllStatsGet(
+      bf_dev_id_t dev_id,
+      bf_dev_port_t dev_port,
+      uint64_t *stats) = 0;
+
  protected:
   static std::unique_ptr<IPortMgrIntf> instance;
   static std::once_flag m_onceFlag;
@@ -61,14 +58,10 @@ class PortMgrIntf : public IPortMgrIntf {
   }
   bf_status_t portMgrPortAdd(bf_dev_id_t dev_id,
                              bf_dev_port_t dev_port,
-                              port_attributes_t *port_attrib);
-  //
-  bf_status_t portMgrPortDel(bf_dev_id_t dev_id, bf_dev_port_t dev_port);
-  bf_status_t portMgrPortThisStatGet(bf_dev_id_t dev_id,
+                             struct port_attributes_t *port_attrib);
+  bf_status_t portMgrPortAllStatsGet(bf_dev_id_t dev_id,
                                      bf_dev_port_t dev_port,
-                                     uint64_t *stat_val);
-  bf_status_t portMgrPortThisStatClear(bf_dev_id_t dev_id,
-                                       bf_dev_port_t dev_port);
+                                     uint64_t *stats);
 };
 }  // namespace bfrt
 

@@ -522,7 +522,7 @@ bf_status_t BfRtPortStatTableData::set_active_fields(
 void BfRtPortStatTableData::setAllValues(const uint64_t *stats) {
   if (stats == NULL) return;
   std::memcpy(
-      u64FieldDataArray, stats, BF_DPDK_NUM_COUNTERS * sizeof(uint64_t));
+      u64FieldDataArray, stats, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
 }
 
 bf_status_t BfRtPortStatTableData::setU64ValueInternal(

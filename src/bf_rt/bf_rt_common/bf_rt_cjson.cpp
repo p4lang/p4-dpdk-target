@@ -26,13 +26,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <target_utils/cJSON.h>
+#include <cjson/cJSON.h>
 #ifdef __cplusplus
 }
 #endif
 #include "bf_rt_cjson.hpp"
 
-#include <target_sys/bf_sal/bf_sys_mem.h>
+#include <target-sys/bf_sal/bf_sys_mem.h>
 
 namespace bfrt {
 

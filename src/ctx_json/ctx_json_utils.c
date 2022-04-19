@@ -585,41 +585,42 @@ int bf_cjson_try_get_object(cJSON *cjson, char *property, cJSON **ret) {
  * @return 0 if successful, -1 on error.
  */
 extern int pipe_mgr_tbl_hdl_set_pipe(bf_dev_id_t devid,
-                                     profile_id_t prof_id,
-                                     pipe_tbl_hdl_t handle,
-                                     pipe_tbl_hdl_t *ret_handle);
+				     int prof_id,
+				     u32 handle,
+				     u32 *ret_handle);
 int bf_cjson_get_handle(bf_dev_id_t devid,
-                        profile_id_t prof_id,
+			int prof_id,
                         cJSON *cjson,
                         char *property,
                         int *ret) {
-  pipe_tbl_hdl_t ret_handle = 0;
-  int rc = 0;
-  cJSON *tmp = cJSON_GetObjectItem(cjson, property);
-  if (tmp == NULL) {
-    LOG_ERROR(
-        "%s:%d: Invalid ContextJSON format: could not find cJSON property "
-        "\"%s\".",
-        __FILE__,
-        __LINE__,
-        property);
-    return -1;
-  }
-  if (tmp->type != cJSON_Number) {
-    LOG_ERROR(
-        "%s:%d: Invalid ContextJSON format: property \"%s\" is not a number.",
-        __FILE__,
-        __LINE__,
-        property);
-    return -1;
-  }
+	u32 ret_handle = 0;
+	int rc = 0;
+	cJSON *tmp = cJSON_GetObjectItem(cjson, property);
 
-  rc = pipe_mgr_tbl_hdl_set_pipe(devid, prof_id, tmp->valueint, &ret_handle);
-  if (rc != 0) {
-    return rc;
-  }
-  *ret = ret_handle;
-  return 0;
+	if (!tmp) {
+		LOG_ERROR
+		("%s:%d: Invalid ContextJSON format: could not find cJSON property "
+		"\"%s\".",
+		__FILE__,
+		__LINE__,
+		property);
+		return -1;
+	}
+	if (tmp->type != cJSON_Number) {
+		LOG_ERROR
+		("%s:%d: Invalid ContextJSON format: property \"%s\" is not a number.",
+		__FILE__,
+		__LINE__,
+		property);
+		return -1;
+	}
+	/* CJson valueint truncates to INT_MAX. SO typecast double to uint32_t */
+	rc = pipe_mgr_tbl_hdl_set_pipe(devid, prof_id, (uint32_t)tmp->valuedouble,
+				       &ret_handle);
+	if (rc != 0)
+		return rc;
+	*ret = ret_handle;
+	return 0;
 }
 
 /**
@@ -636,21 +637,24 @@ int bf_cjson_get_handle(bf_dev_id_t devid,
  * @return 0, it always succeeds.
  */
 int bf_cjson_try_get_handle(bf_dev_id_t devid,
-                            profile_id_t prof_id,
+			    int prof_id,
                             cJSON *cjson,
                             char *property,
                             int *ret) {
-  cJSON *tmp = cJSON_GetObjectItem(cjson, property);
-  if (tmp != NULL && tmp->type == cJSON_Number) {
-    pipe_tbl_hdl_t ret_handle = 0;
-    int rc = 0;
-    rc = pipe_mgr_tbl_hdl_set_pipe(devid, prof_id, tmp->valueint, &ret_handle);
-    if (rc != 0) {
-      return rc;
-    }
-    *ret = ret_handle;
-  }
-  return 0;
+	cJSON *tmp = cJSON_GetObjectItem(cjson, property);
+
+	if (tmp && tmp->type == cJSON_Number) {
+		u32 ret_handle = 0;
+		int rc = 0;
+
+		/* CJson valueint truncates to INT_MAX. SO typecast double to uint32_t */
+		rc = pipe_mgr_tbl_hdl_set_pipe(devid, prof_id, (uint32_t)tmp->valuedouble,
+					       &ret_handle);
+		if (rc != 0)
+			return rc;
+		*ret = ret_handle;
+	}
+	return 0;
 }
 
 /**
@@ -1005,7 +1009,7 @@ cleanup:
  * @return 0 if successful, -1 on error.
  */
 int ctx_json_parse_action_for_action_handle(bf_dev_id_t devid,
-                                            profile_id_t prof_id,
+					    int prof_id,
                                             cJSON *actions_cjson,
                                             int action_handle,
                                             cJSON **ret) {

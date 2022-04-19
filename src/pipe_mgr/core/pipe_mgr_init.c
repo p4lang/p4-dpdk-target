@@ -76,26 +76,47 @@ static int pipe_mgr_add_device(int dev_id,
 	pipemgr with passed SPEC file. */
 	if (warm_init_mode == BF_DEV_WARM_INIT_FAST_RECFG) {
 		FILE *spec = NULL;
-		struct pipe_mgr_profile *profile;
-		status = pipe_mgr_get_profile(dev_id, &profile);
-		if (status) {
-			LOG_ERROR("not able find profile with device_id  %d",
-				  dev_id);
-			status = BF_OBJECT_NOT_FOUND;
-			goto api_exit;
-		}
-		spec = fopen(profile->cfg_file, "r");
-		if (!spec) {
-			LOG_ERROR("Cannot open file %s.\n", profile->cfg_file);
-			status = BF_OBJECT_NOT_FOUND;
-			goto api_exit;
-		}
-		LOG_TRACE("%s cfg_file %s \n", __func__, profile->cfg_file);
-		status = pipe_mgr_shared_enable_pipeline(dev_id, spec,
-							 warm_init_mode);
+		struct pipe_mgr_profile *profile = NULL;
+		uint32_t num_profiles;
+		uint32_t p;
 
-		/* closes the file pointed by spec */
-		fclose(spec);
+		status = pipe_mgr_get_num_profiles(dev_id, &num_profiles);
+		if (status) {
+			LOG_ERROR("Failed to retrieve number of profiles for dev %d", dev_id);
+			goto api_exit;
+		}
+
+		for (p = 0; p < num_profiles; p++) {
+			status = pipe_mgr_get_profile(dev_id, p,
+						      &profile);
+			if (status) {
+				LOG_ERROR("not able find profile with device_id  %d",
+					  dev_id);
+				status = BF_OBJECT_NOT_FOUND;
+				goto api_exit;
+			}
+			spec = fopen(profile->cfg_file, "r");
+			if (!spec) {
+				LOG_ERROR("Cannot open file %s.\n",
+					  profile->cfg_file);
+				status = BF_OBJECT_NOT_FOUND;
+				goto api_exit;
+			}
+			LOG_TRACE("%s cfg_file %s \n", __func__,
+				  profile->cfg_file);
+			status = pipe_mgr_shared_enable_pipeline(dev_id,
+								p,
+								spec,
+								warm_init_mode);
+			if (status) {
+				LOG_ERROR("Failed to Build Pipeline %s",
+					  profile->pipeline_name);
+				fclose(spec);
+				goto api_exit;
+			}
+			/* closes the file pointed by spec */
+			fclose(spec);
+		}
 	}
 
 api_exit:
@@ -132,37 +153,6 @@ int pipe_mgr_remove_device(int dev_id)
 	return status;
 }
 
-// TODO Remove this function and related APIs
-bf_status_t pipe_mgr_add_port(bf_dev_id_t dev_id,
-		bf_dev_port_t port,
-		port_attributes_t *port_attrib)
-{
-	bf_status_t status = BF_SUCCESS;
-	struct pipe_mgr_profile *profile;
-	FILE *spec = NULL;
-
-	LOG_TRACE("Entering %s device %u", __func__, dev_id);
-
-	status = pipe_mgr_get_profile(dev_id, &profile);
-	if (status) {
-		LOG_ERROR("not able find profile with device_id  %d",
-				dev_id);
-		return BF_OBJECT_NOT_FOUND;
-	}
-
-	spec = fopen(profile->cfg_file, "r");
-	if (!spec) {
-		LOG_ERROR("Cannot open file %s.\n",profile->cfg_file);
-		return BF_OBJECT_NOT_FOUND;
-	}
-	status = pipe_mgr_shared_enable_pipeline(dev_id, spec,
-			BF_DEV_INIT_COLD);
-	fclose(spec);
-	LOG_TRACE("Exiting %s", __func__);
-	return status;
-
-}
-
 int pipe_mgr_init(void)
 {
 	struct bf_drv_client_callbacks_s callbacks = {0};
@@ -187,7 +177,6 @@ int pipe_mgr_init(void)
 	}
 	callbacks.device_add = pipe_mgr_add_device;
 	callbacks.device_del = pipe_mgr_remove_device;
-	callbacks.port_add = pipe_mgr_add_port;
 	bf_drv_client_register_callbacks(bf_drv_hdl, &callbacks,
 					 BF_CLIENT_PRIO_3);
 	LOG_TRACE("Exiting %s", __func__);
@@ -210,6 +199,7 @@ void pipe_mgr_cleanup(void)
 int pipe_mgr_enable_pipeline(bf_dev_id_t dev_id)
 {
 	struct pipe_mgr_profile *profile;
+	uint32_t num_profiles, p;
 	int status = BF_SUCCESS;
 	FILE *spec = NULL;
 	int sess_hdl;
@@ -227,25 +217,42 @@ int pipe_mgr_enable_pipeline(bf_dev_id_t dev_id)
 		return status;
 	}
 
-	status = pipe_mgr_get_profile(dev_id, &profile);
+	status = pipe_mgr_get_num_profiles(dev_id, &num_profiles);
 	if (status) {
-		LOG_ERROR("not able find profile with device_id  %d",
+		LOG_ERROR("Failed to retrieve number of profiles for dev %d",
 			  dev_id);
 		goto api_exit;
 	}
 
-	spec = fopen(profile->cfg_file, "r");
-	if (!spec) {
-		LOG_ERROR("Cannot open file %s.\n", profile->cfg_file);
-		status = BF_OBJECT_NOT_FOUND;
-		goto api_exit;
-	}
-	status = pipe_mgr_shared_enable_pipeline(dev_id, spec,
-						 BF_DEV_INIT_COLD);
-	LOG_TRACE("%s cfg_file %s\n", __func__, profile->cfg_file);
+	for (p = 0; p < num_profiles; p++) {
+		status = pipe_mgr_get_profile(dev_id, p,
+					      &profile);
+		if (status) {
+			LOG_ERROR("not able find profile with device_id  %d",
+				  dev_id);
+			goto api_exit;
+		}
 
-	/* closes the file pointed by spec */
-	fclose(spec);
+		spec = fopen(profile->cfg_file, "r");
+		if (!spec) {
+			LOG_ERROR("Cannot open file %s.\n", profile->cfg_file);
+			status = BF_OBJECT_NOT_FOUND;
+			goto api_exit;
+		}
+		status = pipe_mgr_shared_enable_pipeline(dev_id, p,
+						spec, BF_DEV_INIT_COLD);
+                if (status) {
+                        LOG_ERROR("Failed to Build Pipeline %s",
+                                  profile->pipeline_name);
+                        fclose(spec);
+                        goto api_exit;
+                }
+
+		LOG_TRACE("%s cfg_file %s\n", __func__, profile->cfg_file);
+
+		/* closes the file pointed by spec */
+		fclose(spec);
+	}
 
 api_exit:
 	pipe_mgr_api_exclusive_exit(sess_hdl);

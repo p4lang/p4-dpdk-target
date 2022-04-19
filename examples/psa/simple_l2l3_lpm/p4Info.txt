@@ -1,0 +1,162 @@
+pkg_info {
+  arch: "psa"
+}
+tables {
+  preamble {
+    id: 41810629
+    name: "ingress.mymac"
+    alias: "mymac"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ethernet.dst_addr"
+    bitwidth: 48
+    match_type: EXACT
+  }
+  action_refs {
+    id: 21257015
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  size: 1024
+}
+tables {
+  preamble {
+    id: 34977755
+    name: "ingress.l2_fwd"
+    alias: "l2_fwd"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ethernet.dst_addr"
+    bitwidth: 48
+    match_type: EXACT
+  }
+  action_refs {
+    id: 18638031
+  }
+  action_refs {
+    id: 33281717
+  }
+  action_refs {
+    id: 21257015
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  size: 1024
+}
+tables {
+  preamble {
+    id: 43484571
+    name: "ingress.ipv4_host"
+    alias: "ipv4_host"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ipv4.dst_addr"
+    bitwidth: 32
+    match_type: EXACT
+  }
+  action_refs {
+    id: 18638031
+  }
+  action_refs {
+    id: 33281717
+  }
+  action_refs {
+    id: 21257015
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  const_default_action_id: 21257015
+  size: 65536
+}
+tables {
+  preamble {
+    id: 43030458
+    name: "ingress.ipv4_lpm"
+    alias: "ipv4_lpm"
+  }
+  match_fields {
+    id: 1
+    name: "hdr.ipv4.dst_addr"
+    bitwidth: 32
+    match_type: LPM
+  }
+  action_refs {
+    id: 30582131
+  }
+  action_refs {
+    id: 18638031
+  }
+  action_refs {
+    id: 33281717
+  }
+  size: 1024
+}
+actions {
+  preamble {
+    id: 21257015
+    name: "NoAction"
+    alias: "NoAction"
+    annotations: "@noWarn(\"unused\")"
+  }
+}
+actions {
+  preamble {
+    id: 18638031
+    name: "ingress.send"
+    alias: "send"
+  }
+  params {
+    id: 1
+    name: "port"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+}
+actions {
+  preamble {
+    id: 33281717
+    name: "ingress.drop"
+    alias: "drop"
+  }
+}
+actions {
+  preamble {
+    id: 30582131
+    name: "ingress.set_port_and_src_mac"
+    alias: "set_port_and_src_mac"
+  }
+  params {
+    id: 1
+    name: "port"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+  params {
+    id: 2
+    name: "src_mac"
+    bitwidth: 48
+  }
+  params {
+    id: 3
+    name: "dst_mac"
+    bitwidth: 48
+  }
+}
+type_info {
+  new_types {
+    key: "PortId_t"
+    value {
+      translated_type {
+        uri: "p4.org/psa/v1/PortId_t"
+        sdn_bitwidth: 32
+      }
+    }
+  }
+}

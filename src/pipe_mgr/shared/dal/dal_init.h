@@ -23,5 +23,7 @@ int dal_add_device(int dev_id,
 
 int dal_remove_device(int dev_id);
 
-int dal_enable_pipeline(bf_dev_id_t dev_id, void *spec_file,
-		enum bf_dev_init_mode_s warm_init_mode);
+int dal_enable_pipeline(bf_dev_id_t dev_id,
+			int profile_id,
+			void *spec_file,
+			enum bf_dev_init_mode_s warm_init_mode);

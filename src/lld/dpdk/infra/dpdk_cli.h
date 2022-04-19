@@ -1,5 +1,5 @@
 /*
- * Copyright(c) 2021 Intel Corporation.
+ * Copyright(c) 2022 Intel Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,4 +21,10 @@
 
 void
 cli_process(char *in, char *out, size_t out_size);
+
+int
+cli_script_process(const char *file_name,
+	size_t msg_in_len_max,
+	size_t msg_out_len_max);
+
 #endif

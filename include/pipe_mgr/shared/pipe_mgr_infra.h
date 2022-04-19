@@ -30,6 +30,7 @@
 /* Module header files */
 /* TODO: Replace bf_ prefix in all file names and typedefs. */
 #include <bf_types/bf_types.h>
+#include "pipe_mgr_mat.h"
 
 /* Allow the use in C++ code.  */
 #ifdef __cplusplus

@@ -1,0 +1,6 @@
+six==1.15.0
+ixnetwork_restpy==1.0.56
+thrift==0.13.0
+scapy==2.4.4
+protobuf==3.13.0
+PyYAML==5.3.1
