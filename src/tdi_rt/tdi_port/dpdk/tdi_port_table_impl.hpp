@@ -32,8 +32,15 @@ class TdiInfo;
 
 class PortCfgTable : public Table {
  public:
-  PortCfgTable(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info) :
-               tdi::Table(tdi_info, table_info) {
+  PortCfgTable(const tdi::TdiInfo *tdi_info,
+               const tdi::TableInfo *table_info)
+      : tdi::Table(
+            tdi_info,
+            tdi::SupportedApis({
+                {TDI_TABLE_API_TYPE_ADD, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
+            }),
+            table_info) {
     mapInit();
     LOG_DBG("Creating PortCfgTable table for %s", table_info->nameGet().c_str());
   };
@@ -95,8 +102,14 @@ class PortCfgTable : public Table {
 
 class PortStatTable : public Table {
  public:
-  PortStatTable(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info) :
-                tdi::Table(tdi_info, table_info) {
+  PortStatTable(const tdi::TdiInfo *tdi_info,
+                const tdi::TableInfo *table_info)
+      : tdi::Table(
+            tdi_info,
+            tdi::SupportedApis({
+                {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
+            }),
+            table_info) {
     LOG_DBG("Creating PortStatTable table for %s", table_info->nameGet().c_str());
   };
 
