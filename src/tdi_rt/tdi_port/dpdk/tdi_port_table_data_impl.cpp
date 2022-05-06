@@ -128,20 +128,23 @@ tdi_status_t setDevPortValue(T &data,
 }  // anonymous namespace
 
 // Port Cfg Table Data
-tdi_status_t PortCfgTableData::reset(const std::vector<tdi_id_t> &fields) {
+tdi_status_t PortCfgTableData::reset(
+    const tdi_id_t &/*action_id*/,
+    const tdi_id_t &/*container_id*/,
+    const std::vector<tdi_id_t> &fields) {
+  return TableData::reset(0, 0, fields);
+}
+
+tdi_status_t PortCfgTableData::resetDerived() {
   fieldPresent.clear();
   boolFieldData.clear();
   u32FieldData.clear();
   strFieldData.clear();
   active_fields_.clear();
-  return this->set_active_fields(fields);
+  return BF_SUCCESS;
 }
 
-tdi_status_t PortCfgTableData::reset() {
-  std::vector<tdi_id_t> emptyfield;
-  return this->reset(emptyfield);
-}
-
+#if 0
 tdi_status_t PortCfgTableData::set_active_fields(
     const std::vector<tdi_id_t> &fields) {
   if (fields.empty()) {
@@ -163,6 +166,7 @@ tdi_status_t PortCfgTableData::set_active_fields(
   }
   return BF_SUCCESS;
 }
+#endif
 
 bool PortCfgTableData::checkFieldActive(const tdi_id_t &field_id,
                                         const tdi_field_data_type_e dataType) const {
@@ -176,7 +180,7 @@ bool PortCfgTableData::checkFieldActive(const tdi_id_t &field_id,
               tableInfo->nameGet().c_str());
     return false;
   }
-  if (all_fields_set_) return true;
+  if (allFieldsSetGet() == true) return true;
   auto elem1 = active_fields_.find(field_id);
   if (elem1 == active_fields_.end()) {
     LOG_ERROR("ERROR: %s:%d Inactive field id %d for table %s",
@@ -489,18 +493,24 @@ tdi_status_t PortCfgTableData::getValue(const tdi_id_t &field_id,
 
 // Port Stat Table Data
 tdi_status_t PortStatTableData::reset(
+    const tdi_id_t &/*action_id*/,
+    const tdi_id_t &/*container_id*/,
     const std::vector<tdi_id_t> &fields) {
   fieldPresent.clear();
   std::memset(u64FieldDataArray, 0, sizeof(u64FieldDataArray));
   active_fields_.clear();
-  return this->set_active_fields(fields);
+  return TableData::reset(0, 0, fields);
 }
 
-tdi_status_t PortStatTableData::reset() {
+tdi_status_t PortStatTableData::resetDerived() {
   std::vector<tdi_id_t> emptyfield;
-  return this->reset(emptyfield);
+  fieldPresent.clear();
+  std::memset(u64FieldDataArray, 0, sizeof(u64FieldDataArray));
+  active_fields_.clear();
+  return BF_SUCCESS;
 }
 
+#if 0
 tdi_status_t PortStatTableData::set_active_fields(
     const std::vector<tdi_id_t> &fields) {
   if (fields.empty()) {
@@ -525,6 +535,7 @@ tdi_status_t PortStatTableData::set_active_fields(
   }
   return BF_SUCCESS;
 }
+#endif
 
 void PortStatTableData::setAllValues(const uint64_t *stats) {
   if (stats == NULL) return;
@@ -576,7 +587,7 @@ tdi_status_t PortStatTableData::setU64ValueInternal(
         tableDataField->idGet());
     return sts;
   }
-  if ((all_fields_set_ == false) &&
+  if ((allFieldsSetGet() == false) &&
       (fieldPresent.find(field_id) == fieldPresent.end())) {
     LOG_ERROR("ERROR: %s:%d Inactive field id %d for table %s",
               __func__,
@@ -625,7 +636,7 @@ tdi_status_t PortStatTableData::getU64ValueInternal(
         tableDataField->idGet());
     return status;
   }
-  if ((all_fields_set_ == false) &&
+  if ((allFieldsSetGet() == false) &&
       (fieldPresent.find(field_id) == fieldPresent.end())) {
     LOG_ERROR("ERROR: %s:%d Inactive field id %d for table %s",
               __func__,

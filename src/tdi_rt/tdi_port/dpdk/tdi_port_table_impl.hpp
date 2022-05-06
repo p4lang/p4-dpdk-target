@@ -68,12 +68,12 @@ class PortCfgTable : public Table {
 
   tdi_status_t keyReset(TableKey *key) const override final;
 
-  //tdi_status_t dataReset(TableData *data) const override final;
-  tdi_status_t dataReset(TableData *data) const;
-  //tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
-  //                      TableData *data) const override final;
+  tdi_status_t dataReset(TableData *data) const override final;
+  //tdi_status_t dataReset(TableData *data) const;
   tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
-                         TableData *data) const;
+                        TableData *data) const override final;
+  //tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
+  //                       TableData *data) const;
   // Attribute APIs
 #if 0
   // wait for attribute core class defined.

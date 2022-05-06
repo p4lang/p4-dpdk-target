@@ -35,7 +35,7 @@ class PortCfgTableData : public TableData {
   PortCfgTableData(const Table *tbl_obj,
                        const std::vector<tdi_id_t> &fields)
       : TableData(tbl_obj) {
-    set_active_fields(fields);
+    this->activeFieldsSet(fields);
   }
   ~PortCfgTableData() = default;
   tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value) override final;
@@ -59,9 +59,11 @@ class PortCfgTableData : public TableData {
   tdi_status_t getValue(const tdi_id_t &field_id, std::string *str) const override;
 
   //tdi_status_t reset(const std::vector<tdi_id_t> &fields) override final;
-  //tdi_status_t reset() override final;
-  tdi_status_t reset(const std::vector<tdi_id_t> &fields);
-  tdi_status_t reset();
+  tdi_status_t reset(
+    const tdi_id_t &/*action_id*/,
+    const tdi_id_t &/*container_id*/,
+    const std::vector<tdi_id_t> &fields) override final;
+  tdi_status_t resetDerived() override final;
 
   // unexposed API
   const std::unordered_set<tdi_id_t> &getActiveDataFields() const {
@@ -120,7 +122,7 @@ class PortStatTableData : public TableData {
                     const std::vector<tdi_id_t> &fields)
       : TableData(tbl_obj) {
     std::memset(u64FieldDataArray, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
-    set_active_fields(fields);
+    this->activeFieldsSet(fields);
   }
 
   ~PortStatTableData() = default;
@@ -147,9 +149,11 @@ class PortStatTableData : public TableData {
                                std::string *str) const { return TDI_NOT_SUPPORTED; };
 
   //tdi_status_t reset(const std::set<tdi_id_t> &fields) override final;
-  //tdi_status_t reset() override final;
-  tdi_status_t reset(const std::vector<tdi_id_t> &fields);
-  tdi_status_t reset();
+  tdi_status_t reset(
+    const tdi_id_t &/*action_id*/,
+    const tdi_id_t &/*container_id*/,
+    const std::vector<tdi_id_t> &fields) override final;
+  tdi_status_t resetDerived() override final;
 
   // unexposed API
   void setAllValues(const uint64_t *stats);

@@ -331,7 +331,7 @@ tdi_status_t PortCfgTable::dataReset(const std::vector<tdi_id_t> &fields,
               tableInfoGet()->nameGet().c_str());
     return BF_INVALID_ARG;
   }
-  return (static_cast<PortCfgTableData *>(data))->reset(fields);
+  return (static_cast<PortCfgTableData *>(data))->reset(0, 0, fields);
 }
 
 tdi_status_t PortCfgTable::keyAllocate(
@@ -503,12 +503,12 @@ tdi_status_t PortStatTable::dataReset(const std::vector<tdi_id_t> &fields,
               tableInfoGet()->nameGet().c_str());
     return BF_INVALID_ARG;
   }
-  return (static_cast<PortStatTableData *>(data))->reset(fields);
+  return (static_cast<PortStatTableData *>(data))->reset(0, 0, fields);
 }
 
 tdi_status_t PortStatTable::dataReset(TableData *data) const {
   std::vector<tdi_id_t> emptyFields;
-  return (static_cast<PortStatTableData *>(data))->reset(emptyFields);
+  return (static_cast<PortStatTableData *>(data))->reset(0, 0, emptyFields);
 }
 
 tdi_status_t PortStatTable::keyAllocate(
