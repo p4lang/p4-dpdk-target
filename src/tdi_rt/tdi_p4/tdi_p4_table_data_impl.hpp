@@ -708,30 +708,29 @@ class SelectorTableData : public tdi::TableData {
   uint32_t max_grp_size_{0};
 };
 
-#if 0
-class CounterTableData : public tdi::TableData {
+class CounterIndirectTableData : public tdi::TableData {
  public:
-  CounterTableData(const tdi::Table *tbl_obj)
-      : tdi::TableData(tbl_obj){};
-  ~CounterTableData() = default;
+  CounterIndirectTableData(const tdi::Table *table)
+      : tdi::TableData(table){};
+  ~CounterIndirectTableData() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
+  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value) override;
 
   tdi_status_t setValue(const tdi_id_t &field_id,
                        const uint8_t *value,
-                       const size_t &size);
+                       const size_t &size) override;
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
+  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const override;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
                        const size_t &size,
-                       uint8_t *value) const;
+                       uint8_t *value) const override;
 
   // Functions not exposed
   const CounterSpecData &getCounterSpecObj() const { return counter_spec_; }
   CounterSpecData &getCounterSpecObj() { return counter_spec_; }
 
-  tdi_status_t reset() override final;
+  tdi_status_t resetDerived() override;
 
  private:
   tdi_status_t setValueInternal(const tdi_id_t &field_id,
@@ -745,6 +744,7 @@ class CounterTableData : public tdi::TableData {
   CounterSpecData counter_spec_;
 };
 
+#if 0
 class MeterTableData : public tdi::TableData {
  public:
   MeterTableData(const tdi::Table *tbl_obj) : tdi::TableData(tbl_obj){};

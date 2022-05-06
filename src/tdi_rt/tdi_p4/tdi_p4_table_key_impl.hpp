@@ -261,22 +261,27 @@ class SelectorTableKey : public tdi::TableKey {
   tdi_id_t group_id;
 };
 
-#if 0
-class TdiCounterTableKey : public TdiTableKeyObj {
+class CounterIndirectTableKey : public tdi::TableKey {
  public:
-  TdiCounterTableKey(const TdiTableObj *tbl_obj)
-      : TdiTableKeyObj(tbl_obj), counter_id(){};
-  ~TdiCounterTableKey() = default;
+  CounterIndirectTableKey(const tdi::Table *table)
+      : tdi::TableKey(table), counter_id(){};
+  ~CounterIndirectTableKey() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
+  virtual tdi_status_t setValue(const tdi_id_t &field_id,
+                                const tdi::KeyFieldValue &field_value) override;
 
-  tdi_status_t setValue(const tdi_id_t &field_id,
+  virtual tdi_status_t getValue(const tdi_id_t &field_id,
+                                tdi::KeyFieldValue *value) const override;
+
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field, const uint64_t &value);
+
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
                        const uint8_t *value,
                        const size_t &size);
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field, uint64_t *value) const;
 
-  tdi_status_t getValue(const tdi_id_t &field_id,
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
                        const size_t &size,
                        uint8_t *value) const;
 
@@ -288,7 +293,7 @@ class TdiCounterTableKey : public TdiTableKeyObj {
 
   uint32_t getIdxKey() const { return counter_id; }
 
-  tdi_status_t reset() {
+  virtual tdi_status_t reset() override{
     counter_id = 0;
     return TDI_SUCCESS;
   }
@@ -297,6 +302,7 @@ class TdiCounterTableKey : public TdiTableKeyObj {
   uint32_t counter_id;
 };
 
+#if 0
 class TdiMeterTableKey : public TdiTableKeyObj {
  public:
   TdiMeterTableKey(const TdiTableObj *tbl_obj)

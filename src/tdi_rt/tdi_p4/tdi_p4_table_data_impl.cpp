@@ -70,10 +70,18 @@ tdi_status_t indirectResourceSetValueHelper(
               field_id);
     return TDI_OBJECT_NOT_FOUND;
   }
-  *field_type = *(static_cast<const RtDataFieldContextInfo *>(
-                      tableDataField->dataFieldContextInfoGet())
-                      ->typesGet()
-                      .begin());
+
+  // field_type is set in data context info during context.json parsing 
+  // this is not set if the table is not present in context.json.
+  // for example: IndirectCounter Table.
+  // caller should take care of field_type in such cases.
+  *field_type = INVALID;
+  const auto data_context_info = static_cast<const RtDataFieldContextInfo *>(
+      tableDataField->dataFieldContextInfoGet());
+  if (data_context_info) {
+    *field_type = *(data_context_info->typesGet().begin());
+  }
+
   if (allowed_field_types.size() &&
       allowed_field_types.find(*field_type) == allowed_field_types.end()) {
     // This indicates that this particular setter can only be used for a
@@ -1949,10 +1957,8 @@ tdi_status_t SelectorTableData::resetDerived() {
   return TDI_SUCCESS;
 }
 
-#if 0
 // Counter Table Data
-
-tdi_status_t TdiCounterTableData::setValueInternal(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::setValueInternal(const tdi_id_t &field_id,
                                                    const size_t &size,
                                                    const uint64_t &value,
                                                    const uint8_t *value_ptr) {
@@ -1977,45 +1983,61 @@ tdi_status_t TdiCounterTableData::setValueInternal(const tdi_id_t &field_id,
               field_id);
     return sts;
   }
+
+  auto data_field = table_->tableInfoGet()->dataFieldGet(field_id);
+  auto data_field_name = data_field->nameGet();
+  field_type = getDataFieldTypeFrmName(
+      data_field_name.substr(1),
+      static_cast<tdi_rt_table_type_e>(table_->tableInfoGet()->tableTypeGet()));
+
   getCounterSpecObj().setCounterDataFromValue(field_type, val);
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiCounterTableData::setValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::setValue(const tdi_id_t &field_id,
                                            const uint64_t &value) {
   return this->setValueInternal(field_id, 0, value, nullptr);
 }
 
-tdi_status_t TdiCounterTableData::setValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::setValue(const tdi_id_t &field_id,
                                            const uint8_t *value_ptr,
                                            const size_t &size) {
   return this->setValueInternal(field_id, size, 0, value_ptr);
 }
 
-tdi_status_t TdiCounterTableData::getValueInternal(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::getValueInternal(const tdi_id_t &field_id,
                                                    const size_t &size,
                                                    uint64_t *value,
                                                    uint8_t *value_ptr) const {
   uint64_t counter = 0;
-  DataFieldType field_type;
-  // Here we pass an empty set because this can be used for any field type
-  // of counter table
-  std::set<DataFieldType> allowed_field_types;
-  auto sts = indirectResourceGetValueHelper(*table_,
-                                            field_id,
-                                            allowed_field_types,
-                                            size,
-                                            value,
-                                            value_ptr,
-                                            &field_type);
-  if (sts != TDI_SUCCESS) {
-    LOG_ERROR("%s:%d %s ERROR : Get value failed for field_id %d",
+
+  auto data_field = table_->tableInfoGet()->dataFieldGet(field_id);
+  if (!data_field) {
+    LOG_ERROR("%s:%d %s ERROR : Data field id %d not found",
               __func__,
               __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(),
+              table_->tableInfoGet()->nameGet().c_str(),
               field_id);
-    return sts;
+    return TDI_OBJECT_NOT_FOUND;
   }
+
+  /* Check if the data field size is compatible with the passed-in field size */
+  auto status = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
+      *table_, *data_field, value, value_ptr, size);
+  if (status != TDI_SUCCESS) {
+    LOG_ERROR(
+        "%s:%d %s ERROR : Output param compatibility check failed for field "
+        "id "
+        "%d",
+        __func__, __LINE__, table_->tableInfoGet()->nameGet().c_str(),
+        field_id);
+    return status;
+  }
+
+  auto data_field_name = data_field->nameGet();
+  auto field_type = getDataFieldTypeFrmName(
+      data_field_name.substr(1),
+      static_cast<tdi_rt_table_type_e>(table_->tableInfoGet()->tableTypeGet()));
 
   getCounterSpecObj().getCounterData(field_type, &counter);
   setInputValToOutputVal(*table_, field_id, counter, value, value_ptr);
@@ -2023,23 +2045,24 @@ tdi_status_t TdiCounterTableData::getValueInternal(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiCounterTableData::getValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::getValue(const tdi_id_t &field_id,
                                            uint64_t *value) const {
   return this->getValueInternal(field_id, 0, value, nullptr);
 }
 
-tdi_status_t TdiCounterTableData::getValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableData::getValue(const tdi_id_t &field_id,
                                            const size_t &size,
                                            uint8_t *value_ptr) const {
   return this->getValueInternal(field_id, size, nullptr, value_ptr);
 }
 
-tdi_status_t TdiCounterTableData::resetDerived() {
+tdi_status_t CounterIndirectTableData::resetDerived() {
   counter_spec_.reset();
   //TableData::this->reset();
   return TDI_SUCCESS;
 }
 
+#if 0
 // METER TABLE DATA
 
 tdi_status_t TdiMeterTableData::setValueInternal(const tdi_id_t &field_id,

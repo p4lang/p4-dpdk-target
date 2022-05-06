@@ -383,8 +383,8 @@ tdi_status_t getReservedEntries(const tdi::Session &session,
 
 // Template function for getFirst for Indirect meters, LPF, WRED and register
 // tables
-template <typename Table, typename Key>
-tdi_status_t getFirst_for_resource_tbls(const Table &table,
+template <typename Tbl, typename Key>
+tdi_status_t getFirst_for_resource_tbls(const Tbl &table,
                                         const tdi::Session &session,
                                         const tdi::Target &dev_tgt,
                                         const tdi::Flags &flags,
@@ -413,9 +413,9 @@ tdi_status_t getFirst_for_resource_tbls(const Table &table,
 
 // Template function for getNext_n for Indirect meters, LPF, WRED and register
 // tables
-template <typename Table, typename Key>
+template <typename Tbl, typename Key>
 tdi_status_t getNext_n_for_resource_tbls(
-    const Table &table,
+    const Tbl &table,
     const tdi::Session &session,
     const tdi::Target &dev_tgt,
     const tdi::Flags &flags,
@@ -455,10 +455,9 @@ tdi_status_t getNext_n_for_resource_tbls(
       return TDI_INVALID_ARG;
     }
 
-    tdi_id_t table_id_from_key;
     const Table *table_from_key;
     this_key->tableGet(&table_from_key);
-    table_from_key->tableIdGet(&table_id_from_key);
+    auto table_id_from_key = table_from_key->tableInfoGet()->idGet();
 
     if (table_id_from_key != table.tableInfoGet()->idGet()) {
       LOG_TRACE(
@@ -492,8 +491,6 @@ tdi_status_t getNext_n_for_resource_tbls(
 // This function checks if the key idx (applicable for Action profile, selector,
 // Indirect meter, Counter, LPF, WRED, Register tables) is within the bounds of
 // the size of the table
-
-#if 0
 bool verify_key_for_idx_tbls(const tdi::Session &session,
                              const tdi::Target &dev_tgt,
                              const tdi::Table &table,
@@ -512,7 +509,6 @@ bool verify_key_for_idx_tbls(const tdi::Session &session,
             table_size);
   return false;
 }
-#endif
 
 template <class Table, class Key>
 tdi_status_t key_reset(const Table & /*table*/, Key *match_key) {
@@ -5376,20 +5372,23 @@ tdi_status_t Selector::tableAttributesGet(
 }
 #endif
 
-#if 0
 // COUNTER TABLE APIS
 
-tdi_status_t CounterTable::entryAdd(const tdi::Session &session,
-                                            const tdi::Target &dev_tgt,
-                                            const tdi::Flags & /*flags*/,
-                                            const tdi::TableKey &key,
-                                            const tdi::TableData &data) const {
+tdi_status_t CounterIndirect::entryGet(const tdi::Session &session,
+                                       const tdi::Target &dev_tgt,
+                                       const tdi::Flags &flags,
+                                       const tdi::TableKey &key,
+                                       tdi::TableData *data) const {
   tdi_status_t status = TDI_SUCCESS;
+
+  /* dummy handle passed to pipe_mgr intf, not used for counters */
+  pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
+
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
-  const CounterTableKey &cntr_key =
-      static_cast<const CounterTableKey &>(key);
-  const CounterTableData &cntr_data =
-      static_cast<const CounterTableData &>(data);
+  const CounterIndirectTableKey &cntr_key =
+      static_cast<const CounterIndirectTableKey &>(key);
+  CounterIndirectTableData *cntr_data =
+      static_cast<CounterIndirectTableData *>(data);
 
   uint32_t counter_id = cntr_key.getCounterId();
 
@@ -5398,89 +5397,37 @@ tdi_status_t CounterTable::entryAdd(const tdi::Session &session,
   }
 
   dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
 
-  const pipe_stat_data_t *stat_data =
-      cntr_data.getCounterSpecObj().getPipeCounterSpec();
-  status =
-      pipeMgr->pipeMgrStatEntSet(session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-                                 pipe_dev_tgt,
-                                 pipe_tbl_hdl,
-                                 counter_id,
-                                 const_cast<pipe_stat_data_t *>(stat_data));
-
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s Error in adding/modifying counter index %d, err %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              counter_id,
-              status);
-    return status;
-  }
-  return TDI_SUCCESS;
-}
-
-tdi_status_t CounterTable::entryMod(const tdi::Session &session,
-                                            const tdi::Target &dev_tgt,
-                                            const tdi::Flags &flags,
-                                            const tdi::TableKey &key,
-                                            const tdi::TableData &data) const {
-  return entryAdd(session, dev_tgt, flags, key, data);
-}
-
-tdi_status_t CounterTable::entryGet(const tdi::Session &session,
-                                            const tdi::Target &dev_tgt,
-                                            const tdi::Flags &flags,
-                                            const tdi::TableKey &key,
-                                            tdi::TableData *data) const {
-  tdi_status_t status = TDI_SUCCESS;
-  auto *pipeMgr = PipeMgrIntf::getInstance(session);
-  const CounterTableKey &cntr_key =
-      static_cast<const CounterTableKey &>(key);
-  CounterTableData *cntr_data = static_cast<CounterTableData *>(data);
-
-  uint32_t counter_id = cntr_key.getCounterId();
-
-  if (!verify_key_for_idx_tbls(session, dev_tgt, *this, counter_id)) {
-    return TDI_INVALID_ARG;
-  }
-
-  dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
-
-  if (TDI_FLAG_IS_SET(flags, TDI_FROM_HW)) {
+  bool read_from_hw = false;
+  flags.getValue(static_cast<tdi_flags_e>(TDI_RT_FLAGS_FROM_HW), &read_from_hw);
+  if (read_from_hw) {
     status = pipeMgr->pipeMgrStatEntDatabaseSync(
-        session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)), pipe_dev_tgt, pipe_tbl_hdl, counter_id);
+        session.handleGet(
+            static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+        pipe_dev_tgt, pipe_tbl_hdl, counter_id);
     if (status != TDI_SUCCESS) {
       LOG_TRACE(
           "%s:%d %s ERROR in getting counter value from hardware for counter "
           "idx %d, err %d",
-          __func__,
-          __LINE__,
-          tableInfoGet()->nameGet().c_str(),
-          counter_id,
+          __func__, __LINE__, tableInfoGet()->nameGet().c_str(), counter_id,
           status);
       return status;
     }
   }
 
   pipe_stat_data_t stat_data = {0};
-  status = pipeMgr->pipeMgrStatEntQuery(session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-                                        pipe_dev_tgt,
-                                        pipe_tbl_hdl,
-                                        counter_id,
-                                        &stat_data);
+  status = pipeMgr->pipeMgrStatEntQuery(
+      session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      tableInfoGet()->nameGet().c_str(),
+      counter_id, &stat_data);
 
   if (status != TDI_SUCCESS) {
     LOG_TRACE(
         "%s:%d %s ERROR in reading counter value for counter idx %d, err %d",
-        __func__,
-        __LINE__,
-        tableInfoGet()->nameGet().c_str(),
-        counter_id,
+        __func__, __LINE__, tableInfoGet()->nameGet().c_str(), counter_id,
         status);
     return status;
   }
@@ -5490,54 +5437,54 @@ tdi_status_t CounterTable::entryGet(const tdi::Session &session,
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTable::entryGet(const tdi::Session &session,
+tdi_status_t CounterIndirect::entryGet(const tdi::Session &session,
                                             const tdi::Target &dev_tgt,
                                             const tdi::Flags &flags,
                                             const tdi_handle_t &entry_handle,
                                             tdi::TableKey *key,
                                             tdi::TableData *data) const {
-  CounterTableKey *cntr_key = static_cast<CounterTableKey *>(key);
+  CounterIndirectTableKey *cntr_key = static_cast<CounterIndirectTableKey *>(key);
   cntr_key->setCounterId(entry_handle);
   return this->entryGet(
       session, dev_tgt, flags, static_cast<const tdi::TableKey &>(*key), data);
 }
 
-tdi_status_t CounterTable::entryKeyGet(
+tdi_status_t CounterIndirect::entryKeyGet(
     const tdi::Session & /*session*/,
     const tdi::Target &dev_tgt,
     const tdi::Flags & /*flags*/,
     const tdi_handle_t &entry_handle,
     tdi::Target *entry_tgt,
     tdi::TableKey *key) const {
-  CounterTableKey *cntr_key = static_cast<CounterTableKey *>(key);
+  CounterIndirectTableKey *cntr_key = static_cast<CounterIndirectTableKey *>(key);
   cntr_key->setCounterId(entry_handle);
   *entry_tgt = dev_tgt;
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTable::entryHandleGet(
+tdi_status_t CounterIndirect::entryHandleGet(
     const tdi::Session & /*session*/,
     const tdi::Target & /*dev_tgt*/,
     const tdi::Flags & /*flags*/,
     const tdi::TableKey &key,
     tdi_handle_t *entry_handle) const {
-  const CounterTableKey &cntr_key =
-      static_cast<const CounterTableKey &>(key);
+  const CounterIndirectTableKey &cntr_key =
+      static_cast<const CounterIndirectTableKey &>(key);
   *entry_handle = cntr_key.getCounterId();
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTable::entryGetFirst(const tdi::Session &session,
+tdi_status_t CounterIndirect::entryGetFirst(const tdi::Session &session,
                                                  const tdi::Target &dev_tgt,
                                                  const tdi::Flags &flags,
                                                  tdi::TableKey *key,
                                                  tdi::TableData *data) const {
-  CounterTableKey *cntr_key = static_cast<CounterTableKey *>(key);
-  return getFirst_for_resource_tbls<CounterTable, CounterTableKey>(
+  CounterIndirectTableKey *cntr_key = static_cast<CounterIndirectTableKey *>(key);
+  return getFirst_for_resource_tbls<CounterIndirect, CounterIndirectTableKey>(
       *this, session, dev_tgt, flags, cntr_key, data);
 }
 
-tdi_status_t CounterTable::entryGetNext_n(
+tdi_status_t CounterIndirect::entryGetNextN(
     const tdi::Session &session,
     const tdi::Target &dev_tgt,
     const tdi::Flags &flags,
@@ -5545,9 +5492,9 @@ tdi_status_t CounterTable::entryGetNext_n(
     const uint32_t &n,
     tdi::Table::keyDataPairs *key_data_pairs,
     uint32_t *num_returned) const {
-  const CounterTableKey &cntr_key =
-      static_cast<const CounterTableKey &>(key);
-  return getNext_n_for_resource_tbls<CounterTable, CounterTableKey>(
+  const CounterIndirectTableKey &cntr_key =
+      static_cast<const CounterIndirectTableKey &>(key);
+  return getNext_n_for_resource_tbls<CounterIndirect, CounterIndirectTableKey>(
       *this,
       session,
       dev_tgt,
@@ -5558,54 +5505,58 @@ tdi_status_t CounterTable::entryGetNext_n(
       num_returned);
 }
 
-tdi_status_t CounterTable::clear(const tdi::Session &session,
-                                         const tdi::Target &dev_tgt,
-                                         const tdi::Flags & /*flags*/) const {
+tdi_status_t CounterIndirect::clear(const tdi::Session &session,
+                                    const tdi::Target &dev_tgt,
+                                    const tdi::Flags & /*flags*/) const {
+
+  /* dummy handle passed to pipe_mgr intf, not used for counters */
+  pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
+
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
 
   dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
 
   tdi_status_t status = pipeMgr->pipeMgrStatTableReset(
-      session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)), pipe_dev_tgt, pipe_tbl_hdl, nullptr);
+      session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt, pipe_tbl_hdl, nullptr);
   if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s Error in Clearing counter table err %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              status);
+    LOG_TRACE("%s:%d %s Error in Clearing counter table err %d", __func__,
+              __LINE__, tableInfoGet()->nameGet().c_str(), status);
     return status;
   }
   return status;
 }
 
-tdi_status_t CounterTable::keyAllocate(
+tdi_status_t CounterIndirect::keyAllocate(
     std::unique_ptr<TableKey> *key_ret) const {
-  *key_ret = std::unique_ptr<TableKey>(new CounterTableKey(this));
+  *key_ret = std::unique_ptr<TableKey>(new CounterIndirectTableKey(this));
   if (*key_ret == nullptr) {
     return TDI_NO_SYS_RESOURCES;
   }
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTable::keyReset(TableKey *key) const {
-  CounterTableKey *counter_key = static_cast<CounterTableKey *>(key);
-  return key_reset<CounterTable, CounterTableKey>(*this, counter_key);
+tdi_status_t CounterIndirect::keyReset(TableKey *key) const {
+  CounterIndirectTableKey *counter_key = static_cast<CounterIndirectTableKey *>(key);
+  return key_reset<CounterIndirect, CounterIndirectTableKey>(*this, counter_key);
 }
 
-tdi_status_t CounterTable::dataAllocate(
+tdi_status_t CounterIndirect::dataAllocate(
     std::unique_ptr<tdi::TableData> *data_ret) const {
-  *data_ret = std::unique_ptr<tdi::TableData>(new CounterTableData(this));
+  *data_ret = std::unique_ptr<tdi::TableData>(new CounterIndirectTableData(this));
   if (*data_ret == nullptr) {
     return TDI_NO_SYS_RESOURCES;
   }
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTable::dataReset(tdi::TableData *data) const {
-  CounterTableData *counter_data =
-      static_cast<CounterTableData *>(data);
+tdi_status_t CounterIndirect::dataReset(tdi::TableData *data) const {
+  CounterIndirectTableData *counter_data =
+      static_cast<CounterIndirectTableData *>(data);
+
+#if 0 // TODO
   if (!this->validateTable_from_dataObj(*counter_data)) {
     LOG_TRACE("%s:%d %s ERROR : Data object is not associated with the table",
               __func__,
@@ -5613,9 +5564,11 @@ tdi_status_t CounterTable::dataReset(tdi::TableData *data) const {
               tableInfoGet()->nameGet().c_str());
     return TDI_INVALID_ARG;
   }
+#endif
   return counter_data->reset();
 }
 
+#if 0
 // METER TABLE
 
 tdi_status_t MeterTable::entryAdd(const tdi::Session &session,

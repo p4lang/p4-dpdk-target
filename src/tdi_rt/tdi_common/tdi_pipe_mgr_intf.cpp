@@ -674,11 +674,11 @@ pipe_status_t PipeMgrIntf::pipeMgrMatEntDirectStatLoad(
 
 pipe_status_t PipeMgrIntf::pipeMgrStatEntQuery(pipe_sess_hdl_t sess_hdl,
                                                dev_target_t dev_target,
-                                               pipe_stat_tbl_hdl_t stat_tbl_hdl,
+					       const char *name,
                                                pipe_stat_ent_idx_t stat_ent_idx,
                                                pipe_stat_data_t *stat_data) {
   return pipe_mgr_stat_ent_query(
-      sess_hdl, dev_target, stat_tbl_hdl, stat_ent_idx, stat_data);
+      sess_hdl, dev_target, name, stat_ent_idx, stat_data);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrStatTableReset(

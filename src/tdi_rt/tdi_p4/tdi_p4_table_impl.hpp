@@ -40,8 +40,8 @@ namespace rt {
  * MatchActionDirect
  * MatchActionIndirectTable
  * ActionTable
- * SelectorTable
- * CounterTable
+ * Selector
+ * CounterIndirect
  * MeterTable
  * RegisterTable
  * RegisterParamTable
@@ -764,9 +764,66 @@ class CounterIndirect : public tdi::Table {
  public:
   CounterIndirect(const tdi::TdiInfo *tdi_info,
                   const tdi::TableInfo *table_info)
-      : tdi::Table(tdi_info, table_info) {
+      : tdi::Table(
+            tdi_info,
+            tdi::SupportedApis({
+                {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_FIRST,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_NEXT_N,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_GET_BY_HANDLE,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_HANDLE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_KEY_GET, {"dev_id", "pipe_id", "pipe_all"}},
+            }),
+            table_info) {
     LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
-  };
+  }
+
+  tdi_status_t entryGet(const tdi::Session &session, const tdi::Target &dev_tgt,
+                        const tdi::Flags &flags, const tdi::TableKey &key,
+                        tdi::TableData *data) const override;
+
+  tdi_status_t entryKeyGet(const tdi::Session &session,
+                           const tdi::Target &dev_tgt, const tdi::Flags &flags,
+                           const tdi_handle_t &entry_handle,
+                           tdi::Target *entry_tgt,
+                           tdi::TableKey *key) const override;
+
+  tdi_status_t entryHandleGet(const tdi::Session &session,
+                              const tdi::Target &dev_tgt,
+                              const tdi::Flags &flags, const tdi::TableKey &key,
+                              tdi_handle_t *entry_handle) const override;
+
+  tdi_status_t entryGet(const tdi::Session &session, const tdi::Target &dev_tgt,
+                        const tdi::Flags &flags,
+                        const tdi_handle_t &entry_handle, tdi::TableKey *key,
+                        tdi::TableData *data) const override;
+
+  tdi_status_t entryGetFirst(const tdi::Session &session,
+                             const tdi::Target &dev_tgt,
+                             const tdi::Flags &flags, tdi::TableKey *key,
+                             tdi::TableData *data) const override;
+
+  tdi_status_t entryGetNextN(const tdi::Session &session,
+                             const tdi::Target &dev_tgt,
+                             const tdi::Flags &flags, const tdi::TableKey &key,
+                             const uint32_t &n, keyDataPairs *key_data_pairs,
+                             uint32_t *num_returned) const override;
+
+  tdi_status_t clear(const tdi::Session &session, const tdi::Target &dev_tgt,
+                     const tdi::Flags &flags) const override;
+
+  tdi_status_t keyAllocate(std::unique_ptr<TableKey> *key_ret) const override;
+  tdi_status_t keyReset(TableKey *key) const override;
+
+  tdi_status_t dataAllocate(
+      std::unique_ptr<tdi::TableData> *data_ret) const override;
+
+  tdi_status_t dataReset(tdi::TableData *data) const override;
 };
 
 class MeterIndirect : public tdi::Table {
@@ -1094,97 +1151,6 @@ class SelectorTable : public tdi::Table {
                          tdi_id_t grp_id,
                          tdi_id_t *next_grp_id,
                          pipe_sel_grp_hdl_t *next_grp_hdl) const;
-};
-
-class CounterTable : public tdi::Table {
- public:
-  CounterTable(const std::string &program_name,
-                   const tdi_id_t &id,
-                   const std::string &name,
-                   const size_t &size,
-                   const pipe_stat_tbl_hdl_t &pipe_hdl)
-      : tdi::Table(program_name,
-                     id,
-                     name,
-                     size,
-                     TableType::COUNTER,
-                     std::set<TableApi>{
-                         TableApi::ADD,
-                         TableApi::MODIFY,
-                         TableApi::GET,
-                         TableApi::GET_FIRST,
-                         TableApi::GET_NEXT_N,
-                         TableApi::CLEAR,
-                         TableApi::GET_BY_HANDLE,
-                         TableApi::HANDLE_GET,
-                         TableApi::KEY_GET,
-                     },
-                     pipe_hdl){};
-
-  tdi_status_t entryAdd(const tdi::Session &session,
-                            const tdi::Target &dev_tgt,
-                            const tdi::Flags &flags,
-                            const tdi::TableKey &key,
-                            const tdi::TableData &data) const override;
-
-  tdi_status_t entryMod(const tdi::Session &session,
-                            const tdi::Target &dev_tgt,
-                            const tdi::Flags &flags,
-                            const tdi::TableKey &key,
-                            const tdi::TableData &data) const override;
-
-  tdi_status_t entryGet(const tdi::Session &session,
-                            const tdi::Target &dev_tgt,
-                            const tdi::Flags &flags,
-                            const tdi::TableKey &key,
-                            tdi::TableData *data) const override;
-
-  tdi_status_t entryKeyGet(const tdi::Session &session,
-                               const tdi::Target &dev_tgt,
-                               const tdi::Flags &flags,
-                               const tdi_handle_t &entry_handle,
-                               tdi::Target *entry_tgt,
-                               tdi::TableKey *key) const override;
-
-  tdi_status_t entryHandleGet(const tdi::Session &session,
-                                  const tdi::Target &dev_tgt,
-                                  const tdi::Flags &flags,
-                                  const tdi::TableKey &key,
-                                  tdi_handle_t *entry_handle) const override;
-
-  tdi_status_t entryGet(const tdi::Session &session,
-                            const tdi::Target &dev_tgt,
-                            const tdi::Flags &flags,
-                            const tdi_handle_t &entry_handle,
-                            tdi::TableKey *key,
-                            tdi::TableData *data) const override;
-
-  tdi_status_t entryGetFirst(const tdi::Session &session,
-                                 const tdi::Target &dev_tgt,
-                                 const tdi::Flags &flags,
-                                 tdi::TableKey *key,
-                                 tdi::TableData *data) const override;
-
-  tdi_status_t entryGetNext_n(const tdi::Session &session,
-                                  const tdi::Target &dev_tgt,
-                                  const tdi::Flags &flags,
-                                  const tdi::TableKey &key,
-                                  const uint32_t &n,
-                                  keyDataPairs *key_data_pairs,
-                                  uint32_t *num_returned) const override;
-
-  tdi_status_t tableClear(const tdi::Session &session,
-                         const tdi::Target &dev_tgt,
-                         const tdi::Flags &flags) const override;
-
-  tdi_status_t keyAllocate(
-      std::unique_ptr<TableKey> *key_ret) const override;
-  tdi_status_t keyReset(TableKey *key) const override;
-
-  tdi_status_t dataAllocate(
-      std::unique_ptr<tdi::TableData> *data_ret) const override;
-
-  tdi_status_t dataReset(tdi::TableData *data) const override;
 };
 
 class MeterTable : public tdi::Table {

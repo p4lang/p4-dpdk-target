@@ -1210,30 +1210,74 @@ tdi_status_t SelectorTableKey::getValue(const tdi::KeyFieldInfo *key_field,
   return TDI_SUCCESS;
 }
 
-#if 0
-tdi_status_t CounterTableKey::setValue(const tdi_id_t &field_id,
-                                          const uint64_t &value) {
-  // Get the key_field from the table
+template <class T>
+tdi_status_t getKeyIdxValue(const T &key,
+                           const tdi::Table &table,
+                           const tdi::KeyFieldInfo *key_field,
+                           uint64_t *value) {
+  *value = key.getIdxKey();
+  return TDI_SUCCESS;
+}
+
+template <class T>
+tdi_status_t getKeyIdxValue(const T &key,
+                           const tdi::Table &table,
+                           const tdi::KeyFieldInfo *key_field,
+                           uint8_t *value,
+                           const size_t &size) {
+  if (size != sizeof(uint32_t)) {
+    LOG_ERROR(
+        "%s:%d %s ERROR Array size of %zd is not equal to the field size %zd "
+        "for field id %d",
+        __func__,
+        __LINE__,
+        table.tableInfoGet()->nameGet().c_str(),
+        size,
+        sizeof(uint32_t),
+        key_field->idGet());
+    return TDI_INVALID_ARG;
+  }
+  uint32_t local_val = htobe32(key.getIdxKey());
+  std::memcpy(value, &local_val, sizeof(uint32_t));
+  return TDI_SUCCESS;
+}
+
+tdi_status_t CounterIndirectTableKey::setValue(
+    const tdi_id_t &field_id, const tdi::KeyFieldValue &field_value) {
   const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), table_);
+  auto status = utils::TableFieldUtils::keyFieldSafeGet(field_id, &key_field,
+                                                        &field_value, table_);
   if (status != TDI_SUCCESS) {
     return status;
   }
+
+  if (field_value.matchTypeGet() !=
+      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
+    return TDI_INVALID_ARG;
+  }
+
+  if (field_value.is_pointer()) {
+    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint8_t *> *>(
+        &field_value);
+    return this->setValue(key_field, e_fv->value_, e_fv->size_);
+  } else {
+    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint64_t> *>(
+        &field_value);
+    return this->setValue(key_field, e_fv->value_);
+  }
+
+  return TDI_UNEXPECTED;
+}
+
+tdi_status_t CounterIndirectTableKey::setValue(
+    const tdi::KeyFieldInfo * /*key_field*/, const uint64_t &value) {
   counter_id = value;
   return TDI_SUCCESS;
 }
 
-tdi_status_t CounterTableKey::setValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableKey::setValue(const tdi::KeyFieldInfo *key_field,
                                           const uint8_t *value,
                                           const size_t &size) {
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
   if (size != sizeof(uint32_t)) {
     LOG_ERROR(
         "%s:%d %s ERROR Array size of %zd is not equal to the field size %zd "
@@ -1243,7 +1287,7 @@ tdi_status_t CounterTableKey::setValue(const tdi_id_t &field_id,
         table_->tableInfoGet()->nameGet().c_str(),
         size,
         sizeof(uint32_t),
-        field_id);
+        key_field->idGet());
     return TDI_INVALID_ARG;
   }
   uint32_t val = *(reinterpret_cast<const uint32_t *>(value));
@@ -1251,64 +1295,53 @@ tdi_status_t CounterTableKey::setValue(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-template <class T>
-tdi_status_t getKeyIdxValue(const T &key,
-                           const TableObj &table,
-                           const tdi_id_t &field_id,
-                           uint64_t *value) {
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), &table);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-  *value = key.getIdxKey();
-  return TDI_SUCCESS;
-}
+tdi_status_t CounterIndirectTableKey::getValue(
+    const tdi_id_t &field_id, tdi::KeyFieldValue *field_value) const {
 
-template <class T>
-tdi_status_t getKeyIdxValue(const T &key,
-                           const TableObj &table,
-                           const tdi_id_t &field_id,
-                           uint8_t *value,
-                           const size_t &size) {
-  // Get the key_field from the table
+  if (!field_value) {
+    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
+              __func__, __LINE__,
+              this->table_->tableInfoGet()->nameGet().c_str(), field_id);
+    return TDI_OBJECT_NOT_FOUND;
+  }
+
   const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), &table);
+  auto status = utils::TableFieldUtils::keyFieldSafeGet(field_id, &key_field,
+                                                        field_value, table_);
   if (status != TDI_SUCCESS) {
     return status;
   }
-  if (size != sizeof(uint32_t)) {
-    LOG_ERROR(
-        "%s:%d %s ERROR Array size of %zd is not equal to the field size %zd "
-        "for field id %d",
-        __func__,
-        __LINE__,
-        table.table_name_get().c_str(),
-        size,
-        sizeof(uint32_t),
-        field_id);
+
+  /* counter table key can be only of type EXACT*/
+  if (field_value->matchTypeGet() !=
+      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
     return TDI_INVALID_ARG;
   }
-  uint32_t local_val = htobe32(key.getIdxKey());
-  std::memcpy(value, &local_val, sizeof(uint32_t));
-  return TDI_SUCCESS;
+
+  if (field_value->is_pointer()) {
+    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
+    return this->getValue(key_field, e_fv->size_, e_fv->value_);
+  } else {
+    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
+    return this->getValue(key_field, &e_fv->value_);
+  }
+
+  return TDI_UNEXPECTED;
 }
 
-tdi_status_t CounterTableKey::getValue(const tdi_id_t &field_id,
-                                          uint64_t *value) const {
-  return getKeyIdxValue<CounterTableKey>(*this, *table_, field_id, value);
+tdi_status_t CounterIndirectTableKey::getValue(const tdi::KeyFieldInfo *key_field,
+                                               uint64_t *value) const {
+  return getKeyIdxValue<CounterIndirectTableKey>(*this, *table_, key_field, value);
 }
 
-tdi_status_t CounterTableKey::getValue(const tdi_id_t &field_id,
+tdi_status_t CounterIndirectTableKey::getValue(const tdi::KeyFieldInfo *key_field,
                                           const size_t &size,
                                           uint8_t *value) const {
-  return getKeyIdxValue<CounterTableKey>(
-      *this, *table_, field_id, value, size);
+  return getKeyIdxValue<CounterIndirectTableKey>(
+      *this, *table_, key_field, value, size);
 }
 
+#if 0
 tdi_status_t MeterTableKey::getValue(const tdi_id_t &field_id,
                                         uint64_t *value) const {
   return getKeyIdxValue<MeterTableKey>(*this, *table_, field_id, value);
