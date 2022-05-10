@@ -237,7 +237,7 @@ bool initialization_required(const DataFieldType &type) {
 }
 
 template <class TableData>
-void reset_action_data(const tdi_id_t &new_act_id, TableData *table_data) {
+tdi_status_t reset_action_data(const tdi_id_t &new_act_id, TableData *table_data) {
   const auto &action_id = table_data->actionIdGet();
   const Table *table = nullptr;
   tdi_status_t sts = table_data->getParent(&table);
@@ -246,7 +246,7 @@ void reset_action_data(const tdi_id_t &new_act_id, TableData *table_data) {
     LOG_ERROR(
         "%s:%d ERROR in getting parent for data object", __func__, __LINE__);
     TDI_DBGCHK(0);
-    return;
+    return sts;
   }
   auto mat_context_info = static_cast<const MatchActionTableContextInfo *>(
       table->tableInfoGet()->tableContextInfoGet());
@@ -286,7 +286,7 @@ void reset_action_data(const tdi_id_t &new_act_id, TableData *table_data) {
     table_data->actionSpecSet(nullptr);
   }
 
-  return;
+  return TDI_SUCCESS;
 }
 }  // Anonymous namespace
 
@@ -1447,17 +1447,19 @@ pipe_act_fn_hdl_t MatchActionTableData::getActFnHdl() const {
   return rt_action_context->actionFnHdlGet();
 }
 
-tdi_status_t MatchActionTableData::reset() {
-  // empty vector means set all fields
-  std::vector<tdi_id_t> empty;
-  this->reset(0, empty);
+tdi_status_t MatchActionTableData::resetDerived() {
   return TDI_SUCCESS;
 }
 
 tdi_status_t MatchActionTableData::reset(
-    const tdi_id_t &act_id, const std::vector<tdi_id_t> & /*fields*/) {
-  reset_action_data<MatchActionTableData>(act_id, this);
-  return TDI_SUCCESS;
+    const tdi_id_t &act_id,
+    const tdi_id_t &/*container_id*/,
+    const std::vector<tdi_id_t> & /*fields*/) {
+  std::vector<tdi_id_t> empty;
+  // empty vector means set all fields
+  auto status = reset_action_data<MatchActionTableData>(act_id, this);
+  if (status) return status;
+  return TableData::reset(act_id, 0, empty);
 }
 
 // ACTION TABLE DATA
@@ -1678,13 +1680,18 @@ pipe_act_fn_hdl_t TdiActionTableData::getActFnHdl() const {
   return this->table_->getActFnHdl(this->actionIdGet_());
 }
 
-tdi_status_t TdiActionTableData::reset(const tdi_id_t &act_id) {
-  reset_action_data<TdiActionTableData>(act_id, this);
-  this->init(act_id);
-  return TDI_SUCCESS;
+tdi_status_t TdiActionTableData::reset(
+    const tdi_id_t &act_id,
+    const tdi_id_t &/*container_id*/,
+    const std::vector<tdi_id_t> &/*fields*/) {
+    return TableData::reset(act_id, 0, {};
 }
 
-tdi_status_t TdiActionTableData::reset() { return this->reset(0); }
+tdi_status_t TdiActionTableData::resetDerived() {
+  auto sts = reset_action_data<TdiActionTableData>(act_id, this);
+  this->init(act_id);
+  return this->reset(0, 0, {});
+}
 
 // SELECTOR TABLE DATA
 TdiSelectorTableData::TdiSelectorTableData(
@@ -1956,7 +1963,7 @@ tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
   return status;
 }
 
-tdi_status_t TdiSelectorTableData::reset() {
+tdi_status_t TdiSelectorTableData::resetDerived() {
   this->actionIdSet(0);
   act_fn_hdl_ = 0;
   members_.clear();
@@ -2049,8 +2056,9 @@ tdi_status_t TdiCounterTableData::getValue(const tdi_id_t &field_id,
   return this->getValueInternal(field_id, size, nullptr, value_ptr);
 }
 
-tdi_status_t TdiCounterTableData::reset() {
+tdi_status_t TdiCounterTableData::resetDerived() {
   counter_spec_.reset();
+  //TableData::this->reset();
   return TDI_SUCCESS;
 }
 
@@ -2136,8 +2144,9 @@ tdi_status_t TdiMeterTableData::getValue(const tdi_id_t &field_id,
   return this->getValueInternal(field_id, size, nullptr, value_ptr);
 }
 
-tdi_status_t TdiMeterTableData::reset() {
+tdi_status_t TdiMeterTableData::resetDerived() {
   meter_spec_.reset();
+  //TableData::this->reset();
   return TDI_SUCCESS;
 }
 
@@ -2206,14 +2215,16 @@ tdi_status_t TdiRegisterTableData::getValue(
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiRegisterTableData::reset() {
+tdi_status_t TdiRegisterTableData::resetDerived() {
   register_spec_.reset();
+  //TableData::this->reset();
   return TDI_SUCCESS;
 }
 
 // RegisterParam
-tdi_status_t TdiRegisterParamTableData::reset() {
+tdi_status_t TdiRegisterParamTableData::resetDerived() {
   this->value = 0;
+  //TableData::this->reset();
   return TDI_SUCCESS;
 }
 

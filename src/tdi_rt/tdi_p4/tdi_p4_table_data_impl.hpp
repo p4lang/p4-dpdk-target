@@ -471,8 +471,9 @@ class MatchActionTableData : public tdi::TableData {
     return *(action_spec_wrapper.get());
   }
 
-  tdi_status_t reset();
+  tdi_status_t resetDerived();
   tdi_status_t reset(const tdi_id_t &action_id,
+                     const tdi_id_t &/*container_id*/,
                      const std::vector<tdi_id_t> &fields);
 
   // A public setter for action_spec_wrapper

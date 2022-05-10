@@ -118,10 +118,9 @@ tdi_status_t entryModInternal(const tdi::Table &table,
     dataFields.assign(match_data.activeFieldsGet().begin(),
                       match_data.activeFieldsGet().end());
   }
-
+  
   pipe_action_spec_t pipe_action_spec = {0};
   match_data.copy_pipe_action_spec(&pipe_action_spec);
-
   pipe_act_fn_hdl_t act_fn_hdl = match_data.getActFnHdl();
 
   bool direct_resource_found = false;
@@ -2218,6 +2217,10 @@ tdi_status_t MatchActionDirect::entryGet_internal(
       }
     }
   }
+  // All inputs from the data object have been processed. Now reset it
+  // for out data purpose
+  // We reset the data object with act_id 0 and all fields
+  match_data->TableData::reset(0);
   pipe_action_spec = match_data->get_pipe_action_spec();
 
   status = getActionSpec(session,
@@ -2255,6 +2258,7 @@ tdi_status_t MatchActionDirect::entryGet_internal(
     return TDI_INVALID_ARG;
   }
 
+  match_data->actionIdSet(action_id);
   // Get the list of dataFields for action_id. The list of active fields needs
   // to be set
   if (all_fields_set) {
@@ -2267,13 +2271,15 @@ tdi_status_t MatchActionDirect::entryGet_internal(
                 status);
       return status;
     }
-    match_data->reset(action_id, {});
+    //match_data->reset(action_id, 0, {});
+    match_data->activeFieldsSet({});
   } else {
 // dataFields has already been populated
 // with the correct fields since the requested action and actual
 // action have also been verified. Only active fields need to be
 // corrected because all fields must have been set now
-    match_data->reset(action_id, dataFields);
+    //match_data->reset(0, 0, dataFields);
+    match_data->activeFieldsSet(dataFields);
   }
 
   for (const auto &dataFieldId : dataFields) {
