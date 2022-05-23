@@ -175,6 +175,9 @@ tdi_status_t ContextInfoParser::parseContextJson(
     const auto mat_context_tbl =
         static_cast<const MatchActionTableContextInfo *>(
             tdi_table_info->tableContextInfoGet());
+    const auto selector_context_tbl =
+        static_cast<const SelectorTableContextInfo *>(
+            tdi_table_info->tableContextInfoGet());
     if (context_tbl == nullptr) {
       LOG_ERROR("%s:%d context Table object not found for \"%s\"",
                 __func__,
@@ -190,7 +193,12 @@ tdi_status_t ContextInfoParser::parseContextJson(
         // Direct addressed tables will not be present in bf-rt.json and we
         // don't need direct to link match-action tables to direct addressed
         // action tables
-        mat_context_tbl->actProfTbl_ = elem->second.get();
+        if (static_cast<tdi_rt_table_type_e>(
+                tdi_table_info->tableTypeGet()) ==
+            TDI_RT_TABLE_TYPE_SELECTOR)
+          selector_context_tbl->actProfTbl_ = elem->second.get();
+        else
+          mat_context_tbl->actProfTbl_ = elem->second.get();
       }
     }
 
@@ -203,7 +211,7 @@ tdi_status_t ContextInfoParser::parseContextJson(
           ctx_json["bound_to_action_data_table_handle"];
       contextInfoParser.applyMaskOnContextJsonHandle(&act_prof_tbl_hdl,
                                                      table_name);
-      mat_context_tbl->act_prof_id_ =
+      selector_context_tbl->act_prof_id_ =
           contextInfoParser.handleToIdMap[act_prof_tbl_hdl];
     }
     // For MatchActionIndirect_Selector tables, store the selector table id
@@ -309,6 +317,12 @@ RtTableContextInfo::makeTableContextInfo(
     case TDI_RT_TABLE_TYPE_MATCH_INDIRECT_SELECTOR:
       return std::unique_ptr<RtTableContextInfo>(
           new MatchActionIndirectTableContextInfo());
+    case TDI_RT_TABLE_TYPE_ACTION_PROFILE:
+      return std::unique_ptr<RtTableContextInfo>(
+          new ActionProfileContextInfo());
+    case TDI_RT_TABLE_TYPE_SELECTOR:
+      return std::unique_ptr<RtTableContextInfo>(
+          new SelectorTableContextInfo());
     default:
       return std::unique_ptr<RtTableContextInfo>(
           new RtTableContextInfo());
@@ -338,8 +352,6 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
 
   auto table_context_info =
       RtTableContextInfo::makeTableContextInfo(table_type);
-
-  table_context_info->pipe_tbl_hdl = table_hdl;
 
   // update table_context_info.
   table_context_info->table_name_ = table_name;
@@ -676,10 +688,21 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
     // Phase0 tables doesn't have action_info in tdi.
     // so phase0_action_context_info is used as place holder.
     if (tdi_action_info != nullptr) {
-      auto mat_context_info =
-          static_cast<MatchActionTableContextInfo *>(table_context_info.get());
-      mat_context_info->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
-          tdi_action_info->idGet();
+      if (static_cast<tdi_rt_table_type_e>(
+              tdi_table_info->tableTypeGet()) ==
+          TDI_RT_TABLE_TYPE_ACTION_PROFILE) {
+        auto action_profile_context_info =
+            static_cast<ActionProfileContextInfo *>(table_context_info.get());
+        action_profile_context_info
+            ->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
+            tdi_action_info->idGet();
+      } else {
+        auto mat_context_info = static_cast<MatchActionTableContextInfo *>(
+            table_context_info.get());
+        mat_context_info->act_fn_hdl_to_id_[action_context_info->act_fn_hdl_] =
+            tdi_action_info->idGet();
+      }
+
       tdi_action_info->actionContextInfoSet(std::move(action_context_info));
     }
   }
@@ -691,6 +714,41 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
     auto mat_context_info =
         static_cast<MatchActionTableContextInfo *>(table_context_info.get());
     mat_context_info->actionResourcesSet(dev_id);
+  }
+
+  // parse common data
+
+  // If the table is phase0, then we would have already parsed the common
+  // data fields while parsing the action specs. Hence don't do it
+  // again
+  if (table_type != TDI_RT_TABLE_TYPE_PORT_METADATA) {
+    // get common data
+    // Cjson common_data_cjson = table_bfrt["data"];
+    const auto &data_field_map = tdi_table_info->name_data_map_;
+    for (auto &kv : data_field_map) {
+      size_t offset = 0;
+      // Bitsize is needed to fill out some back-end info
+      // which has both action size in bytes and bits
+      // This is not applicable for the common data, but only applicable
+      // for per action data
+      size_t bitsize = 0;
+      // TODO correct the zeroes down
+      // making a null temp object to pass as contextJson info since we dont
+      // need that
+      Cjson temp;
+      const DataFieldInfo *common_data_field = kv.second;
+
+      auto data_field_context_info =
+          parseDataFieldContext(temp,
+                                common_data_field,
+                                tdi_table_info,
+                                table_context_info.get(),
+                                offset,
+                                bitsize,
+                                0);
+      common_data_field->dataFieldContextInfoSet(
+          std::move(data_field_context_info));
+    }
   }
 
   // populate_depends_on_refs(bfrtTable.get(), table_bfrt);
@@ -745,7 +803,6 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
 
   size_t offset = 0;
   size_t bitsize = 0;
-  bool is_register_data_field = false;
 
   // For phase0 tables, the common data that is published is actually the
   // action data for the backend pipe mgr. Thus, we need go through
@@ -753,7 +810,6 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
   // the action_info.
   if (tdi_action_info == nullptr) {
     const auto &data_field_map = tdi_table_info->name_data_map_;
-    tdi_id_t action_id = 0;
     for (auto &kv : data_field_map) {
       const DataFieldInfo *tdi_data_field_info = kv.second;
       auto data_field_context_info =
@@ -763,17 +819,13 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 table_context_info,
                                 offset,
                                 bitsize,
-                                action_context_info->act_fn_hdl_,
-                                action_id,
-                                0,
-                                &is_register_data_field);
+                                action_context_info->act_fn_hdl_);
 
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
   } else {
     const auto &data_field_map = tdi_action_info->data_fields_names_;
-    tdi_id_t action_id = tdi_action_info->idGet();
     for (auto &kv : data_field_map) {
       const DataFieldInfo *tdi_data_field_info = kv.second;
       auto data_field_context_info =
@@ -783,10 +835,7 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
                                 table_context_info,
                                 offset,
                                 bitsize,
-                                action_context_info->act_fn_hdl_,
-                                action_id,
-                                0,
-                                &is_register_data_field);
+                                action_context_info->act_fn_hdl_);
       tdi_data_field_info->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
@@ -807,15 +856,7 @@ ContextInfoParser::parseDataFieldContext(
     const RtTableContextInfo *table_context_info,
     size_t &field_offset,
     size_t &bitsize,
-    pipe_act_fn_hdl_t action_handle,
-    tdi_id_t action_id,
-    uint32_t oneof_index,
-    bool *is_register_data_field) {
-  // TODO: to avoid compilation errors
-  (void)action_id;
-  (void)oneof_index;
-  (void)is_register_data_field;
-
+    pipe_act_fn_hdl_t action_handle) {
   // create data_field_context_info here;
   auto data_field_context_info = std::unique_ptr<RtDataFieldContextInfo>(
       new RtDataFieldContextInfo());
@@ -1572,7 +1613,7 @@ tdi_status_t MatchActionTableContextInfo::resourceInternalGet(
 void MatchActionTableContextInfo::isTernaryTableSet(
     const tdi_dev_id_t &dev_id) {
   auto status = PipeMgrIntf::getInstance()->pipeMgrTblIsTern(
-      dev_id, pipe_tbl_hdl, &this->is_ternary_table_);
+      dev_id, this->tableHdlGet(), &this->is_ternary_table_);
   if (status != PIPE_SUCCESS) {
     LOG_ERROR("%s:%d %s Unable to find whether table is ternary or not",
               __func__,
@@ -1589,7 +1630,7 @@ void MatchActionTableContextInfo::actionResourcesSet(
     has_cntr = has_meter = has_lpf = has_wred = has_reg = false;
     tdi_status_t sts =
         pipeMgr->pipeMgrGetActionDirectResUsage(dev_id,
-                                                this->pipe_tbl_hdl,
+                                                this->tableHdlGet(),
                                                 i.first,
                                                 &has_cntr,
                                                 &has_meter,
@@ -1608,6 +1649,70 @@ void MatchActionTableContextInfo::actionResourcesSet(
     this->act_uses_dir_meter_[i.second] = has_meter || has_lpf || has_wred;
     this->act_uses_dir_reg_[i.second] = has_reg;
   }
+}
+
+tdi_status_t ActionProfileContextInfo::resourceInternalGet(
+    const DataFieldType &field_type, tdi_table_ref_info_t *tbl_ref) const {
+  // right now we return the first ref info back only since
+  // we do not have provision for multiple refs
+  switch (field_type) {
+    case (DataFieldType::COUNTER_INDEX):
+    case (DataFieldType::COUNTER_SPEC_BYTES):
+    case (DataFieldType::COUNTER_SPEC_PACKETS): {
+      auto vec = tableGetRefNameVec("statistics_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+
+    case (DataFieldType::REGISTER_SPEC):
+    case (DataFieldType::REGISTER_SPEC_HI):
+    case (DataFieldType::REGISTER_SPEC_LO):
+    case (DataFieldType::REGISTER_INDEX): {
+      auto vec = tableGetRefNameVec("stateful_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+
+    case (DataFieldType::LPF_INDEX):
+    case (DataFieldType::LPF_SPEC_TYPE):
+    case (DataFieldType::LPF_SPEC_GAIN_TIME_CONSTANT):
+    case (DataFieldType::LPF_SPEC_DECAY_TIME_CONSTANT):
+    case (DataFieldType::LPF_SPEC_OUTPUT_SCALE_DOWN_FACTOR):
+    case (DataFieldType::WRED_INDEX):
+    case (DataFieldType::WRED_SPEC_TIME_CONSTANT):
+    case (DataFieldType::WRED_SPEC_MIN_THRESHOLD):
+    case (DataFieldType::WRED_SPEC_MAX_THRESHOLD):
+    case (DataFieldType::WRED_SPEC_MAX_PROBABILITY):
+    case (DataFieldType::METER_INDEX):
+    case (DataFieldType::METER_SPEC_CIR_PPS):
+    case (DataFieldType::METER_SPEC_PIR_PPS):
+    case (DataFieldType::METER_SPEC_CBS_PKTS):
+    case (DataFieldType::METER_SPEC_PBS_PKTS):
+    case (DataFieldType::METER_SPEC_CIR_KBPS):
+    case (DataFieldType::METER_SPEC_PIR_KBPS):
+    case (DataFieldType::METER_SPEC_CBS_KBITS):
+    case (DataFieldType::METER_SPEC_PBS_KBITS): {
+      auto vec = tableGetRefNameVec("meter_table_refs");
+      if (!vec.empty()) {
+        *tbl_ref = vec.front();
+        return TDI_SUCCESS;
+      }
+      break;
+    }
+    default:
+      LOG_ERROR("%s:%d %s ERROR: Wrong dataFieldType provided",
+                __func__,
+                __LINE__,
+                tableNameGet().c_str());
+      return TDI_OBJECT_NOT_FOUND;
+  }
+  return TDI_OBJECT_NOT_FOUND;
 }
 
 }  // namespace rt

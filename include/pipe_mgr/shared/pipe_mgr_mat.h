@@ -75,6 +75,7 @@ struct pipe_tbl_match_spec {
 };
 #endif // !BFRT_FIXED
 
+#define PIPE_NUM_TBL_RESOURCES 4
 /*!
  * Enum to define meter rate unit types
  */
@@ -164,6 +165,75 @@ typedef struct pipe_tbl_match_spec pipe_tbl_match_spec_t;
 typedef struct pipe_sel_grp_profile pipe_sel_grp_profile_t;
 
 typedef struct pipe_sel_tbl_profile pipe_sel_tbl_profile_t;
+/*!
+ * Typedefs for pipeline object handles
+ */
+
+typedef uint32_t pipe_sess_hdl_t;
+typedef uint32_t pipe_ent_hdl_t;
+typedef uint32_t pipe_tbl_hdl_t;
+typedef bf_dev_target_t dev_target_t;
+typedef pipe_tbl_hdl_t pipe_mat_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_adt_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_stat_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_meter_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_lpf_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_sel_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_wred_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_stful_tbl_hdl_t;
+typedef pipe_tbl_hdl_t pipe_ind_res_hdl_t;
+typedef pipe_tbl_hdl_t pipe_res_hdl_t;
+typedef pipe_tbl_hdl_t pipe_prsr_instance_hdl_t;
+
+typedef pipe_ent_hdl_t pipe_mat_ent_hdl_t;
+typedef pipe_ent_hdl_t pipe_adt_ent_hdl_t;
+typedef pipe_ent_hdl_t pipe_stat_ent_idx_t;
+typedef pipe_ent_hdl_t pipe_sel_grp_hdl_t;
+typedef pipe_ent_hdl_t pipe_meter_idx_t;
+typedef pipe_ent_hdl_t pipe_stful_mem_idx_t;
+typedef pipe_ent_hdl_t pipe_ind_res_idx_t;
+typedef pipe_ent_hdl_t pipe_res_idx_t;
+
+typedef uint32_t pipe_act_fn_hdl_t;
+typedef uint32_t pipe_adt_mbr_id_t;
+typedef uint32_t pipe_sel_grp_id_t;
+typedef uint32_t pipe_fld_lst_hdl_t;
+typedef uint32_t pipe_reg_param_hdl_t;
+typedef uint8_t dev_stage_t;
+typedef int profile_id_t;
+typedef uint32_t pipe_idx_t;
+typedef uint8_t pipe_parser_id_t;
+typedef uint16_t pipe_mgr_data_tag_t;
+
+/*!
+ * Action data specification
+ */
+struct pipe_action_data_spec {
+	u16 num_valid_action_data_bits;
+	u16 num_action_data_bytes;
+	/*!< Number of action data bits valid */
+	u8 *action_data_bits;
+	/*!< Action data */
+};
+
+/*!
+ * Action data specification
+ */
+typedef struct pipe_action_data_spec pipe_action_data_spec_t;
+
+typedef struct adt_data_resources_ {
+  pipe_res_hdl_t tbl_hdl;
+  pipe_res_idx_t tbl_idx;
+} adt_data_resources_t;
+
+typedef struct pipe_mgr_adt_ent_data {
+  uint8_t num_resources;
+  uint8_t pad;
+  pipe_act_fn_hdl_t act_fn_hdl;
+  pipe_action_data_spec_t action_data;
+  adt_data_resources_t adt_data_resources[PIPE_NUM_TBL_RESOURCES];
+} pipe_mgr_adt_ent_data_t;
+
 
 /*!
  * Enum to define meter rate unit types
@@ -292,17 +362,6 @@ typedef struct pipe_res_spec pipe_res_spec_t;
 
 #endif // !BFRT_FIXED
 
-/*!
- * Action data specification
- */
-struct pipe_action_data_spec {
-	u16 num_valid_action_data_bits;
-	u16 num_action_data_bytes;
-	/*!< Number of action data bits valid */
-	u8 *action_data_bits;
-	/*!< Action data */
-};
-
 /* Types of action data for a match-action table entry */
 #define PIPE_ACTION_DATA_TYPE 0x1
 #define PIPE_ACTION_DATA_HDL_TYPE 0x2
@@ -320,7 +379,6 @@ struct pipe_action_spec {
 	 * Revisit adt_ent_hdl and modify it for Asic.
 	 */
 	u32 sel_grp_hdl;
-#define PIPE_NUM_TBL_RESOURCES 4
 	/* TODO: How many resource spec should we support? */
 	struct pipe_res_spec resources[PIPE_NUM_TBL_RESOURCES];
 	/* Contains meters, counters and any there resources information. */
@@ -485,6 +543,57 @@ int pipe_mgr_get_next_n_by_key(u32 sess_hdl,
 			       struct pipe_action_spec **act_specs,
 			       u32 *act_fn_hdls,
 			       u32 *num);
+/**
+ * Get entry member handle for specified member id.
+ *
+ * @param  sess_hdl              Session handle
+ * @param  dev_tgt               Device ID and pipe-id to query.
+ * @param  adt_tbl_hdl           Table handle.
+ * @param  mbr_id                Entry member id.
+ * @param  adt_ent_hdl           Pointer to where entry handle should be stored.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_adt_ent_hdl_get(pipe_sess_hdl_t shdl,
+                                       bf_dev_target_t dev_tgt,
+                                       pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                       pipe_adt_mbr_id_t mbr_id,
+                                       pipe_adt_ent_hdl_t *adt_ent_hdl);
+
+/**
+ * Get entry member id for specified entry handle.
+ *
+ * @param  sess_hdl              Session handle
+ * @param  dev_tgt               Device ID and pipe-id to query.
+ * @param  adt_tbl_hdl           Table handle.
+ * @param  ent_hdl               Entry handle.
+ * @param  adt_mbr_id            Pointer to where member id should be stored.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_adt_mbr_id_get(pipe_sess_hdl_t shdl,
+                                      bf_dev_target_t dev_tgt,
+                                      pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                      pipe_adt_ent_hdl_t ent_hdl,
+                                      pipe_adt_mbr_id_t *adt_mbr_id);
+
+/**
+ * Get entry data and handle for specified member id.
+ *
+ * @param  sess_hdl              Session handle
+ * @param  dev_tgt               Device ID and pipe-id to query.
+ * @param  adt_tbl_hdl           Table handle.
+ * @param  mbr_id                Entry member id.
+ * @param  adt_ent_hdl           Pointer to where new entry handle will be
+ *                               stored.
+ * @param  ent_data              Action entry data to populate.
+ * @param  pipe_api_flags        Flags variable for this API call.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_adt_ent_data_get(pipe_sess_hdl_t shdl,
+                                        bf_dev_target_t dev_tgt,
+                                        pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                        pipe_adt_mbr_id_t mbr_id,
+                                        pipe_adt_ent_hdl_t *adt_ent_hdl,
+                                        pipe_mgr_adt_ent_data_t *ent_data);
 
 /**
  * add entry information
@@ -500,6 +609,7 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 		struct bf_dev_target_t dev_tgt,
 		u32 adt_tbl_hdl,
 		u32 act_fn_hdl,
+		u32 mbr_id,
 		struct pipe_action_spec *action_spec,
 		u32 *adt_ent_hdl_p,
 		uint32_t pipe_api_flags);
@@ -563,6 +673,7 @@ int pipe_mgr_adt_ent_del(u32 sess_hdl,
 int pipe_mgr_sel_grp_add(u32 sess_hdl,
 		struct bf_dev_target_t dev_tgt,
 		u32 sel_tbl_hdl,
+		u32 sel_grp_id,
 		uint32_t max_grp_size,
 		u32 *sel_grp_hdl_p,
 		uint32_t pipe_api_flags);
@@ -653,7 +764,53 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		u32 tbl_hdl,
 		u32 grp_hdl,
 		uint32_t pipe_api_flags);
+/**
+ * Get selector group id by handle.
+ *
+ * @param  sess_hdl              Session handle.
+ * @param  dev_id                Device id.
+ * @param  seltbl_hdl            Selector table handle.
+ * @param  sel_grp_hdl           Selector group handle.
+ * @param  sel_grp_id            Pointer to selector group id variable.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_sel_grp_id_get(pipe_sess_hdl_t sess_hdl,
+                                      dev_target_t dev_tgt,
+                                      pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                      pipe_sel_grp_hdl_t sel_grp_hdl,
+                                      pipe_sel_grp_id_t *sel_grp_id);
 
+/**
+ * Get selector group handle by grp_id
+ *
+ * @param  sess_hdl              Session handle.
+ * @param  dev_id                Device id.
+ * @param  sel_tbl_hdl           Selector table handle.
+ * @param  sel_grp_id            Selector group id..
+ * @param  sel_grp_hdl           Pointer to handle variable.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_sel_grp_hdl_get(pipe_sess_hdl_t sess_hdl,
+                                       dev_target_t dev_tgt,
+                                       pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                       pipe_sel_grp_id_t sel_grp_id,
+                                       pipe_sel_grp_hdl_t *sel_grp_hdl);
+
+/**
+ * Get maximum selector group size
+ *
+ * @param  sess_hdl              Session handle.
+ * @param  dev_id                Device id.
+ * @param  tbl_hdl               Selector table handle.
+ * @param  grp_hdl               Selector group handle.
+ * @param  max_size              Pointer to the size variable.
+ * @return                       Status of the API call
+ */
+pipe_status_t pipe_mgr_get_sel_grp_max_size(pipe_sess_hdl_t sess_hdl,
+					    dev_target_t dev_tgt,
+                                            pipe_sel_tbl_hdl_t tbl_hdl,
+                                            pipe_sel_grp_hdl_t grp_hdl,
+                                            uint32_t *max_size);
 #ifdef __cplusplus
 }
 #endif /* C++ */

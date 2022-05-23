@@ -199,10 +199,7 @@ class ContextInfoParser {
       const RtTableContextInfo *table_context_info,
       size_t &field_offset,
       size_t &bitsize,
-      pipe_act_fn_hdl_t action_handle,
-      tdi_id_t action_id,
-      uint32_t oneof_index,
-      bool *is_register_data_field = nullptr);
+      pipe_act_fn_hdl_t action_handle);
 
   static tdi_status_t parseContextJson(const TdiInfo *tdi_info,
                                        const tdi_dev_id_t &dev_id,
@@ -337,8 +334,6 @@ class RtTableContextInfo : public TableContextInfo {
   mutable std::set<tdi_rt_operations_type_e> operations_type_set_;
   mutable std::set<tdi_rt_attributes_type_e> attributes_type_set_;
 
-  pipe_tbl_hdl_t pipe_tbl_hdl{0};
-
   size_t maxDataSz_{0};
   size_t maxDataSzbits_{0};
 
@@ -375,11 +370,14 @@ class MatchActionTableContextInfo : public RtTableContextInfo {
     }
     return 0;
   }
+
   void isTernaryTableSet(const tdi_dev_id_t &dev_id);
+  const bool &isTernaryTableGet() const { return is_ternary_table_; };
+
   const std::map<pipe_act_fn_hdl_t, tdi_id_t> &actFnHdlToIdGet() const {
     return act_fn_hdl_to_id_;
   };
-  const bool &isTernaryTableGet() const { return is_ternary_table_; };
+
   void actionResourcesSet(const tdi_dev_id_t &dev_id);
   void actionResourcesGet(const tdi_id_t action_id,
                           bool *meter,
@@ -400,6 +398,8 @@ class MatchActionTableContextInfo : public RtTableContextInfo {
       *meter = this->act_uses_dir_meter_.at(action_id);
     }
   }
+  const tdi::Table *actProfGet() const { return actProfTbl_; };
+  const tdi::Table *selectorGet() const { return selectorTbl_; };
 
  private:
   tdi_status_t resourceInternalGet(const DataFieldType &field_type,
@@ -410,6 +410,7 @@ class MatchActionTableContextInfo : public RtTableContextInfo {
   std::map<tdi_id_t, bool> act_uses_dir_reg_;
   // if this table is a ternary table
   bool is_ternary_table_{false};
+
   // A map from action fn handle to action id
   std::map<pipe_act_fn_hdl_t, tdi_id_t> act_fn_hdl_to_id_;
   mutable tdi::Table *actProfTbl_;
@@ -421,7 +422,7 @@ class MatchActionTableContextInfo : public RtTableContextInfo {
   // Selector table ID associated with this table. Applicable for
   // MatchAction_Indirect_Selector table
   mutable tdi_id_t selector_tbl_id_;
-  // Place holder for action_context_info for phase0 tables
+
   friend class ContextInfoParser;
 };
 
@@ -433,6 +434,59 @@ class MatchActionDirectTableContextInfo : public MatchActionTableContextInfo {
 class MatchActionIndirectTableContextInfo : public MatchActionTableContextInfo {
  public:
   MatchActionIndirectTableContextInfo() : MatchActionTableContextInfo(){};
+};
+
+class SelectorTableContextInfo : public RtTableContextInfo {
+ public:
+  SelectorTableContextInfo() : RtTableContextInfo(){};
+
+ private:
+  mutable tdi::Table *actProfTbl_;
+  // Action profile table ID associated with this table. Applicable for
+  // MatchAction_Indirect, MatchAction_Indirect_Selector and Selector table
+  // types
+  mutable tdi_id_t act_prof_id_;
+
+  friend class ContextInfoParser;
+  friend class Selector;
+};
+
+class ActionProfileContextInfo : public RtTableContextInfo {
+ public:
+  ActionProfileContextInfo() : RtTableContextInfo(){};
+
+  const std::map<pipe_act_fn_hdl_t, tdi_id_t> &actFnHdlToIdGet() const {
+    return act_fn_hdl_to_id_;
+  };
+  pipe_tbl_hdl_t resourceHdlGet(const DataFieldType &field_type) const {
+    tdi_table_ref_info_t tbl_ref;
+    bf_status_t status = resourceInternalGet(field_type, &tbl_ref);
+    if (status != BF_SUCCESS) {
+      return 0;
+    }
+    return tbl_ref.tbl_hdl;
+  }
+
+  pipe_tbl_hdl_t indirectResourceHdlGet(const DataFieldType &field_type) const {
+    tdi_table_ref_info_t tbl_ref;
+    bf_status_t status = resourceInternalGet(field_type, &tbl_ref);
+    if (status != BF_SUCCESS) {
+      return 0;
+    }
+    if (tbl_ref.indirect_ref) {
+      return tbl_ref.tbl_hdl;
+    }
+    return 0;
+  }
+
+ private:
+  tdi_status_t resourceInternalGet(const DataFieldType &field_type,
+                                   tdi_table_ref_info_t *tbl_ref) const;
+
+  // A map from action fn handle to action id
+  std::map<pipe_act_fn_hdl_t, tdi_id_t> act_fn_hdl_to_id_;
+
+  friend class ContextInfoParser;
 };
 
 class RtKeyFieldContextInfo : public KeyFieldContextInfo {

@@ -313,6 +313,7 @@ pipe_status_t PipeMgrIntf::pipeMgrAdtEntAdd(
                               dev_tgt,
                               adt_tbl_hdl,
                               act_fn_hdl,
+			      0,
                               (pipe_action_spec_t *)action_spec,
                               adt_ent_hdl_p,
                               pipe_api_flags);
@@ -377,6 +378,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpAdd(pipe_sess_hdl_t sess_hdl,
   return pipe_mgr_sel_grp_add(sess_hdl,
                               dev_tgt,
                               sel_tbl_hdl,
+			      0,
                               max_grp_size,
                               sel_grp_hdl_p,
                               pipe_api_flags);

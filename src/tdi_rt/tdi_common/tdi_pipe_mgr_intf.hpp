@@ -207,6 +207,7 @@ class IPipeMgrIntf {
                                          dev_target_t dev_tgt,
                                          pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                          pipe_act_fn_hdl_t act_fn_hdl,
+                                         const pipe_adt_mbr_id_t mbr_id,
                                          const pipe_action_spec_t *action_spec,
                                          pipe_adt_ent_hdl_t *adt_ent_hdl_p,
                                          uint32_t pipe_api_flags) = 0;
@@ -224,6 +225,26 @@ class IPipeMgrIntf {
                                          pipe_act_fn_hdl_t act_fn_hdl,
                                          const pipe_action_spec_t *action_spec,
                                          uint32_t pipe_api_flags) = 0;
+
+  virtual pipe_status_t pipeMgrAdtEntHdlGet(
+      pipe_sess_hdl_t sess_hdl,
+      dev_target_t dev_tgt,
+      pipe_adt_tbl_hdl_t adt_tbl_hdl,
+      pipe_adt_mbr_id_t mbr_id,
+      pipe_adt_ent_hdl_t *adt_ent_hdl) = 0;
+
+  virtual pipe_status_t pipeMgrAdtEntMbrIdGet(pipe_sess_hdl_t sess_hdl,
+                                              dev_target_t dev_tgt,
+                                              pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                              pipe_adt_ent_hdl_t adt_ent_hdl,
+                                              pipe_adt_mbr_id_t *mbr_id) = 0;
+  virtual pipe_status_t pipeMgrAdtEntDataGet(
+      pipe_sess_hdl_t sess_hdl,
+      dev_target_t dev_tgt,
+      pipe_adt_tbl_hdl_t adt_tbl_hdl,
+      pipe_adt_mbr_id_t mbr_id,
+      pipe_adt_ent_hdl_t *adt_ent_hdl,
+      pipe_mgr_adt_ent_data_t *ap_ent_data) = 0;
 
   virtual pipe_status_t pipeMgrTblIsTern(tdi_dev_id_t dev_id,
                                          pipe_tbl_hdl_t tbl_hdl,
@@ -246,6 +267,7 @@ class IPipeMgrIntf {
   virtual pipe_status_t pipeMgrSelGrpAdd(pipe_sess_hdl_t sess_hdl,
                                          dev_target_t dev_tgt,
                                          pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                         pipe_sel_grp_id_t sel_grp_id,
                                          uint32_t max_grp_size,
                                          pipe_sel_grp_hdl_t *sel_grp_hdl_p,
                                          uint32_t pipe_api_flags) = 0;
@@ -310,6 +332,25 @@ class IPipeMgrIntf {
       pipe_sel_grp_hdl_t sel_grp_hdl,
       pipe_adt_ent_hdl_t adt_ent_hdl,
       enum pipe_mgr_grp_mbr_state_e *mbr_state_p) = 0;
+
+  virtual pipe_status_t pipeMgrSelGrpIdGet(pipe_sess_hdl_t sess_hdl,
+                                           dev_target_t dev_tgt,
+                                           pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                           pipe_sel_grp_hdl_t sel_grp_hdl,
+                                           pipe_sel_grp_id_t *sel_grp_id) = 0;
+
+  virtual pipe_status_t pipeMgrSelGrpHdlGet(
+      pipe_sess_hdl_t sess_hdl,
+      dev_target_t dev_tgt,
+      pipe_sel_tbl_hdl_t sel_tbl_hdl,
+      pipe_sel_grp_id_t sel_grp_id,
+      pipe_sel_grp_hdl_t *sel_grp_hdl) = 0;
+
+  virtual pipe_status_t pipeMgrSelGrpMaxSizeGet(pipe_sess_hdl_t sess_hdl,
+                                                dev_target_t dev_tgt,
+                                                pipe_sel_tbl_hdl_t tbl_hdl,
+                                                pipe_sel_grp_hdl_t sel_grp_hdl,
+                                                uint32_t *max_size) = 0;
 
   virtual pipe_status_t pipeMgrSelFallbackMbrSet(pipe_sess_hdl_t sess_hdl,
                                                  dev_target_t dev_tgt,
@@ -794,6 +835,11 @@ class IPipeMgrIntf {
                                                const std::string &pipeline_name,
                                                uint32_t *pipe_mask) const = 0;
 
+  virtual pipe_status_t pipeSetAdtEntHdlInMatData(
+      void *data, pipe_adt_ent_hdl_t adt_ent_hdl) = 0;
+
+  virtual pipe_status_t pipeSetSelGrpHdlInMatData(
+      void *data, pipe_adt_ent_hdl_t sel_grp_hdl) = 0;
   virtual pipe_status_t pipeMgrGetNumPipelines(tdi_dev_id_t dev_id,
                                                uint32_t *num_pipes) const = 0;
 
@@ -988,6 +1034,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  dev_target_t dev_tgt,
                                  pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                  pipe_act_fn_hdl_t act_fn_hdl,
+                                 const pipe_adt_mbr_id_t mbr_id,
                                  const pipe_action_spec_t *action_spec,
                                  pipe_adt_ent_hdl_t *adt_ent_hdl_p,
                                  uint32_t pipe_api_flags);
@@ -1005,6 +1052,26 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  pipe_act_fn_hdl_t act_fn_hdl,
                                  const pipe_action_spec_t *action_spec,
                                  uint32_t pipe_api_flags);
+
+  pipe_status_t pipeMgrAdtEntHdlGet(pipe_sess_hdl_t sess_hdl,
+                                    dev_target_t dev_tgt,
+                                    pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                    pipe_adt_mbr_id_t mbr_id,
+                                    pipe_adt_ent_hdl_t *adt_ent_hdl);
+
+  pipe_status_t pipeMgrAdtEntMbrIdGet(pipe_sess_hdl_t sess_hdl,
+                                      dev_target_t dev_tgt,
+                                      pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                      pipe_adt_ent_hdl_t adt_ent_hdl,
+                                      pipe_adt_mbr_id_t *adt_mbr_id);
+
+  pipe_status_t pipeMgrAdtEntDataGet(pipe_sess_hdl_t sess_hdl,
+                                     dev_target_t dev_tgt,
+                                     pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                     pipe_adt_mbr_id_t mbr_id,
+                                     pipe_adt_ent_hdl_t *adt_ent_hdl,
+                                     pipe_mgr_adt_ent_data_t *ap_ent_data);
+
   pipe_status_t pipeMgrTblIsTern(tdi_dev_id_t dev_id,
                                  pipe_tbl_hdl_t tbl_hdl,
                                  bool *is_tern);
@@ -1025,6 +1092,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
   pipe_status_t pipeMgrSelGrpAdd(pipe_sess_hdl_t sess_hdl,
                                  dev_target_t dev_tgt,
                                  pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                 pipe_sel_grp_id_t sel_grp_id,
                                  uint32_t max_grp_size,
                                  pipe_sel_grp_hdl_t *sel_grp_hdl_p,
                                  uint32_t pipe_api_flags);
@@ -1089,6 +1157,24 @@ class PipeMgrIntf : public IPipeMgrIntf {
       pipe_sel_grp_hdl_t sel_grp_hdl,
       pipe_adt_ent_hdl_t adt_ent_hdl,
       enum pipe_mgr_grp_mbr_state_e *mbr_state_p);
+
+  pipe_status_t pipeMgrSelGrpIdGet(pipe_sess_hdl_t sess_hdl,
+                                   dev_target_t dev_tgt,
+                                   pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                   pipe_sel_grp_hdl_t sel_grp_hdl,
+                                   pipe_sel_grp_id_t *sel_grp_id);
+
+  pipe_status_t pipeMgrSelGrpHdlGet(pipe_sess_hdl_t sess_hdl,
+                                    dev_target_t dev_tgt,
+                                    pipe_sel_tbl_hdl_t sel_tbl_hdl,
+                                    pipe_sel_grp_id_t sel_grp_id,
+                                    pipe_sel_grp_hdl_t *sel_grp_hdl);
+
+  pipe_status_t pipeMgrSelGrpMaxSizeGet(pipe_sess_hdl_t sess_hdl,
+                                        dev_target_t dev_tgt,
+                                        pipe_sel_tbl_hdl_t tbl_hdl,
+                                        pipe_sel_grp_hdl_t sel_grp_hdl,
+                                        uint32_t *max_size);
 
   pipe_status_t pipeMgrSelFallbackMbrSet(pipe_sess_hdl_t sess_hdl,
                                          dev_target_t dev_tgt,
@@ -1540,6 +1626,11 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                         int *num_tbls);
 
 
+  pipe_status_t pipeSetAdtEntHdlInMatData(void *data,
+                                          pipe_adt_ent_hdl_t adt_ent_hdl);
+
+  pipe_status_t pipeSetSelGrpHdlInMatData(void *data,
+                                          pipe_adt_ent_hdl_t sel_grp_hdl);
   tdi_status_t pipeMgrTblHdlPipeMaskGet(tdi_dev_id_t dev_id,
                                        const std::string &prog_name,
                                        const std::string &pipeline_name,

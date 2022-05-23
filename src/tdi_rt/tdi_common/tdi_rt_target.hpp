@@ -81,6 +81,10 @@ class Device : public tdi::pna::Device {
  */
 class Target : public tdi::pna::Target {
  public:
+  Target(tdi_dev_id_t dev_id,
+         pna_pipe_id_t pipe_id,
+         pna_direction_e direction)
+      : tdi::pna::Target(dev_id, pipe_id, direction){};
   tdi_status_t setValue(const tdi_target_e &target,
                                 const uint32_t &value) override;
   tdi_status_t getValue(const tdi_target_e &target,
@@ -88,12 +92,6 @@ class Target : public tdi::pna::Target {
 
   void getTargetVals(bf_dev_target_t *dev_tgt,
                      pna_direction_e *direction) const;
- protected:
-  Target(tdi_dev_id_t dev_id,
-         pna_pipe_id_t pipe_id,
-         pna_direction_e direction)
-      : tdi::pna::Target(dev_id, pipe_id, direction){};
- friend class tdi::pna::rt::Device;
 };
 
 }  // namespace rt

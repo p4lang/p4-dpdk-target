@@ -40,6 +40,9 @@
 
 #include <tdi_common/tdi_context_info.hpp>
 
+typedef uint32_t tdi_rt_act_mem_id_t;
+typedef uint32_t tdi_rt_sel_grp_id_t;
+
 namespace tdi {
 namespace pna {
 namespace rt {
@@ -186,26 +189,29 @@ class MatchActionKey : public tdi::TableKey {
   uint32_t priority;
 };
 
-#if 0
-class TdiActionTableKey : public TdiTableKeyObj {
+class ActionProfileKey : public tdi::TableKey {
  public:
-  TdiActionTableKey(const TdiTableObj *tbl_obj)
-      : TdiTableKeyObj(tbl_obj), member_id(){};
+  ActionProfileKey(const Table *tbl_obj) : TableKey(tbl_obj), member_id(){};
 
-  ~TdiActionTableKey() = default;
+  ~ActionProfileKey() = default;
+  tdi_status_t setValue(const tdi_id_t &field_id,
+                        const tdi::KeyFieldValue &field_value) override;
+  tdi_status_t getValue(const tdi_id_t &field_id,
+                        tdi::KeyFieldValue *field_value) const override;
 
   tdi_id_t getMemberId() const { return member_id; }
   void setMemberId(tdi_id_t mbr_id) { member_id = mbr_id; }
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
-  tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
-
-  tdi_status_t getValue(const tdi_id_t &field_id,
-                       const size_t &size,
-                       uint8_t *value) const;
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
+                        const uint64_t &value);
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
+                        const uint8_t *value,
+                        const size_t &size);
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
+                        uint64_t *value) const;
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
+                        const size_t &size,
+                        uint8_t *value) const;
 
   tdi_status_t reset() {
     member_id = 0;
@@ -213,31 +219,40 @@ class TdiActionTableKey : public TdiTableKeyObj {
   }
 
  private:
-  tdi_id_t member_id;
+  tdi_rt_act_mem_id_t member_id;
 };
 
-class TdiSelectorTableKey : public TdiTableKeyObj {
+class SelectorTableKey : public tdi::TableKey {
  public:
-  TdiSelectorTableKey(const TdiTableObj *tbl_obj)
-      : TdiTableKeyObj(tbl_obj), group_id(){};
+  SelectorTableKey(const Table *table) : tdi::TableKey(table), group_id(){};
 
-  ~TdiSelectorTableKey() = default;
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
+  ~SelectorTableKey() = default;
+  virtual tdi_status_t setValue(const tdi_id_t &field_id,
+                                const tdi::KeyFieldValue &field_value) override;
 
-  tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
+  virtual tdi_status_t getValue(const tdi_id_t &field_id,
+                                tdi::KeyFieldValue *value) const override;
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
+  // Hidden
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
+                        const uint64_t &value);
 
-  tdi_status_t getValue(const tdi_id_t &field_id,
-                       const size_t &size,
-                       uint8_t *value) const;
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
+                        const uint8_t *value,
+                        const size_t &size);
+
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
+                        uint64_t *value) const;
+
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
+                        const size_t &size,
+                        uint8_t *value) const;
 
   tdi_id_t getGroupId() const { return group_id; }
+
   void setGroupId(tdi_id_t grp_id) { group_id = grp_id; }
 
-  tdi_status_t reset() {
+  virtual tdi_status_t reset() override {
     group_id = 0;
     return TDI_SUCCESS;
   };
@@ -246,6 +261,7 @@ class TdiSelectorTableKey : public TdiTableKeyObj {
   tdi_id_t group_id;
 };
 
+#if 0
 class TdiCounterTableKey : public TdiTableKeyObj {
  public:
   TdiCounterTableKey(const TdiTableObj *tbl_obj)

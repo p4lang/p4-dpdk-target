@@ -40,7 +40,6 @@ namespace rt {
 
 namespace {
 
-#if 0
 /*
  * - Get Data Field from the table
  * - Check if the data dield type matched with any of the allowed field types
@@ -72,9 +71,9 @@ tdi_status_t indirectResourceSetValueHelper(
     return TDI_OBJECT_NOT_FOUND;
   }
   *field_type = *(static_cast<const RtDataFieldContextInfo *>(
-                    tableDataField->dataFieldContextInfoGet())
-                    ->typesGet()
-                    .begin());
+                      tableDataField->dataFieldContextInfoGet())
+                      ->typesGet()
+                      .begin());
   if (allowed_field_types.size() &&
       allowed_field_types.find(*field_type) == allowed_field_types.end()) {
     // This indicates that this particular setter can only be used for a
@@ -197,7 +196,6 @@ void setInputValToOutputVal(const tdi::Table &table,
     *value = input_val;
   }
 }
-#endif
 
 bool is_indirect_resource(const DataFieldType &type) {
   switch (type) {
@@ -1464,15 +1462,14 @@ tdi_status_t MatchActionTableData::reset(
 
 // ACTION TABLE DATA
 
-#if 0
-tdi_status_t TdiActionTableData::setValue(const tdi_id_t &field_id,
+tdi_status_t ActionProfileData::setValue(const tdi_id_t &field_id,
                                           const uint64_t &value) {
   auto status = this->setValueInternal(field_id, value, nullptr, 0);
 
   return status;
 }
 
-tdi_status_t TdiActionTableData::setValue(const tdi_id_t &field_id,
+tdi_status_t ActionProfileData::setValue(const tdi_id_t &field_id,
                                           const uint8_t *ptr,
                                           const size_t &size) {
   auto status = this->setValueInternal(field_id, 0, ptr, size);
@@ -1480,26 +1477,16 @@ tdi_status_t TdiActionTableData::setValue(const tdi_id_t &field_id,
   return status;
 }
 
-tdi_status_t TdiActionTableData::getValueInternal(const tdi_id_t &field_id,
+tdi_status_t ActionProfileData::getValueInternal(const tdi_id_t &field_id,
                                                   uint64_t *value,
                                                   uint8_t *value_ptr,
                                                   const size_t &s) const {
-  tdi_status_t status = TDI_SUCCESS;
-  const tdi::DataFieldInfo *tableDataField = nullptr;
-  status = this->table_->getDataField(
-      field_id, this->actionIdGet_(), &tableDataField);
-  if (status != TDI_SUCCESS) {
-    LOG_ERROR("%s:%d %s ERROR : Invalid field id %d, for action id %d",
-              __func__,
-              __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(),
-              field_id,
-              this->actionIdGet_());
-    return TDI_INVALID_ARG;
-  }
-
-  status = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
+  const auto &action_id = this->actionIdGet();
+  const tdi::DataFieldInfo *tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
+  auto status = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
       *this->table_, *tableDataField, value, value_ptr, s);
+
   if (status != TDI_SUCCESS) {
     LOG_ERROR(
         "ERROR: %s:%d %s : Input param compatibility check failed for field id "
@@ -1514,6 +1501,8 @@ tdi_status_t TdiActionTableData::getValueInternal(const tdi_id_t &field_id,
   auto fieldTypes = static_cast<const RtDataFieldContextInfo *>(
                         tableDataField->dataFieldContextInfoGet())
                         ->typesGet();
+  auto adt_context_info = static_cast<const ActionProfileContextInfo *>(
+      this->table_->tableInfoGet()->tableContextInfoGet());
   for (const auto &fieldType : fieldTypes) {
     switch (fieldType) {
       case DataFieldType::ACTION_PARAM_OPTIMIZED_OUT:
@@ -1524,7 +1513,7 @@ tdi_status_t TdiActionTableData::getValueInternal(const tdi_id_t &field_id,
       case (DataFieldType::COUNTER_INDEX):
       case (DataFieldType::REGISTER_INDEX):
       case (DataFieldType::METER_INDEX): {
-        pipe_tbl_hdl_t res_hdl = this->table_->getResourceHdl(fieldType);
+        pipe_tbl_hdl_t res_hdl = adt_context_info->resourceHdlGet(fieldType);
         return getPipeActionSpecObj().getValueResourceIndex(
             *tableDataField, res_hdl, value, value_ptr);
       }
@@ -1540,33 +1529,30 @@ tdi_status_t TdiActionTableData::getValueInternal(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiActionTableData::getValue(const tdi_id_t &field_id,
-                                          uint64_t *value) const {
+tdi_status_t ActionProfileData::getValue(const tdi_id_t &field_id,
+                                         uint64_t *value) const {
   return this->getValueInternal(field_id, value, nullptr, 0);
 }
 
-tdi_status_t TdiActionTableData::getValue(const tdi_id_t &field_id,
-                                          const size_t &size,
-                                          uint8_t *value) const {
+tdi_status_t ActionProfileData::getValue(const tdi_id_t &field_id,
+                                         const size_t &size,
+                                         uint8_t *value) const {
   return this->getValueInternal(field_id, 0, value, size);
 }
 
-tdi_status_t TdiActionTableData::setValueInternal(const tdi_id_t &field_id,
-                                                  const uint64_t &value,
-                                                  const uint8_t *value_ptr,
-                                                  const size_t &s) {
-  tdi_status_t status = TDI_SUCCESS;
-  const tdi::DataFieldInfo *tableDataField = nullptr;
-
-  status = this->table_->getDataField(
-      field_id, this->actionIdGet_(), &tableDataField);
-  if (status != TDI_SUCCESS) {
-    LOG_ERROR("ERROR: %s:%d Invalid field id %d for table %s",
+tdi_status_t ActionProfileData::setValueInternal(const tdi_id_t &field_id,
+                                                 const uint64_t &value,
+                                                 const uint8_t *value_ptr,
+                                                 const size_t &s) {
+  auto tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, this->actionIdGet());
+  if (!tableDataField) {
+    LOG_ERROR("%s:%d %s ERROR : Data field id %d not found",
               __func__,
               __LINE__,
-              field_id,
-              this->table_->tableInfoGet()->nameGet().c_str());
-    return TDI_INVALID_ARG;
+              this->table_->tableInfoGet()->nameGet().c_str(),
+              field_id);
+    return TDI_OBJECT_NOT_FOUND;
   }
 
   // Do some bounds checking using the utility functions
@@ -1592,13 +1578,15 @@ tdi_status_t TdiActionTableData::setValueInternal(const tdi_id_t &field_id,
         __LINE__,
         this->table_->tableInfoGet()->nameGet().c_str(),
         tableDataField->idGet(),
-        this->actionIdGet_());
+        this->actionIdGet());
     return sts;
   }
 
   auto fieldTypes = static_cast<const RtDataFieldContextInfo *>(
                         tableDataField->dataFieldContextInfoGet())
                         ->typesGet();
+  auto adt_context_info = static_cast<const ActionProfileContextInfo *>(
+      this->table_->tableInfoGet()->tableContextInfoGet());
   for (const auto &fieldType : fieldTypes) {
     switch (fieldType) {
       case (DataFieldType::ACTION_PARAM): {
@@ -1617,7 +1605,7 @@ tdi_status_t TdiActionTableData::setValueInternal(const tdi_id_t &field_id,
             __LINE__,
             this->table_->tableInfoGet()->nameGet().c_str(),
             tableDataField->idGet(),
-            this->actionIdGet_());
+            this->actionIdGet());
         std::vector<uint8_t> data_arr((tableDataField->sizeGet() + 7) / 8, 0);
         sts = getPipeActionSpecObj().setValueActionParam(
             *tableDataField, 0, data_arr.data());
@@ -1626,7 +1614,7 @@ tdi_status_t TdiActionTableData::setValueInternal(const tdi_id_t &field_id,
       case (DataFieldType::COUNTER_INDEX):
       case (DataFieldType::REGISTER_INDEX):
       case (DataFieldType::METER_INDEX): {
-        pipe_tbl_hdl_t res_hdl = this->table_->getResourceHdl(fieldType);
+        pipe_tbl_hdl_t res_hdl = adt_context_info->resourceHdlGet(fieldType);
         sts = getPipeActionSpecObj().setValueResourceIndex(
             *tableDataField, res_hdl, value, value_ptr);
         if (sts != TDI_SUCCESS) {
@@ -1676,56 +1664,45 @@ tdi_status_t TdiActionTableData::setValueInternal(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-pipe_act_fn_hdl_t TdiActionTableData::getActFnHdl() const {
-  return this->table_->getActFnHdl(this->actionIdGet_());
+pipe_act_fn_hdl_t ActionProfileData::getActFnHdl() const {
+  auto action = this->table_->tableInfoGet()->actionGet(this->actionIdGet());
+  if (!action || !action->actionContextInfoGet()) return 0;
+  auto rt_action_context = static_cast<const RtActionContextInfo *>(
+      action->actionContextInfoGet());
+  return rt_action_context->actionFnHdlGet();
 }
 
-tdi_status_t TdiActionTableData::reset(
-    const tdi_id_t &act_id,
-    const tdi_id_t &/*container_id*/,
-    const std::vector<tdi_id_t> &/*fields*/) {
-    return TableData::reset(act_id, 0, {};
-}
-
-tdi_status_t TdiActionTableData::resetDerived() {
-  auto sts = reset_action_data<TdiActionTableData>(act_id, this);
-  this->init(act_id);
-  return this->reset(0, 0, {});
+tdi_status_t ActionProfileData::reset(const tdi_id_t &act_id,
+                                      const tdi_id_t & /*container_id*/,
+                                      const std::vector<tdi_id_t> &fields) {
+  auto status = reset_action_data<ActionProfileData>(act_id, this);
+  if (status) return status;
+  return tdi::TableData::reset(act_id, 0, fields);
 }
 
 // SELECTOR TABLE DATA
-TdiSelectorTableData::TdiSelectorTableData(
-    const tdi::Table *tbl_obj, const std::vector<tdi_id_t> &fields)
-    : TdiTableDataObj(tbl_obj), act_fn_hdl_() {
-  tdi_id_t max_grp_size_id;
-  tdi_status_t sts =
-      tbl_obj->dataFieldIdGet("$MAX_GROUP_SIZE", &max_grp_size_id);
-  if (sts != TDI_SUCCESS) {
+SelectorTableData::SelectorTableData(const tdi::Table *table,
+                                     const std::vector<tdi_id_t> &fields)
+    : tdi::TableData(table), act_fn_hdl_() {
+  const auto max_grp_size_field =
+      table->tableInfoGet()->dataFieldGet("$MAX_GROUP_SIZE");
+  if (max_grp_size_field == nullptr) {
     LOG_ERROR("%s:%d ERROR Field Id for \"$MAX_GROUP_SIZE\" field not found",
               __func__,
               __LINE__);
     TDI_DBGCHK(0);
   }
+  auto max_grp_size_id = max_grp_size_field->idGet();
+
   if (fields.empty() ||
       (std::find(fields.begin(), fields.end(), max_grp_size_id) !=
        fields.end())) {
     // Set the max group size to the default value parsed from tdi json
     // We don't need to worry about the members and member sts arrays because
     // they will be empty anyway by default
-    uint64_t default_value;
-    sts = tbl_obj->defaultDataValueGet(
-        max_grp_size_id, 0 /* this->actionIdGet_() */, &default_value);
-    if (sts != TDI_SUCCESS) {
-      // For some reason we were unable to get the default value from the
-      // tdi json. So just set it to 0
-      LOG_ERROR("%s:%d ERROR Unable to get the default value for field %d",
-                __func__,
-                __LINE__,
-                max_grp_size_id);
-      TDI_DBGCHK(0);
-      default_value = 0;
-    }
-    sts = this->setValueInternal(max_grp_size_id, 0, default_value, nullptr);
+    uint64_t default_value = max_grp_size_field->defaultValueGet();
+    auto sts =
+        this->setValueInternal(max_grp_size_id, 0, default_value, nullptr);
     if (sts != TDI_SUCCESS) {
       // Unable to set the default value
       LOG_ERROR("%s:%d ERROR Unable to set the default value for field %d",
@@ -1737,7 +1714,7 @@ TdiSelectorTableData::TdiSelectorTableData(
   }
 }
 
-std::vector<tdi_id_t> TdiSelectorTableData::get_members_from_array(
+std::vector<tdi_id_t> SelectorTableData::get_members_from_array(
     const uint8_t *value, const size_t &size) {
   std::vector<tdi_id_t> grp_members;
   for (unsigned i = 0; i < size; i += sizeof(tdi_id_t)) {
@@ -1748,10 +1725,10 @@ std::vector<tdi_id_t> TdiSelectorTableData::get_members_from_array(
   return grp_members;
 }
 
-tdi_status_t TdiSelectorTableData::setValueInternal(const tdi_id_t &field_id,
-                                                    const size_t &size,
-                                                    const uint64_t &value,
-                                                    const uint8_t *value_ptr) {
+tdi_status_t SelectorTableData::setValueInternal(const tdi_id_t &field_id,
+                                                 const size_t &size,
+                                                 const uint64_t &value,
+                                                 const uint8_t *value_ptr) {
   uint64_t val = 0;
   std::set<DataFieldType> allowed_field_types = {DataFieldType::MAX_GROUP_SIZE};
   DataFieldType field_type;
@@ -1775,33 +1752,33 @@ tdi_status_t TdiSelectorTableData::setValueInternal(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiSelectorTableData::setValue(const tdi_id_t &field_id,
-                                            const uint64_t &value) {
+tdi_status_t SelectorTableData::setValue(const tdi_id_t &field_id,
+                                         const uint64_t &value) {
   return this->setValueInternal(field_id, 0, value, nullptr);
 }
 
-tdi_status_t TdiSelectorTableData::setValue(const tdi_id_t &field_id,
-                                            const uint8_t *value_ptr,
-                                            const size_t &size) {
+tdi_status_t SelectorTableData::setValue(const tdi_id_t &field_id,
+                                         const uint8_t *value_ptr,
+                                         const size_t &size) {
   return this->setValueInternal(field_id, size, 0, value_ptr);
 }
 
-tdi_status_t TdiSelectorTableData::setValue(
-    const tdi_id_t &field_id, const std::vector<tdi_id_t> &arr) {
-  tdi_status_t status = TDI_SUCCESS;
-  const tdi::DataFieldInfo *tableDataField = nullptr;
-  status = this->table_->getDataField(field_id, &tableDataField);
+tdi_status_t SelectorTableData::setValue(const tdi_id_t &field_id,
+                                         const std::vector<tdi_id_t> &arr) {
+  const auto &action_id = this->actionIdGet();
+  const tdi::DataFieldInfo *tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
 
-  if (status != TDI_SUCCESS) {
+  if (!tableDataField) {
     LOG_ERROR("%s:%d %s Invalid field id %d",
               __func__,
               __LINE__,
               this->table_->tableInfoGet()->nameGet().c_str(),
               field_id);
-    return status;
+    return TDI_OBJECT_NOT_FOUND;
   }
   // Next, check if this setter can be used
-  if (!tableDataField->isIntArr()) {
+  if (tableDataField->dataTypeGet() != TDI_FIELD_DATA_TYPE_INT_ARR) {
     LOG_ERROR(
         "%s:%d This setter cannot be used for field id %d, for table %s, since "
         "the field is not an integer array",
@@ -1816,22 +1793,22 @@ tdi_status_t TdiSelectorTableData::setValue(
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiSelectorTableData::setValue(const tdi_id_t &field_id,
-                                            const std::vector<bool> &arr) {
-  tdi_status_t status = TDI_SUCCESS;
-  const tdi::DataFieldInfo *tableDataField = nullptr;
+tdi_status_t SelectorTableData::setValue(const tdi_id_t &field_id,
+                                         const std::vector<bool> &arr) {
+  const auto &action_id = this->actionIdGet();
+  const tdi::DataFieldInfo *tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
 
-  status = this->table_->getDataField(field_id, &tableDataField);
-  if (status != TDI_SUCCESS) {
+  if (!tableDataField) {
     LOG_ERROR("%s:%d %s Invalid field id %d",
               __func__,
               __LINE__,
               this->table_->tableInfoGet()->nameGet().c_str(),
               field_id);
-    return status;
+    return TDI_OBJECT_NOT_FOUND;
   }
   // Next, check if this setter can be used
-  if (!tableDataField->isBoolArr()) {
+  if (tableDataField->dataTypeGet() != TDI_FIELD_DATA_TYPE_BOOL_ARR) {
     LOG_ERROR(
         "%s:%d This setter cannot be used for field id %d, for table %s, since "
         "the field is not a bool array",
@@ -1847,10 +1824,10 @@ tdi_status_t TdiSelectorTableData::setValue(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiSelectorTableData::getValueInternal(const tdi_id_t &field_id,
-                                                    const size_t &size,
-                                                    uint64_t *value,
-                                                    uint8_t *value_ptr) const {
+tdi_status_t SelectorTableData::getValueInternal(const tdi_id_t &field_id,
+                                                 const size_t &size,
+                                                 uint64_t *value,
+                                                 uint8_t *value_ptr) const {
   DataFieldType field_type;
   std::set<DataFieldType> allowed_field_types = {DataFieldType::MAX_GROUP_SIZE};
   auto sts = indirectResourceGetValueHelper(*table_,
@@ -1874,24 +1851,24 @@ tdi_status_t TdiSelectorTableData::getValueInternal(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
-                                            uint64_t *value) const {
+tdi_status_t SelectorTableData::getValue(const tdi_id_t &field_id,
+                                         uint64_t *value) const {
   return this->getValueInternal(field_id, 0, value, nullptr);
 }
 
-tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
-                                            const size_t &size,
-                                            uint8_t *value_ptr) const {
+tdi_status_t SelectorTableData::getValue(const tdi_id_t &field_id,
+                                         const size_t &size,
+                                         uint8_t *value_ptr) const {
   return this->getValueInternal(field_id, size, nullptr, value_ptr);
 }
 
-tdi_status_t TdiSelectorTableData::getValue(
-    const tdi_id_t &field_id, std::vector<tdi_id_t> *arr) const {
+tdi_status_t SelectorTableData::getValue(const tdi_id_t &field_id,
+                                         std::vector<tdi_id_t> *arr) const {
+  tdi_status_t status = TDI_SUCCESS;
   // Get the data_field from the table
-  tdi_id_t action_id;
-  status = this->actionIdGet(&action_id);
+  const auto &action_id = this->actionIdGet();
   const tdi::DataFieldInfo *tableDataField =
-      this->table_->dataFieldGet(field_id, action_id);
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
 
   if (!tableDataField) {
     LOG_ERROR("%s:%d %s ERROR : Invalid field id %d",
@@ -1907,7 +1884,7 @@ tdi_status_t TdiSelectorTableData::getValue(
                         ->typesGet();
   for (const auto &fieldType : fieldTypes) {
     if (fieldType == DataFieldType::SELECTOR_MEMBERS &&
-        tableDataField->isIntArr()) {
+        tableDataField->dataTypeGet() == TDI_FIELD_DATA_TYPE_INT_ARR) {
       *arr = members_;
       status = TDI_SUCCESS;
     } else {
@@ -1924,13 +1901,13 @@ tdi_status_t TdiSelectorTableData::getValue(
   return status;
 }
 
-tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
-                                            std::vector<bool> *arr) const {
+tdi_status_t SelectorTableData::getValue(const tdi_id_t &field_id,
+                                         std::vector<bool> *arr) const {
+  tdi_status_t status = TDI_SUCCESS;
   // Get the data_field from the table
-  tdi_id_t action_id;
-  status = this->actionIdGet(&action_id);
+  const auto &action_id = this->actionIdGet();
   const tdi::DataFieldInfo *tableDataField =
-      this->table_->dataFieldGet(field_id, action_id);
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
 
   if (!tableDataField) {
     LOG_ERROR("%s:%d %s ERROR : Invalid field id %d",
@@ -1946,7 +1923,7 @@ tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
                         ->typesGet();
   for (const auto &fieldType : fieldTypes) {
     if (fieldType == DataFieldType::ACTION_MEMBER_STATUS &&
-        tableDataField->isBoolArr()) {
+        tableDataField->dataTypeGet() == TDI_FIELD_DATA_TYPE_BOOL_ARR) {
       *arr = member_status_;
       status = TDI_SUCCESS;
     } else {
@@ -1963,7 +1940,7 @@ tdi_status_t TdiSelectorTableData::getValue(const tdi_id_t &field_id,
   return status;
 }
 
-tdi_status_t TdiSelectorTableData::resetDerived() {
+tdi_status_t SelectorTableData::resetDerived() {
   this->actionIdSet(0);
   act_fn_hdl_ = 0;
   members_.clear();
@@ -1972,6 +1949,7 @@ tdi_status_t TdiSelectorTableData::resetDerived() {
   return TDI_SUCCESS;
 }
 
+#if 0
 // Counter Table Data
 
 tdi_status_t TdiCounterTableData::setValueInternal(const tdi_id_t &field_id,

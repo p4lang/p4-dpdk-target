@@ -547,50 +547,60 @@ class MatchActionIndirectTableData : public MatchActionTableData {
   static const tdi_id_t invalid_action_entry_hdl = 0xdeadbeef;
 };
 
-#if 0
-class ActionTableData : public tdi::TableData {
+class ActionProfileData : public tdi::TableData {
  public:
-  ActionTableData(const tdi::Table *tbl_obj, tdi_id_t act_id)
+  ActionProfileData(const tdi::Table *tbl_obj, tdi_id_t act_id)
       : tdi::TableData(tbl_obj, act_id) {
     size_t data_sz = 0;
     size_t data_sz_bits = 0;
     if (act_id) {
-      data_sz = getdataSz(act_id);
-      data_sz_bits = getdataSzbits(act_id);
+      data_sz = static_cast<const RtActionContextInfo *>(
+                    this->table_->tableInfoGet()
+                        ->actionGet(act_id)
+                        ->actionContextInfoGet())
+                    ->dataSzGet();
+      data_sz_bits = static_cast<const RtActionContextInfo *>(
+                         this->table_->tableInfoGet()
+                             ->actionGet(act_id)
+                             ->actionContextInfoGet())
+                         ->dataSzBitsGet();
     } else {
-      data_sz = getMaxdataSz();
-      data_sz_bits = getMaxdataSzbits();
+      data_sz = static_cast<const RtTableContextInfo *>(
+                    this->table_->tableInfoGet()->tableContextInfoGet())
+                    ->maxDataSzGet();
+      data_sz_bits = static_cast<const RtTableContextInfo *>(
+                         this->table_->tableInfoGet()->tableContextInfoGet())
+                         ->maxDataSzBitsGet();
     }
-    // Prime the pipe mgr action spec structure
+
     PipeActionSpec *action_spec =
         new PipeActionSpec(data_sz, data_sz_bits, PIPE_ACTION_DATA_TYPE);
     action_spec_wrapper.reset(action_spec);
-    this->init(act_id);
+    this->initializeDataFields();
   }
 
-  ActionTableData(const tdi::Table *tbl_obj)
-      : ActionTableData(tbl_obj, 0) {}
+  ActionProfileData(const tdi::Table *tbl_obj)
+      : ActionProfileData(tbl_obj, 0) {}
 
-  void init(const tdi_id_t &act_id) { this->actionIdSet(act_id); }
+  tdi_status_t reset(const tdi_id_t &action_id,
+                     const tdi_id_t & /*container_id*/,
+                     const std::vector<tdi_id_t> &fields) override;
 
-  tdi_status_t reset();
-
-  tdi_status_t reset(const tdi_id_t &action_id);
-
-  virtual ~ActionTableData(){};
+  virtual ~ActionProfileData(){};
 
   tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
 
   tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
+                        const uint8_t *value,
+                        const size_t &size);
 
   tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
-                       const size_t &size,
-                       uint8_t *value) const;
+                        const size_t &size,
+                        uint8_t *value) const;
 
+  void initializeDataFields(){};
   const pipe_action_spec_t *get_pipe_action_spec() const {
     return getPipeActionSpecObj().getPipeActionSpec();
   }
@@ -624,13 +634,13 @@ class ActionTableData : public tdi::TableData {
   }
 
   tdi_status_t setValueInternal(const tdi_id_t &field_id,
-                               const uint64_t &value,
-                               const uint8_t *value_ptr,
-                               const size_t &s);
+                                const uint64_t &value,
+                                const uint8_t *value_ptr,
+                                const size_t &s);
   tdi_status_t getValueInternal(const tdi_id_t &field_id,
-                               uint64_t *value,
-                               uint8_t *value_ptr,
-                               const size_t &s) const;
+                                uint64_t *value,
+                                uint8_t *value_ptr,
+                                const size_t &s) const;
 
   std::unique_ptr<PipeActionSpec> action_spec_wrapper;
   // A map of indirect resource type to the resource index
@@ -641,33 +651,31 @@ class ActionTableData : public tdi::TableData {
 class SelectorTableData : public tdi::TableData {
  public:
   SelectorTableData(const tdi::Table *tbl_obj,
-                        const std::vector<tdi_id_t> &fields);
+                    const std::vector<tdi_id_t> &fields);
 
   ~SelectorTableData() = default;
 
   tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
 
   tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
+                        const uint8_t *value,
+                        const size_t &size);
 
   tdi_status_t setValue(const tdi_id_t &field_id,
-                       const std::vector<tdi_id_t> &arr);
+                        const std::vector<tdi_id_t> &arr);
 
-  tdi_status_t setValue(const tdi_id_t &field_id,
-                       const std::vector<bool> &arr);
+  tdi_status_t setValue(const tdi_id_t &field_id, const std::vector<bool> &arr);
 
   tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
-                       const size_t &size,
-                       uint8_t *value) const;
+                        const size_t &size,
+                        uint8_t *value) const;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
-                       std::vector<tdi_id_t> *arr) const;
+                        std::vector<tdi_id_t> *arr) const;
 
-  tdi_status_t getValue(const tdi_id_t &field_id,
-                       std::vector<bool> *arr) const;
+  tdi_status_t getValue(const tdi_id_t &field_id, std::vector<bool> *arr) const;
 
   pipe_act_fn_hdl_t get_pipe_act_fn_hdl() const { return act_fn_hdl_; }
   uint32_t get_max_grp_size() const { return max_grp_size_; }
@@ -681,25 +689,26 @@ class SelectorTableData : public tdi::TableData {
   }
   void setMaxGrpSize(const uint32_t &max_size) { max_grp_size_ = max_size; }
 
-  tdi_status_t reset() override final;
+  tdi_status_t resetDerived() override;
 
  private:
   tdi_status_t setValueInternal(const tdi_id_t &field_id,
-                               const size_t &size,
-                               const uint64_t &value,
-                               const uint8_t *value_ptr);
+                                const size_t &size,
+                                const uint64_t &value,
+                                const uint8_t *value_ptr);
   tdi_status_t getValueInternal(const tdi_id_t &field_id,
-                               const size_t &size,
-                               uint64_t *value,
-                               uint8_t *value_ptr) const;
+                                const size_t &size,
+                                uint64_t *value,
+                                uint8_t *value_ptr) const;
   std::vector<tdi_id_t> get_members_from_array(const uint8_t *value,
-                                                 const size_t &size);
+                                               const size_t &size);
   pipe_act_fn_hdl_t act_fn_hdl_;
   std::vector<uint32_t> members_;
   std::vector<bool> member_status_;
   uint32_t max_grp_size_{0};
 };
 
+#if 0
 class CounterTableData : public tdi::TableData {
  public:
   CounterTableData(const tdi::Table *tbl_obj)
