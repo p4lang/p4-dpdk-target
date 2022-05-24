@@ -5947,7 +5947,7 @@ bf_status_t BfRtCounterTable::tableEntryGet(const BfRtSession &session,
   pipe_stat_data_t stat_data = {0};
   status = pipeMgr->pipeMgrStatEntQuery(session.sessHandleGet(),
                                         pipe_dev_tgt,
-                                        pipe_tbl_hdl,
+                                        table_name_get().c_str(),
                                         counter_id,
                                         &stat_data);
 

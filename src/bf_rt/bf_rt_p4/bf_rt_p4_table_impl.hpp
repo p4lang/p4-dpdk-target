@@ -833,8 +833,7 @@ class BfRtCounterTable : public BfRtTableObj {
   BfRtCounterTable(const std::string &program_name,
                    const bf_rt_id_t &id,
                    const std::string &name,
-                   const size_t &size,
-                   const pipe_stat_tbl_hdl_t &pipe_hdl)
+                   const size_t &size)
       : BfRtTableObj(program_name,
                      id,
                      name,
@@ -850,8 +849,7 @@ class BfRtCounterTable : public BfRtTableObj {
                          TableApi::GET_BY_HANDLE,
                          TableApi::HANDLE_GET,
                          TableApi::KEY_GET,
-                     },
-                     pipe_hdl){};
+                     }){};
 
   bf_status_t tableEntryAdd(const BfRtSession &session,
                             const bf_rt_target_t &dev_tgt,
@@ -924,8 +922,7 @@ class BfRtMeterTable : public BfRtTableObj {
   BfRtMeterTable(const std::string &program_name,
                  const bf_rt_id_t &id,
                  const std::string &name,
-                 const size_t &size,
-                 const pipe_meter_tbl_hdl_t &pipe_hdl)
+                 const size_t &size)
       : BfRtTableObj(program_name,
                      id,
                      name,
@@ -941,8 +938,7 @@ class BfRtMeterTable : public BfRtTableObj {
                          TableApi::GET_BY_HANDLE,
                          TableApi::HANDLE_GET,
                          TableApi::KEY_GET,
-                     },
-                     pipe_hdl){};
+                     }){};
 
   bf_status_t tableEntryAdd(const BfRtSession &session,
                             const bf_rt_target_t &dev_tgt,

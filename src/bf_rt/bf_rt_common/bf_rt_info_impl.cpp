@@ -373,6 +373,12 @@ std::string getAlgoTableName(const std::string &cfg_table_name) {
 
 std::unique_ptr<const BfRtInfo> BfRtInfoImpl::makeBfRtInfo(
     const bf_dev_id_t &dev_id, const ProgramConfig &program_config) {
+
+  if (program_config.prog_name_ == "$SHARED") {
+    LOG_DBG("Dummy program name, so skip BfRtInfoImpl");
+    return nullptr;
+  }
+
   try {
     std::unique_ptr<const BfRtInfo> bfRtInfo(
         new BfRtInfoImpl(dev_id, program_config));
@@ -2138,7 +2144,9 @@ BfRtInfoImpl::BfRtInfoImpl(const bf_dev_id_t &dev_id,
         case BfRtTable::TableType::PORT_FRONT_PANEL_IDX_INFO:
         case BfRtTable::TableType::PORT_STR_INFO:
         case BfRtTable::TableType::MIRROR_CFG:
-        case BfRtTable::TableType::DEV_CFG:
+	case BfRtTable::TableType::DEV_CFG:
+	case BfRtTable::TableType::COUNTER:
+	case BfRtTable::TableType::METER:
         case BfRtTable::TableType::REG_PARAM:
         case BfRtTable::TableType::SELECTOR_GET_MEMBER:
         case BfRtTable::TableType::DBG_CNT:

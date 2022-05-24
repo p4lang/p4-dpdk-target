@@ -102,7 +102,7 @@ dal_cnt_read_flow_counter_pair(uint32_t id, void *stats);
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_assignable_counter_set(int id, void *stats);
+dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt, const char *name, int id, void *stats);
 
 /*!
  * Clears the flow counter pair (pkts and bytes).

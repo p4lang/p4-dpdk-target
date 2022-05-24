@@ -84,9 +84,9 @@ pipe_mgr_cnt_read_flow_counter_pair(uint32_t id, void *stats)
  * @return Status of the API call
  */
 bf_status_t
-pipe_mgr_cnt_read_assignable_counter_set(int id, void *stats)
+pipe_mgr_cnt_read_assignable_counter_set(dev_target_t dev_tgt, const char *name, int id, void *stats)
 {
-	return dal_cnt_read_assignable_counter_set(id, stats);
+	return dal_cnt_read_assignable_counter_set(dev_tgt, name, id, stats);
 }
 
 /*!
@@ -139,7 +139,7 @@ pipe_mgr_cnt_display_assignable_counter_set(void *stats)
 
 bf_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
                                       dev_target_t dev_tgt,
-                                      pipe_stat_tbl_hdl_t stat_tbl_hdl,
+                                      const char *table_name,
                                       pipe_stat_ent_idx_t stat_ent_idx,
                                       pipe_stat_data_t *stat_data)
 {
@@ -154,7 +154,9 @@ bf_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
                 return status;
         }
 
-        status = pipe_mgr_cnt_read_assignable_counter_set(stat_ent_idx,
+        status = pipe_mgr_cnt_read_assignable_counter_set(dev_tgt,
+							  table_name,
+							  stat_ent_idx,
                                                           (void *)stat_data);
 
         pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
