@@ -77,13 +77,18 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
 	int status;
 	u64 key;
 
-	if (adt_ent_hdl != NULL && adt_mbr_id != NULL) {
-		return PIPE_INVALID_ARG;
+	if ((adt_ent_hdl != NULL && adt_mbr_id != NULL) ||
+	    (adt_ent_hdl == NULL && adt_mbr_id == NULL) ||
+	    (ent_hdl == 0 && mbr_id == 0)) {
+		LOG_ERROR("Ivalid input arguments passed");
+		return BF_INVALID_ARG;
 	}
+
 	status = pipe_mgr_ctx_get_tbl(dev_tgt, adt_tbl_hdl, &tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  adt_tbl_hdl);
+		return BF_OBJECT_NOT_FOUND;
 	}
 
 	tbl_state = tbl->state;
@@ -91,37 +96,35 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
 	if (status) {
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  adt_tbl_hdl, status);
-		status = BF_UNEXPECTED;
+		return BF_UNEXPECTED;
 	}
+
 	if (ent_hdl) {
 		key = (u64) ent_hdl;
-
 		map_sts = P4_SDE_MAP_GET(&tbl_state->entry_info_htbl, key,
 				(void **) &entry);
-		if (map_sts != BF_MAP_OK) {
-			LOG_ERROR("Error in getting entry info");
-			status = BF_NO_SYS_RESOURCES;
-		}
 	} else if (mbr_id) {
 		key = (u64) mbr_id;
-
 		map_sts = P4_SDE_MAP_GET(&tbl_state->mbr_id_htbl, key,
 				(void **) &entry);
-		if (map_sts != BF_MAP_OK) {
-			LOG_ERROR("Error in getting entry info");
-			status = BF_NO_SYS_RESOURCES;
-		}
 	}
+
 	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);
+
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in getting entry info");
+		return BF_NO_SYS_RESOURCES;
+	}
+
 	if (adt_ent_hdl)
 		*adt_ent_hdl = entry->adt_ent_hdl;
 	else if (adt_mbr_id)
 		*adt_mbr_id = entry->mbr_id;
-	else
-		return PIPE_INVALID_ARG;
+
 	if (adt_ent_data)
 		*adt_ent_data = *entry->entry_data;
-  return PIPE_SUCCESS;
+
+  return BF_SUCCESS;
 }
 
 /*!
@@ -230,13 +233,14 @@ static inline struct pipe_mgr_adt_ent_data *make_adt_ent_data(
 	u32 act_fn_hdl,
 	int num_resources,
 	struct adt_data_resources_ *resources) {
+
   	struct pipe_mgr_adt_ent_data *adt_data;
   	uint32_t as_data_offset;
   	size_t alloc_sz = 0;
   	void *data;
 
   	/* Compute required allocation size to hold all fields. */
-  	alloc_sz += sizeof(pipe_mgr_adt_ent_data_t);
+  	alloc_sz += sizeof(struct pipe_mgr_adt_ent_data);
   	alloc_sz += action_data ? action_data->num_action_data_bytes : 0;
   	data = P4_SDE_MALLOC(alloc_sz);
   	if (!data) return NULL;
@@ -275,8 +279,8 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 		uint32_t pipe_api_flags)
 {
 	struct adt_data_resources_ *resources = NULL;
-	struct pipe_mgr_adt_entry_info *entry;
 	struct pipe_action_data_spec *act_data_spec;
+	struct pipe_mgr_adt_entry_info *entry;
 	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
 	struct pipe_mgr_mat *tbl;
@@ -334,11 +338,17 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 				   act_fn_hdl, action_spec,
 				   pipe_api_flags, &tbl->ctx, new_ent_hdl,
 				   &(entry->dal_data));
+	if (status) {
+		LOG_ERROR("dal_table_adt_ent_add failed");
+		goto cleanup_map_add;
+	}
+
 	if (action_spec->resource_count) {
 		resources = P4_SDE_CALLOC(action_spec->resource_count,
 					  sizeof(adt_data_resources_t));
 		if (resources == NULL) {
 			LOG_ERROR("%s:%d Malloc failure", __func__, __LINE__);
+			goto cleanup_map_add;
 		}
     		for (i = 0; i < action_spec->resource_count; i++) {
       			resources[i].tbl_hdl = action_spec->resources[i].tbl_hdl;
@@ -356,33 +366,29 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
         	new_ent_hdl,
         	adt_tbl_hdl,
         	dev_tgt.device_id);
+		goto cleanup_map_add;
   	}
-	if(resources)
-		P4_SDE_FREE(resources);
 
 	/* allocate entry handle and map the entry*/
 	/* insert the match_key/entry handle mapping in to the hash */
-	if (status == BF_SUCCESS) {
+	key = (u64) new_ent_hdl;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in inserting entry info to entry htbl");
+		status = BF_NO_SYS_RESOURCES;
+		goto cleanup_map_add;
+	}
+	key = (u64) mbr_id;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl_state->mbr_id_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
 		key = (u64) new_ent_hdl;
-		/* Insert into the entry_handle-entry map */
-		map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl, key,
-					 (void *)entry);
-		if (map_sts != BF_MAP_OK) {
-			LOG_ERROR("Error in inserting entry info");
-			status = BF_NO_SYS_RESOURCES;
-			goto cleanup_map_add;
-		}
-		key = (u64) mbr_id;
-		/* Insert into the entry_handle-entry map */
-		map_sts = P4_SDE_MAP_ADD(&tbl_state->mbr_id_htbl, key,
-					 (void *)entry);
-		if (map_sts != BF_MAP_OK) {
-			LOG_ERROR("Error in inserting entry info");
-			status = BF_NO_SYS_RESOURCES;
-			goto cleanup_map_add;
-		}
-	} else {
-		LOG_ERROR("dal_table_adt_ent_add failed");
+		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
+		LOG_ERROR("Error in inserting entry info to mbrid htbl");
+		status = BF_NO_SYS_RESOURCES;
 		goto cleanup_map_add;
 	}
 
@@ -401,6 +407,8 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 
 cleanup_map_add:
 	pipe_mgr_adt_delete_entry_data(entry);
+	if(resources)
+		P4_SDE_FREE(resources);
 
 cleanup_id:
 	P4_SDE_ID_FREE(tbl_state->entry_handle_array, new_ent_hdl);
@@ -608,6 +616,8 @@ int pipe_mgr_adt_ent_del(u32 sess_hdl,
 	if (status == BF_SUCCESS) {
 		P4_SDE_ID_FREE(tbl->state->entry_handle_array, key);
 		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
+		key = (u64) entry->mbr_id;
+		P4_SDE_MAP_RMV(&tbl_state->mbr_id_htbl, key);
 		pipe_mgr_adt_delete_entry_data(entry);
 	} else {
 		LOG_ERROR("pipe_mgr_adt_ent_del failed");

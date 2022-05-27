@@ -81,13 +81,17 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 	int status;
 	u64 key;
 
-	if (sel_grp_hdl != NULL && sel_grp_id != NULL && max_size != NULL ) {
-		return PIPE_INVALID_ARG;
+	if ((sel_grp_hdl != NULL && sel_grp_id != NULL) ||
+	    (grp_hdl == 0 && grp_id == 0) ||
+	    (sel_grp_hdl == NULL && sel_grp_id == NULL)) {
+		LOG_ERROR("Invalid input arguments for %s", __func__);
+		return BF_INVALID_ARG;
 	}
 	status = pipe_mgr_ctx_get_tbl(dev_tgt, sel_tbl_hdl, &tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  sel_tbl_hdl);
+		return BF_OBJECT_NOT_FOUND;
 	}
 
 	tbl_state = tbl->state;
@@ -95,7 +99,7 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 	if (status) {
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  sel_tbl_hdl, status);
-		status = BF_UNEXPECTED;
+		return BF_UNEXPECTED;
 	}
 
 	if (grp_hdl) {
@@ -108,21 +112,19 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 		/* Get the entry_handle-entry map */
 		P4_SDE_MAP_GET(&tbl_state->mbr_id_htbl,
 				 key, (void **)&entry);
-	} else {
-		return PIPE_INVALID_ARG;
-	}
-	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);
-	if (sel_grp_hdl) {
-		*sel_grp_hdl = entry->sel_grp_hdl;
-	} else if (sel_grp_id) {
-		*sel_grp_id = entry->sel_grp_id;
-	} else if (max_size) {
-		*max_size = entry->max_grp_size;
-	} else {
-		return PIPE_INVALID_ARG;
 	}
 
-	return PIPE_SUCCESS;
+	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);
+
+	if (sel_grp_hdl)
+		*sel_grp_hdl = entry->sel_grp_hdl;
+	else if (sel_grp_id)
+		*sel_grp_id = entry->sel_grp_id;
+
+	if (max_size)
+		*max_size = entry->max_grp_size;
+
+	return BF_SUCCESS;
 }
 
 pipe_status_t pipe_mgr_get_sel_grp_max_size(pipe_sess_hdl_t sess_hdl,
@@ -208,8 +210,8 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 		u32 *sel_grp_hdl_p,
 		uint32_t pipe_api_flags)
 {
-	struct pipe_mgr_mat_state *tbl_state;
 	struct pipe_mgr_sel_entry_info *entry = NULL;
+	struct pipe_mgr_mat_state *tbl_state;
 	p4_sde_map_sts map_sts = BF_MAP_OK;
 	struct pipe_mgr_mat *tbl;
 	u32 new_ent_hdl;
@@ -260,13 +262,10 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 				     NULL, &entry);
 	entry->max_grp_size = max_grp_size;
 	entry->sel_grp_id = sel_grp_id;
+
 	key = (u64) *sel_grp_hdl_p;
 	/* Insert into the entry_handle-entry map */
 	map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl, key,
-				 (void *)entry);
-	key = (u64) sel_grp_id;
-	/* Insert into the entry_handle-entry map */
-	map_sts = P4_SDE_MAP_ADD(&tbl_state->mbr_id_htbl, key,
 				 (void *)entry);
 	if (map_sts != BF_MAP_OK) {
 		LOG_ERROR("Error in inserting entry info");
@@ -274,21 +273,20 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 		goto cleanup_tbl_unlock;
 	}
 
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed", sel_tbl_hdl);
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
+	key = (u64) sel_grp_id;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl_state->mbr_id_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in inserting mbr_id info htbl");
+		key = (u64) *sel_grp_hdl_p;
+		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
+		status = BF_NO_SYS_RESOURCES;
 	}
-
-	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
-
-	LOG_TRACE("Exiting %s", __func__);
-	return status;
 
 cleanup_tbl_unlock:
 	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
 		LOG_ERROR("Unlock of table %d failed", sel_tbl_hdl);
-
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
 
@@ -362,7 +360,7 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  sel_tbl_hdl, status);
 		status = BF_UNEXPECTED;
-		goto cleanup;
+		goto cleanup_tbl_unlock;
 	}
 
 	key = (u64) sel_grp_hdl;
@@ -373,7 +371,7 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 			num_mbrs, mbrs, &entry);
 	if (status) {
 		LOG_ERROR("Entry encoding failed");
-		goto cleanup_tbl_unlock;
+		goto cleanup_map_add;
 	}
 
 	status = dal_table_sel_member_add_del(sess_hdl, dev_tgt, sel_tbl_hdl,
@@ -386,13 +384,14 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		if (map_sts != BF_MAP_OK)
 			map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl,
 						 key, (void *)entry);
-		if (map_sts != BF_MAP_OK) {
+	}
+
+	if (map_sts != BF_MAP_OK || status != BF_SUCCESS) {
+		if (map_sts != BF_MAP_OK)
 			LOG_ERROR("Error in inserting entry info");
-			status = BF_NO_SYS_RESOURCES;
-			goto cleanup_map_add;
-		}
-	} else {
-		LOG_ERROR("dal_table_sel_member_add_del add failed");
+		else
+			LOG_ERROR("dal_table_sel_member_add_del add failed");
+		status = BF_NO_SYS_RESOURCES;
 		goto cleanup_map_add;
 	}
 
@@ -404,38 +403,20 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		if (status) {
 			LOG_ERROR("ADT member reference add failed");
 			status = BF_UNEXPECTED;
-			goto cleanup_map_add;
+			break;
 		}
 	}
 
-	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed",
-				tbl->ctx.adt_handle);
-		status = BF_UNEXPECTED;
-		goto cleanup_map_add;
-	}
-
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed", sel_tbl_hdl);
-		status = BF_UNEXPECTED;
-		goto cleanup_map_add;
-	}
-
-	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
-
-	LOG_TRACE("Exiting %s", __func__);
-	return status;
-
 cleanup_map_add:
-	pipe_mgr_sel_delete_entry_data(entry);
-
+	P4_SDE_FREE(entry->mbrs);
+	entry->mbrs = NULL;
+	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.adt_handle);
 cleanup_tbl_unlock:
 	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
 		LOG_ERROR("Unlock of table %d failed", sel_tbl_hdl);
-
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
-		LOG_ERROR("Unexpected error");
 
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
@@ -749,16 +730,16 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
 			  tbl->ctx.adt_handle, status);
 		status = BF_UNEXPECTED;
-		goto cleanup;
+		goto cleanup_tbl_unlock;
 	}
 
 	key = (u64) grp_hdl;
 	map_sts = P4_SDE_MAP_GET(&tbl_state->entry_info_htbl, key,
 			(void **)&entry);
 	if (map_sts != BF_MAP_OK) {
-		LOG_ERROR("Error in inserting entry info");
+		LOG_ERROR("Error in retrieving entry info");
 		status = BF_NO_SYS_RESOURCES;
-		goto cleanup_tbl_unlock;
+		goto cleanup_tbl_adt_unlock;
 	}
 
 	if (entry->num_mbrs) {
@@ -771,7 +752,7 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 
 		if (status != BF_SUCCESS) {
 			status = BF_UNEXPECTED;
-			goto cleanup_tbl_unlock;
+			goto cleanup_tbl_adt_unlock;
 		}
 
 		for (i = 0; i < entry->num_mbrs; i++) {
@@ -779,9 +760,9 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 					dev_tgt, tbl->ctx.adt_handle,
 					entry->mbrs[i], 1);
 			if (status) {
-				LOG_ERROR("ADT member reference add failed");
+				LOG_ERROR("ADT member reference delete failed");
 				status = BF_UNEXPECTED;
-				goto cleanup_tbl_unlock;
+				goto cleanup_tbl_adt_unlock;
 			}
 		}
 	}
@@ -792,35 +773,20 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 	/* sel_grp_hdl to entry map */
 	if (status == BF_SUCCESS) {
 		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
+		key = (u64) entry->sel_grp_id;
+		P4_SDE_MAP_RMV(&tbl_state->mbr_id_htbl, key);
 		pipe_mgr_sel_delete_entry_data(entry);
 	} else {
 		LOG_ERROR("dal_table_sel_member_add_del del failed");
 		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
 	}
 
-	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed",
-				tbl->ctx.adt_handle);
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
-	}
-
-	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
-		LOG_ERROR("Unlock of table %d failed", tbl_hdl);
-		status = BF_UNEXPECTED;
-		goto cleanup_tbl_unlock;
-	}
-
-	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
-
-	LOG_TRACE("Exiting %s", __func__);
-	return status;
-
+cleanup_tbl_adt_unlock:
+	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock))
+		LOG_ERROR("Unlock of table %d failed", tbl->ctx.adt_handle);
 cleanup_tbl_unlock:
 	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
 		LOG_ERROR("Unlock of table %d failed", tbl_hdl);
-
 cleanup:
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
 
