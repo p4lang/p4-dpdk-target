@@ -90,6 +90,7 @@ struct pipe_mgr_p4_parameters {
 
 struct pipe_mgr_actions_list {
 	char name[P4_SDE_NAME_LEN];
+	char target_action_name[P4_SDE_NAME_LEN];
 	uint32_t handle;
 	bool allowed_as_hit_action;
 	bool allowed_as_default_action;

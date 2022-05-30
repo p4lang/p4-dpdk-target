@@ -96,8 +96,8 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 			status = BF_NO_SPACE;
 			goto cleanup;
 		}
-
-		action_id = get_action_id(meta->pipe, action->name);
+		action_id = get_action_id(meta->pipe,
+					  action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -176,6 +176,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 	struct rte_swx_ctl_action_arg_info *action_arg_info;
 	struct pipe_mgr_dpdk_action_format *act_fmt;
 	struct pipe_mgr_dpdk_stage_table *stage_table;
+	struct pipe_mgr_actions_list *action;
 	int status = BF_SUCCESS;
 	uint64_t action_id;
 	uint32_t index;
@@ -185,6 +186,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 	stage_table = mat_ctx->match_attr.stage_table;
 	n_action = meta->dpdk_table_info.n_actions;
 
+	action = mat_ctx->actions;
 	meta->action_data_size = 0;
 	act_fmt = stage_table->act_fmt;
 	/* Indirect table will not have action format
@@ -201,8 +203,12 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			return BF_UNEXPECTED;
 		}
 
+		if (!action) {
+			LOG_ERROR("reached end of actions in context");
+			return BF_UNEXPECTED;
+		}
 		action_id = get_action_id(meta->pipe,
-					  act_fmt->target_action_name);
+					  action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -252,6 +258,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			meta->action_data_size = act_fmt->arg_nbits;
 
 		act_fmt = act_fmt->next;
+		action = action->next;
 	}
 	return status;
 }

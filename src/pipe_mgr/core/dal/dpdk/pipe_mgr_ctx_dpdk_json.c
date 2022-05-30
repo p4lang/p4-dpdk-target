@@ -118,17 +118,13 @@ static int ctx_json_parse_action_format_dpdk_json
 	struct pipe_mgr_dpdk_immediate_fields *immediate_field_temp;
 	bf_status_t rc = BF_SUCCESS;
 	char *action_str = NULL;
-	char *action_name, *target_action_name;
+	char *action_name;
 	int action_handle;
 	int err = 0;
 
 	err |= bf_cjson_get_string(action_format_cjson,
 			CTX_JSON_ACTION_FORMAT_ACTION_NAME,
 			&action_name);
-
-	err |= bf_cjson_get_string(action_format_cjson,
-			CTX_JSON_ACTION_FORMAT_TARGET_ACTION_NAME,
-			&target_action_name);
 
 	err |= bf_cjson_get_int(action_format_cjson,
 			CTX_JSON_ACTION_FORMAT_ACTION_HANDLE,
@@ -145,16 +141,6 @@ static int ctx_json_parse_action_format_dpdk_json
 
 	strncpy(act_fmt->action_name, action_str, P4_SDE_NAME_LEN - 1);
 	act_fmt->action_name[P4_SDE_NAME_LEN - 1] = '\0';
-
-	action_str = trim_classifier_str(target_action_name);
-	if (!action_str) {
-		LOG_ERROR("action %s trim_classifier_str failed",
-			  target_action_name);
-		return BF_UNEXPECTED;
-	}
-
-	strncpy(act_fmt->target_action_name, action_str, P4_SDE_NAME_LEN - 1);
-	act_fmt->target_action_name[P4_SDE_NAME_LEN - 1] = '\0';
 
 	act_fmt->action_handle = action_handle;
 

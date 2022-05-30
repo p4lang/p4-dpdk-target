@@ -289,12 +289,16 @@ static int ctx_json_parse_mat_actions_json
 	bool allowed_as_hit_action = 0;
 	bf_status_t rc = BF_SUCCESS;
 	char *action_name = NULL;
+	char *target_action_name = NULL;
 	char *name = NULL;
 	int err = 0;
 	int handle;
 
 	err |= bf_cjson_get_string(actions_cjson,
 			CTX_JSON_ACTION_NAME, &name);
+
+	err |= bf_cjson_try_get_string(actions_cjson,
+			CTX_JSON_TARGET_ACTION_NAME, &target_action_name);
 
 	err |= bf_cjson_get_int(actions_cjson,
 			CTX_JSON_ACTION_HANDLE,
@@ -326,6 +330,18 @@ static int ctx_json_parse_mat_actions_json
 	}
 	strncpy(action->name, action_name, P4_SDE_NAME_LEN - 1);
 	action->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	if (target_action_name) {
+		action_name = trim_classifier_str(target_action_name);
+		if (!action_name) {
+			LOG_ERROR("trg_act_name %s trim_classifier_str failed"
+				  , name);
+			return BF_UNEXPECTED;
+		}
+		strncpy(action->target_action_name, action_name,
+			P4_SDE_NAME_LEN - 1);
+		action->target_action_name[P4_SDE_NAME_LEN - 1] = '\0';
+	}
 
 	action->handle = handle;
 	action->allowed_as_hit_action = allowed_as_hit_action;
