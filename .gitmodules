@@ -6,9 +6,6 @@
 	path = third-party/tdi
 	url = https://github.com/p4lang/tdi.git
 	ignore = dirty
-[submodule "third-party/gmock-global"]
-	path = third-party/gmock-global
-	url = https://github.com/apriorit/gmock-global.git
 [submodule "third-party/ptf_grpc/ptf"]
 	path = third-party/ptf_grpc/ptf
 	url = https://github.com/p4lang/ptf

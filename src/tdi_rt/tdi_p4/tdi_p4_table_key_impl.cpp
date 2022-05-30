@@ -34,6 +34,87 @@
 namespace tdi {
 namespace pna {
 namespace rt {
+// template setValue helper for Action Profile, Selector, Counter and Meter
+template <typename Key>
+tdi_status_t setValueHelper(Key *key,
+                            const tdi_id_t &field_id,
+                            const tdi::KeyFieldValue &field_value) {
+  const tdi::Table *table;
+  auto status = key->tableGet(&table);
+  // Get the key_field from the table
+  const KeyFieldInfo *key_field;
+  status = utils::TableFieldUtils::keyFieldSafeGet(
+      field_id, &key_field, &field_value, table);
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+
+  if (field_value.matchTypeGet() !=
+      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
+    return TDI_INVALID_ARG;
+  }
+
+  if (field_value.is_pointer()) {
+    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint8_t *> *>(
+        &field_value);
+    return key->setValue(key_field, e_fv->value_, e_fv->size_);
+  } else {
+    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint64_t> *>(
+        &field_value);
+    return key->setValue(key_field, e_fv->value_);
+  }
+
+  return TDI_UNEXPECTED;
+}
+	
+// template getValue helper for Action Profile, Selector, Counter and Meter
+template <typename Key>
+tdi_status_t getValueHelper(const Key *key,
+                            const tdi_id_t &field_id,
+                            tdi::KeyFieldValue *field_value) {
+  const tdi::Table *table;
+  auto status = key->tableGet(&table);
+
+  if (!field_value) {
+    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
+              __func__,
+              __LINE__,
+              table->tableInfoGet()->nameGet().c_str(),
+              field_id);
+    return TDI_OBJECT_NOT_FOUND;
+  }
+
+  // Get the key_field from the table
+  const KeyFieldInfo *key_field;
+  status = utils::TableFieldUtils::keyFieldSafeGet(
+      field_id, &key_field, field_value, table);
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+
+  if (field_value->matchTypeGet() !=
+      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
+    return TDI_INVALID_ARG;
+  }
+
+  if (field_value->is_pointer()) {
+    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
+    return key->getValue(key_field, e_fv->size_, e_fv->value_);
+  } else {
+    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
+    return key->getValue(key_field, &e_fv->value_);
+  }
+
+  return TDI_UNEXPECTED;
+}
+
+template <class T>
+tdi_status_t getKeyIdxValue(const T &key,
+                           uint64_t *value) {
+  *value = key.getIdxKey();
+  return TDI_SUCCESS;
+}
+	
 
 // MatchActionKey *****************
 tdi_status_t MatchActionKey::setValue(const tdi_id_t &field_id,
@@ -981,57 +1062,12 @@ tdi_status_t MatchActionKey::reset() {
 // ActionProfileKey *****************
 tdi_status_t ActionProfileKey::setValue(const tdi_id_t &field_id,
                                         const tdi::KeyFieldValue &field_value) {
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(
-      field_id, &key_field, &field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  if (field_value.matchTypeGet() ==
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    if (field_value.is_pointer()) {
-      auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint8_t *> *>(
-          &field_value);
-      return this->setValue(key_field, e_fv->value_, e_fv->size_);
-    } else {
-      auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint64_t> *>(
-          &field_value);
-      return this->setValue(key_field, e_fv->value_);
-    }
-  }
-  return TDI_UNEXPECTED;
+  return setValueHelper<ActionProfileKey>(this, field_id, field_value);
 }
 
 tdi_status_t ActionProfileKey::getValue(const tdi_id_t &field_id,
                                         tdi::KeyFieldValue *field_value) const {
-  if (!field_value) {
-    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
-              __func__,
-              __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(),
-              field_id);
-    return TDI_OBJECT_NOT_FOUND;
-  }
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(
-      field_id, &key_field, field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  if (field_value->matchTypeGet() ==
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    if (field_value->is_pointer()) {
-      auto e_fv =
-          static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
-      return this->getValue(key_field, e_fv->size_, e_fv->value_);
-    } else {
-      auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
-      return this->getValue(key_field, &e_fv->value_);
-    }
-  }
-  return TDI_UNEXPECTED;
+  return getValueHelper<ActionProfileKey>(this, field_id, field_value);
 }
 tdi_status_t ActionProfileKey::setValue(const tdi::KeyFieldInfo * /*key_field*/,
                                         const uint64_t &value) {
@@ -1095,28 +1131,7 @@ tdi_status_t ActionProfileKey::getValue(const tdi::KeyFieldInfo *key_field,
 // SelectorTableKey *****************
 tdi_status_t SelectorTableKey::setValue(const tdi_id_t &field_id,
                                         const tdi::KeyFieldValue &field_value) {
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(
-      field_id, &key_field, &field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  if (field_value.matchTypeGet() !=
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    return TDI_INVALID_ARG;
-  }
-
-  if (field_value.is_pointer()) {
-    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint8_t *> *>(
-        &field_value);
-    return this->setValue(key_field, e_fv->value_, e_fv->size_);
-  } else {
-    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint64_t> *>(
-        &field_value);
-    return this->setValue(key_field, e_fv->value_);
-  }
+  return setValueHelper<SelectorTableKey>(this, field_id, field_value);
 }
 
 tdi_status_t SelectorTableKey::setValue(const tdi::KeyFieldInfo *key_field,
@@ -1150,37 +1165,7 @@ tdi_status_t SelectorTableKey::setValue(const tdi::KeyFieldInfo * /*key_field*/,
 
 tdi_status_t SelectorTableKey::getValue(const tdi_id_t &field_id,
                                         tdi::KeyFieldValue *field_value) const {
-  if (!field_value) {
-    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
-              __func__,
-              __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(),
-              field_id);
-    return TDI_OBJECT_NOT_FOUND;
-  }
-
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(
-      field_id, &key_field, field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  if (field_value->matchTypeGet() !=
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    return TDI_INVALID_ARG;
-  }
-
-  if (field_value->is_pointer()) {
-    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
-    return this->getValue(key_field, e_fv->size_, e_fv->value_);
-  } else {
-    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
-    return this->getValue(key_field, &e_fv->value_);
-  }
-
-  return TDI_UNEXPECTED;
+  return getValueHelper<SelectorTableKey>(this, field_id, field_value);
 }
 
 tdi_status_t SelectorTableKey::getValue(const tdi::KeyFieldInfo * /*key_field*/,
@@ -1244,29 +1229,7 @@ tdi_status_t getKeyIdxValue(const T &key,
 
 tdi_status_t CounterIndirectTableKey::setValue(
     const tdi_id_t &field_id, const tdi::KeyFieldValue &field_value) {
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(field_id, &key_field,
-                                                        &field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  if (field_value.matchTypeGet() !=
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    return TDI_INVALID_ARG;
-  }
-
-  if (field_value.is_pointer()) {
-    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint8_t *> *>(
-        &field_value);
-    return this->setValue(key_field, e_fv->value_, e_fv->size_);
-  } else {
-    auto e_fv = static_cast<const tdi::KeyFieldValueExact<const uint64_t> *>(
-        &field_value);
-    return this->setValue(key_field, e_fv->value_);
-  }
-
-  return TDI_UNEXPECTED;
+  return setValueHelper<CounterIndirectTableKey>(this, field_id, field_value);
 }
 
 tdi_status_t CounterIndirectTableKey::setValue(
@@ -1297,36 +1260,7 @@ tdi_status_t CounterIndirectTableKey::setValue(const tdi::KeyFieldInfo *key_fiel
 
 tdi_status_t CounterIndirectTableKey::getValue(
     const tdi_id_t &field_id, tdi::KeyFieldValue *field_value) const {
-
-  if (!field_value) {
-    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
-              __func__, __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(), field_id);
-    return TDI_OBJECT_NOT_FOUND;
-  }
-
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::keyFieldSafeGet(field_id, &key_field,
-                                                        field_value, table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
-
-  /* counter table key can be only of type EXACT*/
-  if (field_value->matchTypeGet() !=
-      static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT)) {
-    return TDI_INVALID_ARG;
-  }
-
-  if (field_value->is_pointer()) {
-    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
-    return this->getValue(key_field, e_fv->size_, e_fv->value_);
-  } else {
-    auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
-    return this->getValue(key_field, &e_fv->value_);
-  }
-
-  return TDI_UNEXPECTED;
+  return getValueHelper<CounterIndirectTableKey>(this, field_id, field_value);
 }
 
 tdi_status_t CounterIndirectTableKey::getValue(const tdi::KeyFieldInfo *key_field,
