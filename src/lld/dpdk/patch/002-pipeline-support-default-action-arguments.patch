@@ -1,0 +1,891 @@
+From patchwork Mon Apr 11 18:21:08 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109600
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id E0D03A0501;
+	Mon, 11 Apr 2022 20:21:13 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id CA880427EF;
+	Mon, 11 Apr 2022 20:21:13 +0200 (CEST)
+Received: from mga07.intel.com (mga07.intel.com [134.134.136.100])
+ by mails.dpdk.org (Postfix) with ESMTP id E251841611
+ for <dev@dpdk.org>; Mon, 11 Apr 2022 20:21:11 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649701272; x=1681237272;
+ h=from:to:cc:subject:date:message-id:in-reply-to: references;
+ bh=c70RoYvvCrQ4LvpQXxdQfMxmrvvAs+0sH/pgazdbVFg=;
+ b=M5T7+eXq8wm2JRM/3LIxZ0XBX2ASJd1miekGgtGFXQim1zdDln83PM68
+ rx5z0Iea1VAyMAHqH3+/QHaFx1XQzOrcw1WIJi6Vj4+whkikDqzPTJ4GB
+ wKDSv2F9Wwz9R20gY0qWdqPK3zM1Dv0qBZHtzKAeR8k0VdbA51ytzM3zL
+ k/tblhtGj/gcPBHe7WHNGh7RK7iFDZKqmPOiFNcRkTyQ2FuOf9TmN7sus
+ Wn4mRBba0dPUuAm3/SWv042fjk4nKRihhUqaftWkmNRd3kQD7d8A9wLpy
+ hw9hPz93ueHNtmqtmsdugPazz+0tI0+OeuFd32uoh9qDKmp9qaWluufur w==;
+X-IronPort-AV: E=McAfee;i="6400,9594,10314"; a="325096030"
+X-IronPort-AV: E=Sophos;i="5.90,252,1643702400"; d="scan'208";a="325096030"
+Received: from fmsmga007.fm.intel.com ([10.253.24.52])
+ by orsmga105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 11 Apr 2022 11:21:10 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,252,1643702400"; d="scan'208";a="558999274"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by fmsmga007.fm.intel.com with ESMTP; 11 Apr 2022 11:21:09 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Cc: Yogesh Jangra <yogesh.jangra@intel.com>
+Subject: [PATCH V4] pipeline: support default action arguments
+Date: Mon, 11 Apr 2022 19:21:08 +0100
+Message-Id: <20220411182108.5752-1-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220409121944.93681-1-cristian.dumitrescu@intel.com>
+References: <20220409121944.93681-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add support for arguments to the default action of regular and learner
+tables at initialization time. Until now, only default actions with no
+arguments were accepted in the .spec file.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+Signed-off-by: Yogesh Jangra <yogesh.jangra@intel.com>
+---
+ lib/pipeline/rte_swx_pipeline.c      | 237 +++++++++++++++++-----
+ lib/pipeline/rte_swx_pipeline.h      |  18 +-
+ lib/pipeline/rte_swx_pipeline_spec.c | 293 +++++++++++++++++++--------
+ 3 files changed, 405 insertions(+), 143 deletions(-)
+
+diff --git a/lib/pipeline/rte_swx_pipeline.c b/lib/pipeline/rte_swx_pipeline.c
+index 17da11c015..dfbac929c7 100644
+--- a/lib/pipeline/rte_swx_pipeline.c
++++ b/lib/pipeline/rte_swx_pipeline.c
+@@ -7209,8 +7209,8 @@ rte_swx_pipeline_action_config(struct rte_swx_pipeline *p,
+ 			       uint32_t n_instructions)
+ {
+ 	struct struct_type *args_struct_type = NULL;
+-	struct action *a;
+-	int err;
++	struct action *a = NULL;
++	int status = 0;
+ 
+ 	CHECK(p, EINVAL);
+ 
+@@ -7226,12 +7226,16 @@ rte_swx_pipeline_action_config(struct rte_swx_pipeline *p,
+ 
+ 	/* Node allocation. */
+ 	a = calloc(1, sizeof(struct action));
+-	CHECK(a, ENOMEM);
++	if (!a) {
++		status = -ENOMEM;
++		goto error;
++	}
++
+ 	if (args_struct_type) {
+ 		a->args_endianness = calloc(args_struct_type->n_fields, sizeof(int));
+ 		if (!a->args_endianness) {
+-			free(a);
+-			CHECK(0, ENOMEM);
++			status = -ENOMEM;
++			goto error;
+ 		}
+ 	}
+ 
+@@ -7241,18 +7245,26 @@ rte_swx_pipeline_action_config(struct rte_swx_pipeline *p,
+ 	a->id = p->n_actions;
+ 
+ 	/* Instruction translation. */
+-	err = instruction_config(p, a, instructions, n_instructions);
+-	if (err) {
+-		free(a->args_endianness);
+-		free(a);
+-		return err;
+-	}
++	status = instruction_config(p, a, instructions, n_instructions);
++	if (status)
++		goto error;
+ 
+ 	/* Node add to tailq. */
+ 	TAILQ_INSERT_TAIL(&p->actions, a, node);
+ 	p->n_actions++;
+ 
+ 	return 0;
++
++error:
++	if (!a)
++		return status;
++
++	free(a->args_endianness);
++	free(a->instructions);
++	free(a->instruction_data);
++	free(a);
++
++	return status;
+ }
+ 
+ static int
+@@ -7297,8 +7309,9 @@ action_free(struct rte_swx_pipeline *p)
+ 			break;
+ 
+ 		TAILQ_REMOVE(&p->actions, action, node);
+-		free(action->instruction_data);
++		free(action->args_endianness);
+ 		free(action->instructions);
++		free(action->instruction_data);
+ 		free(action);
+ 	}
+ }
+@@ -7337,6 +7350,91 @@ action_arg_src_mov_count(struct action *a,
+ 	return n_users;
+ }
+ 
++#if RTE_BYTE_ORDER == RTE_LITTLE_ENDIAN
++#define field_ntoh(val, n_bits) (ntoh64((val) << (64 - n_bits)))
++#define field_hton(val, n_bits) (hton64((val) << (64 - n_bits)))
++#else
++#define field_ntoh(val, n_bits) (val)
++#define field_hton(val, n_bits) (val)
++#endif
++
++#define ACTION_ARGS_TOKENS_MAX 256
++
++static int
++action_args_parse(struct action *a, const char *args, uint8_t *data)
++{
++	char *tokens[ACTION_ARGS_TOKENS_MAX], *s0 = NULL, *s;
++	uint32_t n_tokens = 0, offset = 0, i;
++	int status = 0;
++
++	/* Checks. */
++	if (!a->st || !args || !args[0]) {
++		status = -EINVAL;
++		goto error;
++	}
++
++	/* Memory allocation. */
++	s0 = strdup(args);
++	if (!s0) {
++		status = -ENOMEM;
++		goto error;
++	}
++
++	/* Parse the string into tokens. */
++	for (s = s0; ; ) {
++		char *token;
++
++		token = strtok_r(s, " \f\n\r\t\v", &s);
++		if (!token)
++			break;
++
++		if (n_tokens >= RTE_DIM(tokens)) {
++			status = -EINVAL;
++			goto error;
++		}
++
++		tokens[n_tokens] = token;
++		n_tokens++;
++	}
++
++	/* More checks. */
++	if (n_tokens != a->st->n_fields * 2) {
++		status = -EINVAL;
++		goto error;
++	}
++
++	/* Process the action arguments. */
++	for (i = 0; i < a->st->n_fields; i++) {
++		struct field *f = &a->st->fields[i];
++		char *arg_name = tokens[i * 2];
++		char *arg_val = tokens[i * 2 + 1];
++		uint64_t val;
++
++		if (strcmp(arg_name, f->name)) {
++			status = -EINVAL;
++			goto error;
++		}
++
++		val = strtoull(arg_val, &arg_val, 0);
++		if (arg_val[0]) {
++			status = -EINVAL;
++			goto error;
++		}
++
++		/* Endianness conversion. */
++		if (a->args_endianness[i])
++			val = field_hton(val, f->n_bits);
++
++		/* Copy to entry. */
++		memcpy(&data[offset], (uint8_t *)&val, f->n_bits / 8);
++		offset += f->n_bits / 8;
++	}
++
++error:
++	free(s0);
++	return status;
++}
++
+ /*
+  * Table.
+  */
+@@ -7609,8 +7707,8 @@ rte_swx_pipeline_table_config(struct rte_swx_pipeline *p,
+ 	      EINVAL);
+ 
+ 	default_action = action_find(p, params->default_action_name);
+-	CHECK((default_action->st && params->default_action_data) ||
+-	      !params->default_action_data, EINVAL);
++	CHECK((default_action->st && params->default_action_args) || !params->default_action_args,
++	      EINVAL);
+ 
+ 	/* Table type checks. */
+ 	if (recommended_table_type_name)
+@@ -7631,30 +7729,42 @@ rte_swx_pipeline_table_config(struct rte_swx_pipeline *p,
+ 
+ 	/* Memory allocation. */
+ 	t = calloc(1, sizeof(struct table));
+-	if (!t)
+-		goto nomem;
++	if (!t) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	t->fields = calloc(params->n_fields, sizeof(struct match_field));
+-	if (!t->fields)
+-		goto nomem;
++	if (!t->fields) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	t->actions = calloc(params->n_actions, sizeof(struct action *));
+-	if (!t->actions)
+-		goto nomem;
++	if (!t->actions) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	if (action_data_size_max) {
+ 		t->default_action_data = calloc(1, action_data_size_max);
+-		if (!t->default_action_data)
+-			goto nomem;
++		if (!t->default_action_data) {
++			status = -ENOMEM;
++			goto error;
++		}
+ 	}
+ 
+ 	t->action_is_for_table_entries = calloc(params->n_actions, sizeof(int));
+-	if (!t->action_is_for_table_entries)
+-		goto nomem;
++	if (!t->action_is_for_table_entries) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	t->action_is_for_default_entry = calloc(params->n_actions, sizeof(int));
+-	if (!t->action_is_for_default_entry)
+-		goto nomem;
++	if (!t->action_is_for_default_entry) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	/* Node initialization. */
+ 	strcpy(t->name, name);
+@@ -7687,10 +7797,14 @@ rte_swx_pipeline_table_config(struct rte_swx_pipeline *p,
+ 		t->action_is_for_default_entry[i] = action_is_for_default_entry;
+ 	}
+ 	t->default_action = default_action;
+-	if (default_action->st)
+-		memcpy(t->default_action_data,
+-		       params->default_action_data,
+-		       default_action->st->n_bits / 8);
++	if (default_action->st) {
++		status = action_args_parse(default_action,
++					   params->default_action_args,
++					   t->default_action_data);
++		if (status)
++			goto error;
++	}
++
+ 	t->n_actions = params->n_actions;
+ 	t->default_action_is_const = params->default_action_is_const;
+ 	t->action_data_size_max = action_data_size_max;
+@@ -7704,9 +7818,9 @@ rte_swx_pipeline_table_config(struct rte_swx_pipeline *p,
+ 
+ 	return 0;
+ 
+-nomem:
++error:
+ 	if (!t)
+-		return -ENOMEM;
++		return status;
+ 
+ 	free(t->action_is_for_default_entry);
+ 	free(t->action_is_for_table_entries);
+@@ -7715,7 +7829,7 @@ rte_swx_pipeline_table_config(struct rte_swx_pipeline *p,
+ 	free(t->fields);
+ 	free(t);
+ 
+-	return -ENOMEM;
++	return status;
+ }
+ 
+ static struct rte_swx_table_params *
+@@ -8496,8 +8610,8 @@ rte_swx_pipeline_learner_config(struct rte_swx_pipeline *p,
+ 	      EINVAL);
+ 
+ 	default_action = action_find(p, params->default_action_name);
+-	CHECK((default_action->st && params->default_action_data) ||
+-	      !params->default_action_data, EINVAL);
++	CHECK((default_action->st && params->default_action_args) || !params->default_action_args,
++	      EINVAL);
+ 
+ 	/* Any other checks. */
+ 	CHECK(size, EINVAL);
+@@ -8505,30 +8619,42 @@ rte_swx_pipeline_learner_config(struct rte_swx_pipeline *p,
+ 
+ 	/* Memory allocation. */
+ 	l = calloc(1, sizeof(struct learner));
+-	if (!l)
+-		goto nomem;
++	if (!l) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	l->fields = calloc(params->n_fields, sizeof(struct field *));
+-	if (!l->fields)
+-		goto nomem;
++	if (!l->fields) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	l->actions = calloc(params->n_actions, sizeof(struct action *));
+-	if (!l->actions)
+-		goto nomem;
++	if (!l->actions) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	if (action_data_size_max) {
+ 		l->default_action_data = calloc(1, action_data_size_max);
+-		if (!l->default_action_data)
+-			goto nomem;
++		if (!l->default_action_data) {
++			status = -ENOMEM;
++			goto error;
++		}
+ 	}
+ 
+ 	l->action_is_for_table_entries = calloc(params->n_actions, sizeof(int));
+-	if (!l->action_is_for_table_entries)
+-		goto nomem;
++	if (!l->action_is_for_table_entries) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	l->action_is_for_default_entry = calloc(params->n_actions, sizeof(int));
+-	if (!l->action_is_for_default_entry)
+-		goto nomem;
++	if (!l->action_is_for_default_entry) {
++		status = -ENOMEM;
++		goto error;
++	}
+ 
+ 	/* Node initialization. */
+ 	strcpy(l->name, name);
+@@ -8560,10 +8686,13 @@ rte_swx_pipeline_learner_config(struct rte_swx_pipeline *p,
+ 
+ 	l->default_action = default_action;
+ 
+-	if (default_action->st)
+-		memcpy(l->default_action_data,
+-		       params->default_action_data,
+-		       default_action->st->n_bits / 8);
++	if (default_action->st) {
++		status = action_args_parse(default_action,
++					   params->default_action_args,
++					   l->default_action_data);
++		if (status)
++			goto error;
++	}
+ 
+ 	l->n_actions = params->n_actions;
+ 
+@@ -8583,9 +8712,9 @@ rte_swx_pipeline_learner_config(struct rte_swx_pipeline *p,
+ 
+ 	return 0;
+ 
+-nomem:
++error:
+ 	if (!l)
+-		return -ENOMEM;
++		return status;
+ 
+ 	free(l->action_is_for_default_entry);
+ 	free(l->action_is_for_table_entries);
+@@ -8594,7 +8723,7 @@ rte_swx_pipeline_learner_config(struct rte_swx_pipeline *p,
+ 	free(l->fields);
+ 	free(l);
+ 
+-	return -ENOMEM;
++	return status;
+ }
+ 
+ static void
+diff --git a/lib/pipeline/rte_swx_pipeline.h b/lib/pipeline/rte_swx_pipeline.h
+index 1cfd1c542f..c95d0c7682 100644
+--- a/lib/pipeline/rte_swx_pipeline.h
++++ b/lib/pipeline/rte_swx_pipeline.h
+@@ -619,11 +619,12 @@ struct rte_swx_pipeline_table_params {
+ 	 */
+ 	const char *default_action_name;
+ 
+-	/** Default action data. The size of this array is the action data size
+-	 * of the default action. Must be NULL if the default action data size
+-	 * is zero.
++	/** Default action arguments. Specified as a string with the format
++	 * "ARG0_NAME ARG0_VALUE ...". The number of arguments in this string
++	 * must match exactly the number of arguments of the default action.
++	 * Must be NULL if the default action does not have any arguments.
+ 	 */
+-	uint8_t *default_action_data;
++	const char *default_action_args;
+ 
+ 	/** If non-zero (true), then the default action of the current table
+ 	 * cannot be changed. If zero (false), then the default action can be
+@@ -758,11 +759,12 @@ struct rte_swx_pipeline_learner_params {
+ 	 */
+ 	const char *default_action_name;
+ 
+-	/** Default action data. The size of this array is the action data size
+-	 * of the default action. Must be NULL if the default action data size
+-	 * is zero.
++	/** Default action arguments. Specified as a string with the format
++	 * "ARG0_NAME ARG0_VALUE ...". The number of arguments in this string
++	 * must match exactly the number of arguments of the default action.
++	 * Must be NULL if the default action does not have any arguments.
+ 	 */
+-	uint8_t *default_action_data;
++	const char *default_action_args;
+ 
+ 	/** If non-zero (true), then the default action of the current table
+ 	 * cannot be changed. If zero (false), then the default action can be
+diff --git a/lib/pipeline/rte_swx_pipeline_spec.c b/lib/pipeline/rte_swx_pipeline_spec.c
+index 8165a046ea..b2f2469b18 100644
+--- a/lib/pipeline/rte_swx_pipeline_spec.c
++++ b/lib/pipeline/rte_swx_pipeline_spec.c
+@@ -7,10 +7,17 @@
+ #include <string.h>
+ #include <errno.h>
+ 
++#include <rte_common.h>
++
+ #include "rte_swx_pipeline.h"
+ 
+-#define MAX_LINE_LENGTH RTE_SWX_INSTRUCTION_SIZE
+-#define MAX_TOKENS RTE_SWX_INSTRUCTION_TOKENS_MAX
++#ifndef MAX_LINE_LENGTH
++#define MAX_LINE_LENGTH 2048
++#endif
++
++#ifndef MAX_TOKENS
++#define MAX_TOKENS 256
++#endif
+ 
+ #define STRUCT_BLOCK 0
+ #define ACTION_BLOCK 1
+@@ -532,7 +539,7 @@ action_block_parse(struct action_spec *s,
+ /*
+  * table.
+  *
+- * table {
++ * table TABLE_NAME {
+  *	key {
+  *		MATCH_FIELD_NAME exact | wildcard | lpm
+  *		...
+@@ -541,7 +548,7 @@ action_block_parse(struct action_spec *s,
+  *		ACTION_NAME [ @tableonly | @defaultonly ]
+  *		...
+  *	}
+- *	default_action ACTION_NAME args none | ARGS_BYTE_ARRAY [ const ]
++ *	default_action ACTION_NAME args none | ARG0_NAME ARG0_VALUE ... [ const ]
+  *	instanceof TABLE_TYPE_NAME
+  *	pragma ARGS
+  *	size SIZE
+@@ -558,7 +565,7 @@ struct table_spec {
+ static void
+ table_spec_free(struct table_spec *s)
+ {
+-	uintptr_t default_action_name;
++	uintptr_t default_action_name, default_action_args;
+ 	uint32_t i;
+ 
+ 	if (!s)
+@@ -593,8 +600,9 @@ table_spec_free(struct table_spec *s)
+ 	free((void *)default_action_name);
+ 	s->params.default_action_name = NULL;
+ 
+-	free(s->params.default_action_data);
+-	s->params.default_action_data = NULL;
++	default_action_args = (uintptr_t)s->params.default_action_args;
++	free((void *)default_action_args);
++	s->params.default_action_args = NULL;
+ 
+ 	free(s->params.action_is_for_table_entries);
+ 	s->params.action_is_for_table_entries = NULL;
+@@ -804,6 +812,94 @@ table_actions_block_parse(struct table_spec *s,
+ 	return 0;
+ }
+ 
++static int
++table_default_action_statement_parse(struct table_spec *s,
++				     char **tokens,
++				     uint32_t n_tokens,
++				     uint32_t n_lines,
++				     uint32_t *err_line,
++				     const char **err_msg)
++{
++	uint32_t i;
++	int status = 0, duplicate = 0;
++
++	/* Check format. */
++	if ((n_tokens < 4) ||
++	    strcmp(tokens[2], "args")) {
++		status = -EINVAL;
++		goto error;
++	}
++
++	if (s->params.default_action_name) {
++		duplicate = 1;
++		status = -EINVAL;
++		goto error;
++	}
++
++	s->params.default_action_name = strdup(tokens[1]);
++	if (!s->params.default_action_name) {
++		status = -ENOMEM;
++		goto error;
++	}
++
++	if (strcmp(tokens[3], "none")) {
++		char buffer[MAX_LINE_LENGTH];
++		uint32_t n_tokens_args = n_tokens - 3;
++
++		if (!strcmp(tokens[n_tokens - 1], "const"))
++			n_tokens_args--;
++
++		if (!n_tokens_args) {
++			status = -EINVAL;
++			goto error;
++		}
++
++		buffer[0] = 0;
++		for (i = 0; i < n_tokens_args; i++) {
++			if (i)
++				strcat(buffer, " ");
++
++			strcat(buffer, tokens[3 + i]);
++		}
++
++		s->params.default_action_args = strdup(buffer);
++		if (!s->params.default_action_args) {
++			status = -ENOMEM;
++			goto error;
++		}
++	} else {
++		if (((n_tokens != 4) && (n_tokens != 5)) ||
++		    ((n_tokens == 5) && (strcmp(tokens[4], "const")))) {
++			status = -EINVAL;
++			goto error;
++		}
++	}
++
++	if (!strcmp(tokens[n_tokens - 1], "const"))
++		s->params.default_action_is_const = 1;
++
++	return 0;
++
++error:
++	if (err_line)
++		*err_line = n_lines;
++
++	if (err_msg)
++		switch (status) {
++		case -ENOMEM:
++			*err_msg = "Memory allocation failed.";
++			break;
++
++		default:
++			if (duplicate)
++				*err_msg = "Duplicate default_action statement.";
++
++			*err_msg = "Invalid default_action statement.";
++		}
++
++	return status;
++}
++
+ static int
+ table_statement_parse(struct table_spec *s,
+ 		      uint32_t *block_mask,
+@@ -887,40 +983,13 @@ table_block_parse(struct table_spec *s,
+ 						     err_line,
+ 						     err_msg);
+ 
+-	if (!strcmp(tokens[0], "default_action")) {
+-		if (((n_tokens != 4) && (n_tokens != 5)) ||
+-		    strcmp(tokens[2], "args") ||
+-		    strcmp(tokens[3], "none") ||
+-		    ((n_tokens == 5) && strcmp(tokens[4], "const"))) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Invalid default_action statement.";
+-			return -EINVAL;
+-		}
+-
+-		if (s->params.default_action_name) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Duplicate default_action stmt.";
+-			return -EINVAL;
+-		}
+-
+-		s->params.default_action_name = strdup(tokens[1]);
+-		if (!s->params.default_action_name) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Memory allocation failed.";
+-			return -ENOMEM;
+-		}
+-
+-		if (n_tokens == 5)
+-			s->params.default_action_is_const = 1;
+-
+-		return 0;
+-	}
++	if (!strcmp(tokens[0], "default_action"))
++		return table_default_action_statement_parse(s,
++							    tokens,
++							    n_tokens,
++							    n_lines,
++							    err_line,
++							    err_msg);
+ 
+ 	if (!strcmp(tokens[0], "instanceof")) {
+ 		if (n_tokens != 2) {
+@@ -1315,7 +1384,7 @@ selector_block_parse(struct selector_spec *s,
+ /*
+  * learner.
+  *
+- * learner {
++ * learner LEARNER_NAME {
+  *	key {
+  *		MATCH_FIELD_NAME
+  *		...
+@@ -1324,7 +1393,7 @@ selector_block_parse(struct selector_spec *s,
+  *		ACTION_NAME [ @tableonly | @defaultonly]
+  *		...
+  *	}
+- *	default_action ACTION_NAME args none | ARGS_BYTE_ARRAY [ const ]
++ *	default_action ACTION_NAME args none | ARG0_NAME ARG0_VALUE ... [ const ]
+  *	size SIZE
+  *	timeout TIMEOUT_IN_SECONDS
+  * }
+@@ -1339,7 +1408,7 @@ struct learner_spec {
+ static void
+ learner_spec_free(struct learner_spec *s)
+ {
+-	uintptr_t default_action_name;
++	uintptr_t default_action_name, default_action_args;
+ 	uint32_t i;
+ 
+ 	if (!s)
+@@ -1374,8 +1443,9 @@ learner_spec_free(struct learner_spec *s)
+ 	free((void *)default_action_name);
+ 	s->params.default_action_name = NULL;
+ 
+-	free(s->params.default_action_data);
+-	s->params.default_action_data = NULL;
++	default_action_args = (uintptr_t)s->params.default_action_args;
++	free((void *)default_action_args);
++	s->params.default_action_args = NULL;
+ 
+ 	free(s->params.action_is_for_table_entries);
+ 	s->params.action_is_for_table_entries = NULL;
+@@ -1561,6 +1631,94 @@ learner_actions_block_parse(struct learner_spec *s,
+ 	return 0;
+ }
+ 
++static int
++learner_default_action_statement_parse(struct learner_spec *s,
++				       char **tokens,
++				       uint32_t n_tokens,
++				       uint32_t n_lines,
++				       uint32_t *err_line,
++				       const char **err_msg)
++{
++	uint32_t i;
++	int status = 0, duplicate = 0;
++
++	/* Check format. */
++	if ((n_tokens < 4) ||
++	    strcmp(tokens[2], "args")) {
++		status = -EINVAL;
++		goto error;
++	}
++
++	if (s->params.default_action_name) {
++		duplicate = 1;
++		status = -EINVAL;
++		goto error;
++	}
++
++	s->params.default_action_name = strdup(tokens[1]);
++	if (!s->params.default_action_name) {
++		status = -ENOMEM;
++		goto error;
++	}
++
++	if (strcmp(tokens[3], "none")) {
++		char buffer[MAX_LINE_LENGTH];
++		uint32_t n_tokens_args = n_tokens - 3;
++
++		if (!strcmp(tokens[n_tokens - 1], "const"))
++			n_tokens_args--;
++
++		if (!n_tokens_args) {
++			status = -EINVAL;
++			goto error;
++		}
++
++		buffer[0] = 0;
++		for (i = 0; i < n_tokens_args; i++) {
++			if (i)
++				strcat(buffer, " ");
++
++			strcat(buffer, tokens[3 + i]);
++		}
++
++		s->params.default_action_args = strdup(buffer);
++		if (!s->params.default_action_args) {
++			status = -ENOMEM;
++			goto error;
++		}
++	} else {
++		if (((n_tokens != 4) && (n_tokens != 5)) ||
++		    ((n_tokens == 5) && (strcmp(tokens[4], "const")))) {
++			status = -EINVAL;
++			goto error;
++		}
++	}
++
++	if (!strcmp(tokens[n_tokens - 1], "const"))
++		s->params.default_action_is_const = 1;
++
++	return 0;
++
++error:
++	if (err_line)
++		*err_line = n_lines;
++
++	if (err_msg)
++		switch (status) {
++		case -ENOMEM:
++			*err_msg = "Memory allocation failed.";
++			break;
++
++		default:
++			if (duplicate)
++				*err_msg = "Duplicate default_action statement.";
++
++			*err_msg = "Invalid default_action statement.";
++		}
++
++	return status;
++}
++
+ static int
+ learner_statement_parse(struct learner_spec *s,
+ 		      uint32_t *block_mask,
+@@ -1644,40 +1802,13 @@ learner_block_parse(struct learner_spec *s,
+ 						       err_line,
+ 						       err_msg);
+ 
+-	if (!strcmp(tokens[0], "default_action")) {
+-		if (((n_tokens != 4) && (n_tokens != 5)) ||
+-		    strcmp(tokens[2], "args") ||
+-		    strcmp(tokens[3], "none") ||
+-		    ((n_tokens == 5) && strcmp(tokens[4], "const"))) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Invalid default_action statement.";
+-			return -EINVAL;
+-		}
+-
+-		if (s->params.default_action_name) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Duplicate default_action stmt.";
+-			return -EINVAL;
+-		}
+-
+-		s->params.default_action_name = strdup(tokens[1]);
+-		if (!s->params.default_action_name) {
+-			if (err_line)
+-				*err_line = n_lines;
+-			if (err_msg)
+-				*err_msg = "Memory allocation failed.";
+-			return -ENOMEM;
+-		}
+-
+-		if (n_tokens == 5)
+-			s->params.default_action_is_const = 1;
+-
+-		return 0;
+-	}
++	if (!strcmp(tokens[0], "default_action"))
++		return learner_default_action_statement_parse(s,
++							      tokens,
++							      n_tokens,
++							      n_lines,
++							      err_line,
++							      err_msg);
+ 
+ 	if (!strcmp(tokens[0], "size")) {
+ 		char *p = tokens[1];
+@@ -2050,7 +2181,7 @@ rte_swx_pipeline_build_from_spec(struct rte_swx_pipeline *p,
+ 			}
+ 
+ 			/* Handle excessively long lines. */
+-			if (n_tokens >= MAX_TOKENS) {
++			if (n_tokens >= RTE_DIM(tokens)) {
+ 				if (err_line)
+ 					*err_line = n_lines;
+ 				if (err_msg)

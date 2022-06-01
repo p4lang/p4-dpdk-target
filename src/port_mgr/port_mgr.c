@@ -134,7 +134,7 @@ struct port_info_t *port_mgr_get_port_info(bf_dev_port_t dev_port)
 	status = P4_SDE_MAP_GET(map, dev_port, (void **)&port_info);
     
 	if (!port_info)
-		port_mgr_log_error("%s: Port info not found for dev port %d",
+		port_mgr_log_debug("%s: Port info not found for dev port %d",
 							__func__, dev_port);
 
 	port_mgr_log_trace("Exiting %s", __func__);

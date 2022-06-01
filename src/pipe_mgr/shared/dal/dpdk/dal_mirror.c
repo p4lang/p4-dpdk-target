@@ -58,3 +58,20 @@ dal_mirror_session_set(uint32_t id,
 
 	return rc;
 }
+
+/*!
+ * Set the config params for mirror profile.
+ *
+ * @param id profile id for which config to be done.
+ * @param params params for the mirror profile.
+ * @param dev_id device id
+ * @return Status of the API call
+ */
+bf_status_t
+dal_mirror_profile_set(uint32_t id,
+		       void *params,
+		       int dev_id)
+{
+	LOG_TRACE("STUB:%s\n", __func__);
+	return BF_SUCCESS;
+}

@@ -20,6 +20,25 @@
 #include <port_mgr/bf_port_if.h>
 #include <osdep/p4_sde_osdep.h>
 
+#define QEMU_ARGS_LEN 64
+#define SOCK_IP_LEN 64
+#define SOCK_PATH_LEN 256
+#define MAC_STR_LEN 18
+
+/**
+ * DPDK Hotplug attributes
+ */
+struct hotplug_attributes_t {
+	uint32_t qemu_socket_port;
+	char qemu_vm_mac_address[MAC_STR_LEN];
+	char qemu_socket_ip[SOCK_IP_LEN];
+	char qemu_vm_netdev_id[QEMU_ARGS_LEN];
+	char qemu_vm_chardev_id[QEMU_ARGS_LEN];
+	char qemu_vm_device_id[QEMU_ARGS_LEN];
+	char native_socket_path[SOCK_PATH_LEN];
+	bool qemu_hotplug;
+};
+
 /**
  * @brief Port add function
  * @param dev_id Device id
@@ -109,7 +128,6 @@ bf_status_t bf_pal_create_port_info(bf_dev_id_t dev_id);
  */
 bf_status_t bf_pal_port_info_get(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 				 struct port_info_t **port_info);
-
 /**
  * @brief Hotplug add function
  * @param dev_id Device id

@@ -1,0 +1,163 @@
+From 0af05755d871450f9cecdeb0e1b1848479ac1d2a Mon Sep 17 00:00:00 2001
+From: Harshad Narayane <harshad.suresh.narayane@intel.com>
+Date: Wed, 4 May 2022 11:12:08 +0530
+Subject: [PATCH] Added debug logs for learner table flow information
+
+---
+ lib/pipeline/rte_swx_pipeline.c   | 38 ++++++++++++++++++++-----------
+ lib/table/rte_swx_table_learner.c | 16 ++++++++++++-
+ 2 files changed, 40 insertions(+), 14 deletions(-)
+
+diff --git a/lib/pipeline/rte_swx_pipeline.c b/lib/pipeline/rte_swx_pipeline.c
+index ea7df98ecb..c9f2887544 100644
+--- a/lib/pipeline/rte_swx_pipeline.c
++++ b/lib/pipeline/rte_swx_pipeline.c
+@@ -2534,6 +2534,18 @@ instr_selector_exec(struct rte_swx_pipeline *p)
+ 	thread_ip_inc(p);
+ }
+ 
++static struct action *
++action_find_by_id(struct rte_swx_pipeline *p, uint32_t id)
++{
++	struct action *action = NULL;
++
++	TAILQ_FOREACH(action, &p->actions, node)
++		if (action->id == id)
++			return action;
++
++	return NULL;
++}
++
+ static inline void
+ instr_learner_exec(struct rte_swx_pipeline *p)
+ {
+@@ -2547,6 +2559,7 @@ instr_learner_exec(struct rte_swx_pipeline *p)
+ 	uint64_t action_id, n_pkts_hit, n_pkts_action, time;
+ 	uint8_t *action_data;
+ 	int done, hit;
++	struct action *action_taken = NULL;
+ 
+ 	/* Table. */
+ 	time = rte_get_tsc_cycles();
+@@ -2578,7 +2591,12 @@ instr_learner_exec(struct rte_swx_pipeline *p)
+ 	      learner_id,
+ 	      hit ? "hit" : "miss",
+ 	      (uint32_t)action_id);
+-
++	printf("Action status : %s\n",
++	      hit ? "hit (Learnt Action)" : "miss (Default Action)"
++	      );
++	action_taken = action_find_by_id(p, action_id);
++	printf("Action to be taken is : %s\n", action_taken->name);
++	printf("--------------------------------------------------------------------\n");
+ 	t->action_id = action_id;
+ 	t->structs[0] = action_data;
+ 	t->hit = hit;
+@@ -2605,6 +2623,7 @@ instr_learner_af_exec(struct rte_swx_pipeline *p)
+ 	uint8_t *action_data;
+ 	action_func_t action_func;
+ 	int done, hit;
++	struct action *action_taken = NULL;
+ 
+ 	/* Table. */
+ 	time = rte_get_tsc_cycles();
+@@ -2637,6 +2656,11 @@ instr_learner_af_exec(struct rte_swx_pipeline *p)
+ 	      learner_id,
+ 	      hit ? "hit" : "miss",
+ 	      (uint32_t)action_id);
++	printf("Action status : %s\n",
++	      hit ? "hit (Learnt Action)" : "miss (Default Action)"
++	      );
++	action_taken = action_find_by_id(p, action_id);
++	printf("Action to be taken is : %s\n", action_taken->name);
+ 
+ 	t->action_id = action_id;
+ 	t->structs[0] = action_data;
+@@ -7368,18 +7392,6 @@ action_find(struct rte_swx_pipeline *p, const char *name)
+ 	return NULL;
+ }
+ 
+-static struct action *
+-action_find_by_id(struct rte_swx_pipeline *p, uint32_t id)
+-{
+-	struct action *action = NULL;
+-
+-	TAILQ_FOREACH(action, &p->actions, node)
+-		if (action->id == id)
+-			return action;
+-
+-	return NULL;
+-}
+-
+ static struct field *
+ action_field_find(struct action *a, const char *name)
+ {
+diff --git a/lib/table/rte_swx_table_learner.c b/lib/table/rte_swx_table_learner.c
+index 3c98b8ce81..87de86a8d0 100644
+--- a/lib/table/rte_swx_table_learner.c
++++ b/lib/table/rte_swx_table_learner.c
+@@ -19,6 +19,8 @@
+ 
+ #include <rte_malloc.h>
+ 
++#include <rte_hexdump.h>
++
+ static void *
+ env_calloc(size_t size, size_t alignment, int numa_node)
+ {
+@@ -506,6 +508,10 @@ rte_swx_table_learner_lookup(void *table,
+ 		m->input_key = input_key;
+ 		m->input_sig = input_sig | 1;
+ 		m->state = 1;
++		printf("------------------ Learner Debug Stats------------------------------\n");
++		printf("Received input key is:\n");
++		rte_hexdump(stdout, NULL, input_key, 20);
++		printf("--------------------------------------------------------------------\n");
+ 		return 0;
+ 	}
+ 
+@@ -513,6 +519,9 @@ rte_swx_table_learner_lookup(void *table,
+ 		struct table_bucket *b = m->bucket;
+ 		uint32_t i;
+ 
++		printf("Searching following key in the bucket.\n");
++		rte_hexdump(stdout, NULL, m->input_key, 20);
++
+ 		/* Search the input key through the bucket keys. */
+ 		for (i = 0; i < TABLE_KEYS_PER_BUCKET; i++) {
+ 			uint64_t time = b->time[i];
+@@ -537,6 +546,8 @@ rte_swx_table_learner_lookup(void *table,
+ 				*action_id = data[0];
+ 				*action_data = (uint8_t *)&data[1];
+ 				*hit = 1;
++				printf("Key Found Operation Successful!\n");
++				printf("The key position in the bucket is: %d \n", i);
+ 				return 1;
+ 			}
+ 		}
+@@ -546,6 +557,7 @@ rte_swx_table_learner_lookup(void *table,
+ 		m->state = 0;
+ 
+ 		*hit = 0;
++		printf("Key was not Found!\n");
+ 		return 1;
+ 	}
+ 
+@@ -665,11 +677,13 @@ rte_swx_table_learner_add(void *table,
+ 			b->key_timeout_id[i] = (uint8_t)key_timeout_id;
+ 			memcpy(key, m->input_key, t->params.key_size);
+ 
++			printf("Adding the missed key to the bucket.\n");
+ 			/* Install the key data. */
+ 			data[0] = action_id;
+ 			if (t->params.action_data_size && action_data)
+ 				memcpy(&data[1], action_data, t->params.action_data_size);
+-
++			printf("Key added to the bucket.\n");
++			printf("--------------------------------------------------------------------\n");
+ 			/* Mailbox. */
+ 			m->hit = 1;
+ 			m->bucket_key_pos = i;
+-- 
+2.25.1
+

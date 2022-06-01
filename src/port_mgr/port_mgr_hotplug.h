@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 #include <bf_types/bf_types.h>
-#include <port_mgr/bf_port_if.h>
+#include <bf_pal/bf_pal_port_intf.h>
 
 /**
  * @brief Hotplug add function

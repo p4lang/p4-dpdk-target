@@ -45,6 +45,7 @@ bf_switchd/bf_switchd
 src/bf_rt/docs/Doxyfile
 src/bf_rt/docs/DoxygenLayout.xml
 src/lld/dpdk/infra/build/
+unit-test/build
 *.pyc
 *.pyo
 *.o

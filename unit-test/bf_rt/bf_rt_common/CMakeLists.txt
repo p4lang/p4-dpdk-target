@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.6)
 include_directories(${CMAKE_SOURCE_DIR}/../src/bf_rt/bf_rt_common
                     ${CMAKE_SOURCE_DIR}/../include)
 
-
 #Adding libary link directories
 link_directories(${CMAKE_SOURCE_DIR}/../src/.libs)
 

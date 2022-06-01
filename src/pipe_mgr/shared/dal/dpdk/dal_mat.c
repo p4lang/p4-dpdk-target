@@ -26,6 +26,17 @@
 #include "pipe_mgr_dpdk_ctx_util.h"
 #include "../../infra/pipe_mgr_int.h"
 
+int is_match_value_present(struct pipe_tbl_match_spec *match_spec)
+{
+	int i;
+
+	for (i = 0; i < match_spec->num_match_bytes; i++)
+		if (match_spec->match_value_bits[i] ||
+		    match_spec->match_mask_bits[i])
+			return 1;
+	return 0;
+}
+
 static int table_match_field_info(char *table_name,
 		struct dal_dpdk_table_metadata *meta)
 {
@@ -530,8 +541,13 @@ int dal_table_ent_add(u32 sess_hdl,
 		}
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_add(pipe->ctl, mat_ctx->name,
-						      entry);
+	if (is_match_value_present(match_spec))
+		status = rte_swx_ctl_pipeline_table_entry_add
+				(pipe->ctl, mat_ctx->name, entry);
+	else
+		status = rte_swx_ctl_pipeline_table_default_entry_add
+				(pipe->ctl, mat_ctx->name, entry);
+
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");
 		status = BF_UNEXPECTED;

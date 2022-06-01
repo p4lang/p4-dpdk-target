@@ -1045,14 +1045,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 		goto version_parse_err;
 	}
 
-	rc = ctx_json_compile_command(root, pkg_ctx);
-	if (rc) {
-		LOG_ERROR
-			("%s:%d: Failed to parse compile_cmd from ContextJSON",
-			 __func__, __LINE__);
-		goto version_parse_err;
-	}
-
 	rc = ctx_json_parse_target(root, pkg_ctx);
 	if (rc) {
 		LOG_ERROR
@@ -1060,6 +1052,17 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __func__, __LINE__);
 		goto version_parse_err;
 	}
+
+	if (pkg_ctx->target == PIPE_MGR_TARGET_DPDK) {
+		rc = ctx_json_compile_command(root, pkg_ctx);
+		if (rc) {
+			LOG_ERROR
+			("%s:%d: Failed to parse compile_cmd from ContextJSON",
+			 __func__, __LINE__);
+			goto version_parse_err;
+		}
+	}
+
 
 	rc = ctx_json_parse_tables_json(dev_id, profile_id, root, pkg_ctx);
 

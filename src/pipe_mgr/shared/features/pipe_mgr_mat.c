@@ -497,7 +497,7 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 	status = dal_table_ent_del_by_match_spec(sess_hdl, dev_tgt, mat_tbl_hdl,
 						 match_spec, pipe_api_flags,
 						 &tbl->ctx,
-						 entry->dal_data);
+						 NULL);
 	if (status) {
 		LOG_ERROR("dal table entry del failed");
 		goto cleanup;

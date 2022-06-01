@@ -1,23 +1,20 @@
 import struct
 import traceback
-
-from ctypes import *
-
-from ptf.testutils import *
-from ptf.packet import *
-
-from ipaddress import IPv4Address
 import json
 import os
 import sys
-
+from ctypes import *
+from ptf.testutils import *
+from ptf.packet import *
+from ipaddress import IPv4Address
 from switchd_base_test import *
 import ptf_grpc.ptfRpc_pb2 as ptfrpc_pb2
 import ptf_grpc.ptfRpc_pb2_grpc as ptfrpc_pb2_grpc
-from utils import RESULT_STATUS
+from utils import REPORTING
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(THIS_DIR, '..'))
+test_name = os.path.splitext(os.path.basename(__file__))[0]
 
 class switchdAddTableEntry(SwitchdHelper):
     def setup(self):
@@ -61,25 +58,17 @@ class switchdAddTableEntry(SwitchdHelper):
             context_json = json.load(context)
             p4_name = self.get_p4_name(context_json)
             key, action, data = self.get_id(bf_rt)
-
             print("We are going to to add an entry to the WCM table.")
-
             oper = ptfrpc_pb2.table_operation.addition
             status = self.entry(int(IPv4Address("192.168.1.100")), int(IPv4Address("255.255.255.0")), 1, oper, p4_name, table_name, key, action, data)
-
             status = self.entry(int(IPv4Address("192.168.100.2")), int(IPv4Address("255.255.0.255")), 2, oper, p4_name, table_name, key, action, data)
-
             status = self.entry(int(IPv4Address("192.100.168.3")), int(IPv4Address("255.0.255.255")), 3, oper, p4_name, table_name, key, action, data)
-
             if(status.responsem != 0):
                 raise Exception("Entries addition failed with status ", status.responsem)
             print("All the rules have been successfully added to the wcm table.")
-            print(RESULT_STATUS.SUCCESS)
-
+            REPORTING.update_results(REPORTING.get_json(), test_name, "SUCCESS")
         except Exception as e:
-            print("Exception occurred ")
-            print(e)
             print(traceback.print_exc())
-            print(RESULT_STATUS.FAILURE)
+            REPORTING.update_results(REPORTING.get_json(), test_name, "FAILURE")
         finally:
             pass

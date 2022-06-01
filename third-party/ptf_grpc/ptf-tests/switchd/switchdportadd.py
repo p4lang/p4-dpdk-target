@@ -1,24 +1,20 @@
 """
 This test case add 4 TAP ports
 """
-
+import os
+import sys
+import json
 import ptf_grpc.ptfRpc_pb2 as ptfrpc_pb2
 import ptf_grpc.ptfRpc_pb2_grpc as ptfrpc_pb2_grpc
-
 import traceback
 from ptf.testutils import *
 from ptf.packet import *
-import os
-import sys
-
-from utils import RESULT_STATUS
-
+from utils import REPORTING
 from switchd_base_test import *
-
-import json
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(THIS_DIR, '..'))
+test_name = os.path.splitext(os.path.basename(__file__))[0]
 
 class switchdPortAdd(SwitchdHelper):
     def setup(self):
@@ -50,12 +46,9 @@ class switchdPortAdd(SwitchdHelper):
                 if(status.responsem!=0):
                     raise Exception(port_name, port, " port is not added check bfshell logs")
             print("All %d ports have been added" % num_ports)
-            print(RESULT_STATUS.SUCCESS)
-
+            REPORTING.update_results(REPORTING.get_json(), test_name, "SUCCESS")
         except Exception as e:
-            print("Exception occurred ")
-            print(e)
             print(traceback.print_exc())
-            print(RESULT_STATUS.FAILURE)
+            REPORTING.update_results(REPORTING.get_json(), test_name, "FAILURE")
         finally:
             pass
