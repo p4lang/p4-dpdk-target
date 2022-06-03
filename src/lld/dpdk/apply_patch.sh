@@ -32,7 +32,7 @@ apply_patch()
 	# apply and start the compilaltion.
 	if [ -e ${DPDK_SRC_GIT_FILE} ]; then
 		# Let's clean all the changes
-		(cd "${DPDK_SRC_PATH}"; git checkout *)
+		(cd "${DPDK_SRC_PATH}"; git clean -xfd; git checkout *)
 
 		# Validate and apply the patch
 		for i in "${PATCH_FILES[@]}"; do
