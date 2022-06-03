@@ -477,7 +477,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	if (!stage_table->table_meta) {
 		status = dal_dpdk_table_metadata_get(mat_ctx,
 				profile->pipeline_name,
-				mat_ctx->name, 0);
+				mat_ctx->target_table_name, 0);
 		if (status) {
 			LOG_ERROR("not able get table metadata for table %s",
 					mat_ctx->name);

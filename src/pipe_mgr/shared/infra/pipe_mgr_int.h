@@ -171,6 +171,7 @@ struct pipe_mgr_mat_ctx {
 	char direction[P4_SDE_NAME_LEN];
 	uint32_t handle;
 	char name[P4_SDE_TABLE_NAME_LEN];
+	char target_table_name[P4_SDE_TABLE_NAME_LEN];
 	int size;
 	/* Specifies if Add on miss enabled or not */
 	bool add_on_miss;

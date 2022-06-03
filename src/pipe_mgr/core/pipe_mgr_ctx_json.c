@@ -573,7 +573,7 @@ static int ctx_json_parse_match_table_json
 	char *table_name = NULL;
 	char *direction = NULL;
 	int adt_handle = 0;
-	char *name = NULL;
+	char *name = NULL, *target_table_name = NULL;
 	bool uses_range;
 	int handle = 0;
 	int size = 0;
@@ -581,6 +581,9 @@ static int ctx_json_parse_match_table_json
 
 	err |= bf_cjson_get_string
 			(table_cjson, CTX_JSON_TABLE_NAME, &name);
+	err |= bf_cjson_try_get_string
+			(table_cjson, CTX_JSON_TARGET_TABLE_NAME,
+			 &target_table_name);
 	err |= bf_cjson_try_get_string(table_cjson,
 				  CTX_JSON_TABLE_DIRECTION, &direction);
 	err |= bf_cjson_get_handle
@@ -627,6 +630,15 @@ static int ctx_json_parse_match_table_json
 	}
 	strncpy(mat_ctx->name, table_name, P4_SDE_NAME_LEN - 1);
 	mat_ctx->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	table_name = trim_classifier_str(target_table_name);
+	if (!table_name) {
+		LOG_ERROR("target_table_name %s trim_classifier_str failed",
+			  target_table_name);
+		return BF_UNEXPECTED;
+	}
+	strncpy(mat_ctx->target_table_name, table_name, P4_SDE_NAME_LEN - 1);
+	mat_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
 
 	if (direction) {
 		strncpy(mat_ctx->direction, direction, P4_SDE_NAME_LEN - 1);
