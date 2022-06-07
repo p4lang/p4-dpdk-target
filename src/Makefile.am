@@ -101,7 +101,8 @@ port_mgr/port_mgr_dev.c
 port_mgr_sources += \
 port_mgr/dpdk/port_mgr_dpdk_port.c \
 port_mgr/dpdk/port_mgr_dpdk_config_json.c \
-port_mgr/dpdk/port_mgr_dpdk.c
+port_mgr/dpdk/port_mgr_dpdk.c \
+port_mgr/dpdk/port_mgr_dpdk_hotplug.c
 
 bf_pm_sources = \
 bf_pal/dev_intf.c \

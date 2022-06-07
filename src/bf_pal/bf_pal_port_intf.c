@@ -18,6 +18,7 @@
 #include <port_mgr/bf_port_if.h>
 #include <port_mgr/port_mgr.h>
 #include <port_mgr/port_mgr_port.h>
+#include <port_mgr/port_mgr_hotplug.h>
 #include <lld/lld_err.h>
 #include <target-utils/map/map.h>
 #include "bf_pal_log.h"
@@ -198,4 +199,18 @@ bf_status_t bf_pal_port_info_get(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 		return BF_OBJECT_NOT_FOUND;
 
 	return BF_SUCCESS;
+}
+
+bf_status_t bf_pal_hotplug_add(bf_dev_id_t dev_id,
+                               bf_dev_port_t dev_port,
+                               struct hotplug_attributes_t *hotplug_attrib)
+{
+	return port_mgr_hotplug_add(dev_id, dev_port, hotplug_attrib);
+}
+
+bf_status_t bf_pal_hotplug_del(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
+                               struct hotplug_attributes_t *hotplug_attrib)
+
+{
+        return port_mgr_hotplug_del(dev_id, dev_port, hotplug_attrib);
 }

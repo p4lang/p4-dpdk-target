@@ -53,6 +53,10 @@ typedef enum bf_pm_port_dir_e {
 #define PCAP_FILE_NAME_LEN 128
 #define DEV_ARGS_LEN 256
 #define DIR_REG_ARRAY_SIZE 256
+#define QEMU_ARGS_LEN 64
+#define SOCK_IP_LEN 64
+#define SOCK_PATH_LEN 256
+#define MAC_STR_LEN 18
 
 #define PORT_IN_BURST_SIZE 32
 #define PORT_OUT_BURST_SIZE 1
@@ -129,6 +133,20 @@ struct port_attributes_t {
 		struct sink_port_attributes_t sink;     /*!< Sink Port Attributes */
 		struct ring_port_attributes_t ring;     /*!< Ring Port Attributes */
 	};
+};
+
+/**
+ * DPDK Hotplug attributes
+ */
+struct hotplug_attributes_t {
+	uint32_t qemu_socket_port;
+	char qemu_vm_mac_address[MAC_STR_LEN];
+	char qemu_socket_ip[SOCK_IP_LEN];
+	char qemu_vm_netdev_id[QEMU_ARGS_LEN];
+	char qemu_vm_chardev_id[QEMU_ARGS_LEN];
+	char qemu_vm_device_id[QEMU_ARGS_LEN];
+	char native_socket_path[SOCK_PATH_LEN];
+	bool qemu_hotplug;
 };
 #ifdef __cplusplus
 }
