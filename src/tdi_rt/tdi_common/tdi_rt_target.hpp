@@ -86,9 +86,9 @@ class Target : public tdi::pna::Target {
          pna_direction_e direction)
       : tdi::pna::Target(dev_id, pipe_id, direction){};
   tdi_status_t setValue(const tdi_target_e &target,
-                                const uint32_t &value) override;
+                                const uint64_t &value) override;
   tdi_status_t getValue(const tdi_target_e &target,
-                                uint32_t *value) const override;
+                                uint64_t *value) const override;
 
   void getTargetVals(bf_dev_target_t *dev_tgt,
                      pna_direction_e *direction) const;

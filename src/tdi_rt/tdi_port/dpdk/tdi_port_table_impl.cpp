@@ -284,9 +284,9 @@ tdi_status_t PortCfgTable::entryAdd_internal(const Session & /*session*/,
       return BF_INVALID_ARG;
   }
 
-  tdi_id_t dev_id=0;
+  uint64_t dev_id=0;
   dev_tgt.getValue(TDI_TARGET_CORE, &dev_id);
-  status = portMgr->portMgrPortAdd(dev_id,
+  status = portMgr->portMgrPortAdd(static_cast<uint32_t>(dev_id),
                                    dev_port,
                                    &port_attrib);
 
@@ -476,10 +476,10 @@ tdi_status_t PortStatTable::entryGet_internal(
 
   memset(stats, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
 
-  uint32_t dev_id = 0;
+  uint64_t dev_id = 0;
   //From the target to get dev_id
   dev_tgt.getValue(TDI_TARGET_DEVICE, &dev_id);
-  status = portMgr->portMgrPortAllStatsGet(dev_id, dev_port, stats);
+  status = portMgr->portMgrPortAllStatsGet(static_cast<uint32_t>(dev_id), dev_port, stats);
   //status = portMgr->portMgrPortAllStatsGet(dev_id, dev_port, stats);
   if (status != BF_SUCCESS) {
       LOG_ERROR("%s:%d %s: Error getting all stat for dev_port %d",

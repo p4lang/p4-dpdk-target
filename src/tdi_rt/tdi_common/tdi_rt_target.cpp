@@ -37,7 +37,7 @@ namespace pna {
 namespace rt {
 
 tdi_status_t Target::setValue(const tdi_target_e &target_field,
-                              const uint32_t &value) {
+                              const uint64_t &value) {
     tdi_status_t status = TDI_SUCCESS;
     switch(static_cast<pna_target_e>(target_field)) {
       case PNA_TARGET_PIPE_ID:
@@ -57,7 +57,7 @@ tdi_status_t Target::setValue(const tdi_target_e &target_field,
 }
 
 tdi_status_t Target::getValue(const tdi_target_e &target_field,
-                              uint32_t *value) const {
+                              uint64_t *value) const {
     tdi_status_t status = TDI_SUCCESS;
     switch(static_cast<pna_target_e>(target_field)) {
       case PNA_TARGET_PIPE_ID:
