@@ -631,14 +631,17 @@ static int ctx_json_parse_match_table_json
 	strncpy(mat_ctx->name, table_name, P4_SDE_NAME_LEN - 1);
 	mat_ctx->name[P4_SDE_NAME_LEN - 1] = '\0';
 
-	table_name = trim_classifier_str(target_table_name);
-	if (!table_name) {
-		LOG_ERROR("target_table_name %s trim_classifier_str failed",
-			  target_table_name);
-		return BF_UNEXPECTED;
+	if (target_table_name) {
+		table_name = trim_classifier_str(target_table_name);
+		if (!table_name) {
+			LOG_ERROR("target_table_name %s trim_str failed",
+					target_table_name);
+			return BF_UNEXPECTED;
+		}
+		strncpy(mat_ctx->target_table_name, table_name,
+			P4_SDE_NAME_LEN - 1);
+		mat_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
 	}
-	strncpy(mat_ctx->target_table_name, table_name, P4_SDE_NAME_LEN - 1);
-	mat_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
 
 	if (direction) {
 		strncpy(mat_ctx->direction, direction, P4_SDE_NAME_LEN - 1);
