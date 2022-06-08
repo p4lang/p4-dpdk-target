@@ -17,7 +17,7 @@
 
 apply_patch()
 {
-	local PATCH_FILES=(001-port-support-packet-mirroring.patch 002-pipeline-support-default-action-arguments.patch 003-table-improve-learner-table-timers.patch 004-pipeline-fix-emit-instruction-for-invalid-headers.diff 005-pipeline-support-hash-functions.patch 006-Added-debug-logs-for-learner-table-flow-information.patch)
+	local PATCH_FILES=(001-port-support-packet-mirroring.patch 002-pipeline-support-default-action-arguments.patch 003-table-improve-learner-table-timers.patch 004-pipeline-fix-emit-instruction-for-invalid-headers.diff 005-pipeline-support-hash-functions.patch 006-Added-debug-logs-for-learner-table-flow-information.patch 007-Fix-pipeline-structs-initialization.patch)
 
 	DPDK_PATH=${PWD}
 	DPDK_SRC_PATH="${DPDK_PATH}"/dpdk_src
