@@ -16,54 +16,50 @@
 
 #include <Python.h>
 #include <stdio.h>
-#include <bf_rt/bf_rt_init.h>
-#include <bf_rt/bf_rt_common.h>
+#include <tdi/common/c_frontend/tdi_init.h>
+#include <tdi/common/tdi_defs.h>
 #include "target-utils/clish/shell.h"
 #include <dvm/bf_drv_intf.h>
 #include <target-sys/bf_sal/bf_sys_sem.h>
 #include <lld/python_shell_mutex.h>
 /*
- * bfrt_python is not protected by bfshell's command-level lock.
+ * tdi_python is not protected by bfshell's command-level lock.
  * We have a lock defined in python_shell_mutex to ensure multiple
- * instances of bfrt_python aren't spawned. All python shell(bfrt_python and
+ * instances of tdi_python aren't spawned. All python shell(tdi_python and
  * debug_python) share one lock.
  */
 
 /*
- * Start BF Runtime CLI. This program heavily borrows from the python C
+ * Start TDI Runtime CLI. This program heavily borrows from the python C
  * interface example program.
  */
-static int bf_rt_start_cli(int in_fd,
-                           int out_fd,
-                           const char *install_dir,
-                           const char *udf,
-                           bool interactive, bool tdi) {
+static int tdi_start_cli(int in_fd,
+                         int out_fd,
+                         const char *install_dir,
+                         const char *udf,
+                         bool interactive) {
   PyObject *pName = NULL, *pModule = NULL, *pFunc = NULL;
   PyObject *pArgs = NULL, *pValue = NULL;
   uint32_t array_size = 0;
-  bf_dev_id_t *dev_id_list = NULL;
+  tdi_dev_id_t *dev_id_list = NULL;
   int ret_val = 0;
 
   Py_Initialize();
 
-  bf_rt_num_device_id_list_get(&array_size);
+  tdi_num_device_id_list_get(&array_size);
   if (array_size) {
-    dev_id_list = bf_sys_malloc(array_size * sizeof(bf_dev_id_t));
+    dev_id_list = bf_sys_malloc(array_size * sizeof(tdi_dev_id_t));
     if (!dev_id_list) {
         fprintf(stderr, "Failed tp allocate device id list\n");
 	ret_val = 1;
 	goto cleanup;
     }
-    bf_rt_device_id_list_get(dev_id_list);
+    tdi_device_id_list_get(dev_id_list);
   }
 
   /* Load the tdicli python program. Py_Initialize loads its libraries from
   the install dir we installed Python into. */
-  if (tdi == true) {
-    pName = PyUnicode_DecodeFSDefault("tdicli");
-  } else {
-    pName = PyUnicode_DecodeFSDefault("bfrtcli");
-  }
+  pName = PyUnicode_DecodeFSDefault("tdicli");
 
   if (pName) {
       pModule = PyImport_Import(pName);
@@ -71,12 +67,8 @@ static int bf_rt_start_cli(int in_fd,
   }
 
   if (pModule != NULL) {
-    // Create a call to the start_bfrt function in tdicli.py
-    if (tdi == true) {
-        pFunc = PyObject_GetAttrString(pModule, "start_tdi");
-    } else {
-        pFunc = PyObject_GetAttrString(pModule, "start_bfrt");
-    }
+    // Create a call to the start_tdi function in tdicli.py
+    pFunc = PyObject_GetAttrString(pModule, "start_tdi");
     /* pFunc is a new reference */
 
     if (pFunc && PyCallable_Check(pFunc)) {
@@ -146,7 +138,7 @@ static int bf_rt_start_cli(int in_fd,
       }
     } else {
       if (PyErr_Occurred()) PyErr_Print();
-      fprintf(stderr, "Cannot find start_bfrt function.\n");
+      fprintf(stderr, "Cannot find start_tdi function.\n");
     }
     Py_XDECREF(pFunc);
     Py_DECREF(pModule);
@@ -169,12 +161,12 @@ cleanup:
 CLISH_PLUGIN_SYM(tdi_cli_cmd) {
   (void)script;
   (void)out;
-  bf_status_t sts;
+  tdi_status_t sts;
   clish_shell_t *bfshell = clish_context__get_shell(clish_context);
   bool success = TRY_PYTHON_SHL_LOCK();
   if (!success) {
     bfshell_printf(clish_context,
-                   "Only one Python shell instance allowed at a time. bfrt "
+                   "Only one Python shell instance allowed at a time. tdi "
                    "python and debug python share the python shell "
                    "resource.\n");
     return 0;
@@ -197,12 +189,12 @@ CLISH_PLUGIN_SYM(tdi_cli_cmd) {
   }
 
   tinyrl_t *bftinyrl = clish_shell__get_tinyrl(bfshell);
-  sts = bf_rt_start_cli(fileno(tinyrl__get_istream(bftinyrl)),
+  sts = tdi_start_cli(fileno(tinyrl__get_istream(bftinyrl)),
                         fileno(tinyrl__get_ostream(bftinyrl)),
                         clish_context__get_install_dir(clish_context),
                         udf,
-                        interactive, true);
-  if (sts != BF_SUCCESS) {
+                        interactive);
+  if (sts != TDI_SUCCESS) {
     bfshell_printf(clish_context,
                    "%s:%d could not initialize tdi for the cli. err: %d\n",
                    __func__,
