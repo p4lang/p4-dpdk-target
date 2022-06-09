@@ -109,4 +109,25 @@ bf_status_t bf_pal_create_port_info(bf_dev_id_t dev_id);
  */
 bf_status_t bf_pal_port_info_get(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
 				 struct port_info_t **port_info);
+
+/**
+ * @brief Hotplug add function
+ * @param dev_id Device id
+ * @param dev_port Device port number
+ * @param hotplug_attrib Hotplug attributes
+ * @return Status of the API call
+ */
+bf_status_t bf_pal_hotplug_add(bf_dev_id_t dev_id,
+			       bf_dev_port_t dev_port,
+			       struct hotplug_attributes_t *hotplug_attrib);
+
+/**
+ * @brief Hotplug delete function
+ * @param dev_id Device id
+ * @param dev_port Device port number
+ * @param hotplug_attrib Hotplug attributes
+ * @return Status of the API call
+ */
+bf_status_t bf_pal_hotplug_del(bf_dev_id_t dev_id, bf_dev_port_t dev_port,
+			       struct hotplug_attributes_t *hotplug_attrib);
 #endif
