@@ -230,7 +230,7 @@ class ContextInfoParser {
                     const size_t &key_width_parent_byte_size) const;
   void parseKeyHelper(
       const Cjson *context_json_table_keys,
-      std::map<std::string, const KeyFieldInfo *> name_key_map,
+      const std::map<tdi_id_t, std::unique_ptr<KeyFieldInfo>> &table_key_map,
       const TableInfo *tdi_table_info,
       std::map<std::string, size_t> *match_key_field_name_to_position_map,
       std::map<size_t, size_t> *match_key_field_position_to_offset_map,

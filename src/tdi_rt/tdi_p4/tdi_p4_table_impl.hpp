@@ -58,12 +58,14 @@ class MatchActionDirect : public tdi::Table {
                 {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
+#if 0
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_SET,
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_RESET,
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
                  {"dev_id", "pipe_id", "pipe_all"}},
+#endif
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
                  {"dev_id", "pipe_id", "pipe_all"}},

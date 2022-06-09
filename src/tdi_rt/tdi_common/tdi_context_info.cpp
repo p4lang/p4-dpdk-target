@@ -484,7 +484,7 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
 
   // getting key
   Cjson table_context_match_fields_cjson = table_context["match_key_fields"];
-  auto &name_key_map = tdi_table_info->name_key_map_;
+  const auto &table_key_map = tdi_table_info->tableKeyMapGet();
 
   std::map<std::string /*match_key_field_name*/, size_t /* position*/>
       match_key_field_name_to_position_map;
@@ -498,7 +498,7 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
   size_t cumulative_key_width_bits = 0;
 
   parseKeyHelper(&table_context_match_fields_cjson,
-                 name_key_map,
+                 table_key_map,
                  tdi_table_info,
                  &match_key_field_name_to_position_map,
                  &match_key_field_position_to_offset_map,
@@ -507,9 +507,9 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
                  &match_key_field_name_to_parent_field_byte_size_map);
 
   // parse each key field
-  for (const auto &kv : name_key_map) {
-    const std::string key_name = kv.first;
-    const KeyFieldInfo *tdi_key_field_info = kv.second;
+  for (const auto &kv : table_key_map) {
+    const KeyFieldInfo *tdi_key_field_info = kv.second.get();
+    const std::string key_name = tdi_key_field_info->nameGet();
     std::string partition_name =
         table_context["match_attributes"]["partition_field_name"];
     size_t start_bit = 0;
@@ -567,7 +567,7 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
 
   // action_parsing
 
-  auto &name_action_map = tdi_table_info->name_action_map_;
+  const auto &table_action_map = tdi_table_info->tableActionMapGet();
   // If the table type is action, let's find the first match table
   // which has action_data_table_refs as this action profile table.
   // If none was found, then continue with this table itself.
@@ -633,10 +633,10 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
   std::map<std::string, std::pair<const ActionInfo *, std::shared_ptr<Cjson>>>
       actionInfo_contextJson_map;
 
-  for (const auto &kv : name_action_map) {
-    std::string action_name = kv.first;
+  for (const auto &kv : table_action_map) {
+    std::string action_name = kv.second->nameGet();
     actionInfo_contextJson_map[action_name] =
-        std::make_pair(kv.second, nullptr);
+        std::make_pair(kv.second.get(), nullptr);
   }
   for (const auto &action :
        table_action_spec_context_cjson.getCjsonChildVec()) {
@@ -724,8 +724,8 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
   if (table_type != TDI_RT_TABLE_TYPE_PORT_METADATA) {
     // get common data
     // Cjson common_data_cjson = table_bfrt["data"];
-    const auto &data_field_map = tdi_table_info->name_data_map_;
-    for (auto &kv : data_field_map) {
+    const auto &table_data_map = tdi_table_info->tableDataMapGet();
+    for (auto &kv : table_data_map) {
       size_t offset = 0;
       // Bitsize is needed to fill out some back-end info
       // which has both action size in bytes and bits
@@ -736,7 +736,7 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
       // making a null temp object to pass as contextJson info since we dont
       // need that
       Cjson temp;
-      const DataFieldInfo *common_data_field = kv.second;
+      const DataFieldInfo *common_data_field = kv.second.get();
 
       auto data_field_context_info =
           parseDataFieldContext(temp,
@@ -809,9 +809,9 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
   // all the common data fields so that we know the actual total size of
   // the action_info.
   if (tdi_action_info == nullptr) {
-    const auto &data_field_map = tdi_table_info->name_data_map_;
-    for (auto &kv : data_field_map) {
-      const DataFieldInfo *tdi_data_field_info = kv.second;
+    const auto &table_data_map = tdi_table_info->tableDataMapGet();
+    for (auto &kv : table_data_map) {
+      const DataFieldInfo *tdi_data_field_info = kv.second.get();
       auto data_field_context_info =
           parseDataFieldContext(action_indirect,
                                 tdi_data_field_info,
@@ -825,9 +825,9 @@ std::unique_ptr<RtActionContextInfo> ContextInfoParser::parseActionContext(
           std::move(data_field_context_info));
     }
   } else {
-    const auto &data_field_map = tdi_action_info->data_fields_names_;
-    for (auto &kv : data_field_map) {
-      const DataFieldInfo *tdi_data_field_info = kv.second;
+    const auto &action_data_map = tdi_action_info->actionDataMapGet();
+    for (auto &kv : action_data_map) {
+      const DataFieldInfo *tdi_data_field_info = kv.second.get();
       auto data_field_context_info =
           parseDataFieldContext(action_indirect,
                                 tdi_data_field_info,
@@ -940,7 +940,7 @@ ContextInfoParser::parseDataFieldContext(
 // - Gets the offset (in the match spec byte buf) of every match field
 void ContextInfoParser::parseKeyHelper(
     const Cjson *context_json_table_keys,
-    std::map<std::string, const tdi::KeyFieldInfo *> name_key_map,
+    const std::map<tdi_id_t, std::unique_ptr<KeyFieldInfo>> &table_key_map,
     const TableInfo *tdi_table_info,
     std::map<std::string, size_t> *match_key_field_name_to_position_map,
     std::map<size_t, size_t> *match_key_field_position_to_offset_map,
@@ -991,10 +991,9 @@ void ContextInfoParser::parseKeyHelper(
     // key json node to extract all the information. The position of the
     // fields will just be according to the order in which they are published
     // Hence simply increment the position as we iterate
-    for (const auto &kv : name_key_map) {
-      std::string key_name = kv.first;
-      const KeyFieldInfo *tdi_key_field_info = kv.second;
-
+    for (const auto &kv : table_key_map) {
+      const KeyFieldInfo *tdi_key_field_info = kv.second.get();
+      std::string key_name =tdi_key_field_info->nameGet();
       (*match_key_field_name_to_position_map)[key_name] = pos;
       (*match_key_field_position_to_offset_map)[pos] =
           (tdi_key_field_info->sizeGet() + 7) / 8;
