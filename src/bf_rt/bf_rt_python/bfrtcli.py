@@ -2226,6 +2226,15 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
     global ipython_app
     global ipython_appshell
 
+    # save udf in storage, this part of code can be executed by two ways:
+    # - using ipython_app.initialize by ipython internally
+    # - using ipython_app._run_exec_files to run it manually
+    # we run ipython_app.initialize once time to prevent memory leakage,
+    #  next runs will be manually using _run_exec_files command
+    exec_files_list = []
+    if udf is not None:
+        exec_files_list.append(udf)
+
     if ipython_app is None:
         print("Devices found : ", dev_id_list)
         c = Config()
@@ -2239,6 +2248,9 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
         c.ZMQInteractiveShell.automagic = False
         c.TerminalInteractiveShell.display_page = False
         c.ZMQInteractiveShell.display_page = True
+        # save udf in exec_files, that will be executed by ipython internally
+        # on ipython_app initialize step
+        c.InteractiveShellApp.exec_files = exec_files_list
         c.InteractiveShellApp.extensions = [
             'bfrtcli'
         ]
@@ -2270,12 +2282,14 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
             ipython_appshell.pt_app.app.renderer.output = ipython_app.output
         for subclass in IPython.terminal.interactiveshell.TerminalInteractiveShell._walk_mro():
             subclass._instance = IPython.terminal.interactiveshell.TerminalInteractiveShell._instance
+        if udf is not None:
+            ipython_app.exec_files = exec_files_list
+            ipython_app._run_exec_files()
         load_ipython_extension(ipython_appshell)
         set_parent_context()
         bfrt()
 
     if udf is not None:
-        exec(open(udf).read())
         if interactive:
             ipython_app.start()
     else:
