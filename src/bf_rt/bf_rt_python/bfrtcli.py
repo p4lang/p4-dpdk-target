@@ -2165,6 +2165,22 @@ def input_transform(lines):
     return new_lines
 
 """
+choose which prompt to use, return True if we use simple_prompt or vt100 if function returns False
+- vt100 terminal if stdin, stdout, stderr file descriptor refers to a terminal
+- simple_prompt if stdin, stdout, stderr file descriptor not refers to a terminal
+"""
+def use_simple_prompt():
+    for name in ('stdin', 'stdout', 'stderr'):
+        stream = getattr(sys, name)
+        if not stream or not hasattr(stream, 'isatty') or not stream.isatty():
+            is_tty = False
+            break
+    else:
+        is_tty = True
+
+    return ('IPY_TEST_SIMPLE_PROMPT' in os.environ) or (not is_tty)
+
+"""
 # load_ipython_extension is the the symbol for ipython extension
   The `ipython` argument is the currently active `InteractiveShell`
   instance, which can be used in any way. This allows you to register
@@ -2247,6 +2263,7 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
         c.TerminalInteractiveShell.automagic = False
         c.ZMQInteractiveShell.automagic = False
         c.TerminalInteractiveShell.display_page = False
+        c.TerminalInteractiveShell.simple_prompt = use_simple_prompt()
         c.ZMQInteractiveShell.display_page = True
         # save udf in exec_files, that will be executed by ipython internally
         # on ipython_app initialize step
