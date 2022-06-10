@@ -44,6 +44,16 @@ static int tdi_start_cli(int in_fd,
   uint32_t array_size = 0;
   tdi_dev_id_t *dev_id_list = NULL;
   int ret_val = 0;
+  PyConfig config;
+  wchar_t cfg_home_path[256];
+
+  PyConfig_InitPythonConfig(&config);
+
+  swprintf(cfg_home_path, 256, L"%s", install_dir);
+
+  config.home = cfg_home_path;
+
+  Py_InitializeFromConfig(&config);
 
   tdi_num_device_id_list_get(&array_size);
   if (array_size) {
