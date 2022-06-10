@@ -33,7 +33,7 @@
  * Start BF Runtime CLI. This program heavily borrows from the python C
  * interface example program.
  */
-PyObject *pModule = NULL;
+PyObject *bfrtpModule = NULL;
 static int bf_rt_start_cli(int in_fd,
                            int out_fd,
                            const char *install_dir,
@@ -67,25 +67,25 @@ static int bf_rt_start_cli(int in_fd,
   }
 
   // first run, initialize python interpreter
-  if (pModule == NULL) {
+  if (bfrtpModule == NULL) {
     Py_Initialize();
     PyObject *pName;
     /* Load the bfrtcli python program. Py_Initialize loads its libraries from
     the install dir we installed Python into. */
     pName = PyUnicode_DecodeFSDefault("bfrtcli");
     /* Error checking of pName left out */
-    pModule = PyImport_Import(pName);
+    bfrtpModule = PyImport_Import(pName);
     Py_DECREF(pName);
-    if (pModule == NULL) {
+    if (bfrtpModule == NULL) {
       printf("cannot import module in bfrt\n");
       ret_val = 1;
       goto cleanup;
     }
   }
 
-  if (pModule != NULL) {
+  if (bfrtpModule != NULL) {
     // Create a call to the start_bfrt function in bfrtcli.py
-    pFunc = PyObject_GetAttrString(pModule, "start_bfrt");
+    pFunc = PyObject_GetAttrString(bfrtpModule, "start_bfrt");
     /* pFunc is a new reference */
 
     if (pFunc && PyCallable_Check(pFunc)) {

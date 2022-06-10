@@ -33,7 +33,7 @@
  * Start TDI Runtime CLI. This program heavily borrows from the python C
  * interface example program.
  */
-PyObject *pModule = NULL;
+PyObject *tdipModule = NULL;
 static int tdi_start_cli(int in_fd,
                          int out_fd,
                          const char *install_dir,
@@ -67,25 +67,25 @@ static int tdi_start_cli(int in_fd,
   }
 
   // first run, initialize python interpreter
-  if (pModule == NULL) {
+  if (tdipModule == NULL) {
     Py_Initialize();
     PyObject *pName;
     /* Load the tdicli python program. Py_Initialize loads its libraries from
     the install dir we installed Python into. */
     pName = PyUnicode_DecodeFSDefault("tdicli");
     /* Error checking of pName left out */
-    pModule = PyImport_Import(pName);
+    tdipModule = PyImport_Import(pName);
     Py_DECREF(pName);
-    if (pModule == NULL) {
+    if (tdipModule == NULL) {
       printf("cannot import module in tdi\n");
       ret_val = 1;
       goto cleanup;
     }
   }
 
-  if (pModule != NULL) {
+  if (tdipModule != NULL) {
     // Create a call to the start_tdi function in tdicli.py
-    pFunc = PyObject_GetAttrString(pModule, "start_tdi");
+    pFunc = PyObject_GetAttrString(tdipModule, "start_tdi");
     /* pFunc is a new reference */
 
     if (pFunc && PyCallable_Check(pFunc)) {
