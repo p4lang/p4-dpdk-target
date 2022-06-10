@@ -1814,6 +1814,9 @@ class BfRtTable:
         for idx in range(0, num_returned.value):
             key_ret.append(key_hdls[idx])
             data_ret.append(data_hdls[idx])
+        for idx in range(num_returned.value, n):
+            self._cintf.get_driver().bf_rt_table_key_deallocate(key_hdls[idx])
+            self._cintf.get_driver().bf_rt_table_data_deallocate(data_hdls[idx])
         return key_ret, data_ret
 
     def get_usage(self, from_hw=False):

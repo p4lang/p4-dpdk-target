@@ -15,6 +15,9 @@
 #
 from __future__ import print_function
 from traitlets.config import Config
+from prompt_toolkit.input.defaults import create_input
+from prompt_toolkit.output.defaults import create_output
+from prompt_toolkit.application.current import get_app_session
 from ctypes import *
 import sys
 import os
@@ -228,7 +231,6 @@ class CIntfBFRT:
             self.infos[name] = info
         self._session = self.sess_type()
         sts = self._driver.bf_rt_session_create(byref(self._session))
-        atexit.register(self._cleanup_session)
         if not sts == 0:
             print("Error, unable to create BF Runtime session")
             return -1
@@ -2174,7 +2176,8 @@ def load_ipython_extension(ipython):
     sys.modules['__main__']._bfrt_context = _bfrt_context
     sys.modules['__main__'].set_parent_context = set_parent_context
     sys.modules['__main__'].bfrt = bfrt
-    ipython.input_transformers_cleanup.append(input_transform)
+    if not input_transform in ipython.input_transformers_cleanup:
+        ipython.input_transformers_cleanup.append(input_transform)
     IPython.core.usage.interactive_usage = """
 BFRT-PYTHON Usage:
 
@@ -2200,16 +2203,18 @@ Tips:
 def unload_ipython_extension(ipython):
     pass
 
+ipython_app = None
+ipython_appshell = None
+
 """
 Initialize BF Runtime CLI, create IPython's configuration, start BF Runtime
 CLI, and reset python's IO streams before teardown.
 """
 def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=False):
     global install_directory
-    up = set_parent_context
     install_directory = install_dir
     inf, outf = set_io(in_fd, out_fd)
-    print("Devices found : ", dev_id_list)
+
     sts = load_bfrt(dev_id_list)
     if not sts == 0:
         return sts
@@ -2218,29 +2223,66 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
     import threading
     threading.current_thread().__class__.__name__ = "bfrt"
 
-    c = Config()
-    c.Completer.use_jedi = False
-    c.IPCompleter.use_jedi = False
-    c.InteractiveShell.autocall = 2
-    c.TerminalInteractiveShell.autocall = 2
-    c.ZMQInteractiveShell.autocall = 2
-    c.InteractiveShell.automagic = False
-    c.TerminalInteractiveShell.automagic = False
-    c.ZMQInteractiveShell.automagic = False
-    c.TerminalInteractiveShell.display_page = False
-    c.ZMQInteractiveShell.display_page = True
-    c.InteractiveShellApp.extensions = [
-        'bfrtcli'
-    ]
-    IPython.core.page.page = page_printer
-    app = IPython.terminal.ipapp.TerminalIPythonApp.instance(config=c)
-    app.initialize()
+    global ipython_app
+    global ipython_appshell
+
+    if ipython_app is None:
+        print("Devices found : ", dev_id_list)
+        c = Config()
+        c.Completer.use_jedi = False
+        c.IPCompleter.use_jedi = False
+        c.InteractiveShell.autocall = 2
+        c.TerminalInteractiveShell.autocall = 2
+        c.ZMQInteractiveShell.autocall = 2
+        c.InteractiveShell.automagic = False
+        c.TerminalInteractiveShell.automagic = False
+        c.ZMQInteractiveShell.automagic = False
+        c.TerminalInteractiveShell.display_page = False
+        c.ZMQInteractiveShell.display_page = True
+        c.InteractiveShellApp.extensions = [
+            'bfrtcli'
+        ]
+
+        # save TerminalIPythonApp and TerminalInteractiveShell for reusing it in next iteration
+        ipython_app = IPython.terminal.ipapp.TerminalIPythonApp(config=c)
+        ipython_appshell = IPython.terminal.interactiveshell.TerminalInteractiveShell(parent=ipython_app,
+                        profile_dir=ipython_app.profile_dir,
+                        ipython_dir=ipython_app.ipython_dir, user_ns=ipython_app.user_ns)
+
+        IPython.terminal.interactiveshell.TerminalInteractiveShell._instance = ipython_appshell
+        for subclass in IPython.terminal.interactiveshell.TerminalInteractiveShell._walk_mro():
+            subclass._instance = IPython.terminal.interactiveshell.TerminalInteractiveShell._instance
+        ipython_app.initialize()
+
+    else:
+        IPython.terminal.interactiveshell.TerminalInteractiveShell._instance = ipython_appshell
+
+        # use saved instances of TerminalIPythonApp, but we need reinitialize input output streams
+        # for ability use new shell from another terminal
+        ipython_app.input = create_input()
+        ipython_app.output = create_output()
+        session = get_app_session()
+        session._input = ipython_app.input
+        session._output = ipython_app.output
+        if not ipython_appshell.pt_app is None:
+            ipython_appshell.pt_app.app.output = ipython_app.output
+            ipython_appshell.pt_app.app.input = ipython_app.input
+            ipython_appshell.pt_app.app.renderer.output = ipython_app.output
+        for subclass in IPython.terminal.interactiveshell.TerminalInteractiveShell._walk_mro():
+            subclass._instance = IPython.terminal.interactiveshell.TerminalInteractiveShell._instance
+        load_ipython_extension(ipython_appshell)
+        set_parent_context()
+        bfrt()
+
     if udf is not None:
         exec(open(udf).read())
         if interactive:
-            app.start()
+            ipython_app.start()
     else:
-        app.start()
+        ipython_app.start()
+
+    if not bfrt._cintf is None:
+        bfrt._cintf._cleanup_session()
     sys.stdin = sys.__stdin__
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__

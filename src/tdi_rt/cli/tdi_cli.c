@@ -33,18 +33,17 @@
  * Start TDI Runtime CLI. This program heavily borrows from the python C
  * interface example program.
  */
+PyObject *pModule = NULL;
 static int tdi_start_cli(int in_fd,
                          int out_fd,
                          const char *install_dir,
                          const char *udf,
                          bool interactive) {
-  PyObject *pName = NULL, *pModule = NULL, *pFunc = NULL;
+  PyObject *pFunc = NULL;
   PyObject *pArgs = NULL, *pValue = NULL;
   uint32_t array_size = 0;
   tdi_dev_id_t *dev_id_list = NULL;
   int ret_val = 0;
-
-  Py_Initialize();
 
   tdi_num_device_id_list_get(&array_size);
   if (array_size) {
@@ -57,13 +56,21 @@ static int tdi_start_cli(int in_fd,
     tdi_device_id_list_get(dev_id_list);
   }
 
-  /* Load the tdicli python program. Py_Initialize loads its libraries from
-  the install dir we installed Python into. */
-  pName = PyUnicode_DecodeFSDefault("tdicli");
-
-  if (pName) {
-      pModule = PyImport_Import(pName);
-      Py_DECREF(pName);
+  // first run, initialize python interpreter
+  if (pModule == NULL) {
+    Py_Initialize();
+    PyObject *pName;
+    /* Load the tdicli python program. Py_Initialize loads its libraries from
+    the install dir we installed Python into. */
+    pName = PyUnicode_DecodeFSDefault("tdicli");
+    /* Error checking of pName left out */
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+    if (pModule == NULL) {
+      printf("cannot import module in tdi\n");
+      ret_val = 1;
+      goto cleanup;
+    }
   }
 
   if (pModule != NULL) {
@@ -130,7 +137,6 @@ static int tdi_start_cli(int in_fd,
         Py_DECREF(pValue);
       } else {
         Py_DECREF(pFunc);
-        Py_DECREF(pModule);
         PyErr_Print();
         fprintf(stderr, "tdi cli python call failed\n");
         ret_val = 1;
@@ -141,7 +147,6 @@ static int tdi_start_cli(int in_fd,
       fprintf(stderr, "Cannot find start_tdi function.\n");
     }
     Py_XDECREF(pFunc);
-    Py_DECREF(pModule);
   } else {
     PyErr_Print();
     fprintf(stderr, "Failed to load tdicli python library\n");
@@ -149,8 +154,10 @@ static int tdi_start_cli(int in_fd,
     goto cleanup;
   }
 cleanup:
-  // This will free all remaining memory allocated by python & the CLI.
-  Py_Finalize();
+  // After execution of Py_Fynalize will be needed call
+  // Py_Initialize and PyImport_Import that leads to a memory leak
+  // because of previous imported lib will not be removed
+  PyGC_Collect();
   if (dev_id_list) {
     bf_sys_free(dev_id_list);
   }
