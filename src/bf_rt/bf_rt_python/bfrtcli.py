@@ -2143,6 +2143,16 @@ def page_printer(data, start=0, screen_lines=0, pager_cmd=None):
         data = data['text/plain']
     print(data)
 
+def ipython_reinitialize_io():
+    ipython_app.input = create_input()
+    ipython_app.output = create_output()
+    session = get_app_session()
+    session._input = ipython_app.input
+    session._output = ipython_app.output
+    if not ipython_appshell.pt_app is None:
+        ipython_appshell.pt_app.app.output = ipython_app.output
+        ipython_appshell.pt_app.app.input = ipython_app.input
+        ipython_appshell.pt_app.app.renderer.output = ipython_app.output
 
 def input_transform(lines):
     new_lines = []
@@ -2278,6 +2288,9 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
                         profile_dir=ipython_app.profile_dir,
                         ipython_dir=ipython_app.ipython_dir, user_ns=ipython_app.user_ns)
 
+        # reinitialize input output streams in case switching api
+        ipython_reinitialize_io()
+
         IPython.terminal.interactiveshell.TerminalInteractiveShell._instance = ipython_appshell
         for subclass in IPython.terminal.interactiveshell.TerminalInteractiveShell._walk_mro():
             subclass._instance = IPython.terminal.interactiveshell.TerminalInteractiveShell._instance
@@ -2288,15 +2301,7 @@ def start_bfrt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=Fa
 
         # use saved instances of TerminalIPythonApp, but we need reinitialize input output streams
         # for ability use new shell from another terminal
-        ipython_app.input = create_input()
-        ipython_app.output = create_output()
-        session = get_app_session()
-        session._input = ipython_app.input
-        session._output = ipython_app.output
-        if not ipython_appshell.pt_app is None:
-            ipython_appshell.pt_app.app.output = ipython_app.output
-            ipython_appshell.pt_app.app.input = ipython_app.input
-            ipython_appshell.pt_app.app.renderer.output = ipython_app.output
+        ipython_reinitialize_io()
         for subclass in IPython.terminal.interactiveshell.TerminalInteractiveShell._walk_mro():
             subclass._instance = IPython.terminal.interactiveshell.TerminalInteractiveShell._instance
         if udf is not None:
