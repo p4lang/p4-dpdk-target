@@ -187,9 +187,11 @@ extern "C" {
     TDI_RT_TABLE_TYPE_TM_L1_NODE_SCHED_CFG,
     /** TM L1 Node Scheduler shaping table */
     TDI_RT_TABLE_TYPE_TM_L1_NODE_SCHED_SHAPING,
+    /** Value Lookup Table */
+	TDI_RT_TABLE_TYPE_VALUE_LOOKUP,
     TDI_RT_TABLE_TYPE_INVALID_TYPE
   };
-  
+
 enum tdi_rt_flags_e {
   TDI_RT_FLAGS_FROM_HW = TDI_FLAGS_DEVICE,
   TDI_RT_FLAGS_MOD_INC,

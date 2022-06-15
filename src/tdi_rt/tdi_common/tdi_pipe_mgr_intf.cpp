@@ -745,6 +745,95 @@ pipe_status_t PipeMgrIntf::pipeMgrDirectStatEntDatabaseSync(
       sess_hdl, dev_tgt, mat_tbl_hdl, mat_ent_hdl);
 }
 
+// APIs for Value Lookup Manipulation
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntAdd(pipe_sess_hdl_t sess_hdl,
+						    dev_target_t dev_tgt,
+						    pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						    pipe_tbl_match_spec_t *match_spec,
+						    const pipe_data_spec_t *data_spec,
+						    pipe_val_lookup_ent_hdl_t *ent_hdl_p)
+{
+	return pipe_mgr_value_lookup_ent_add(sess_hdl, dev_tgt, tbl_hdl,
+					     match_spec, (pipe_data_spec_t *)data_spec, ent_hdl_p);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntDel(pipe_sess_hdl_t sess_hdl,
+						    dev_target_t dev_tgt,
+						    pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						    struct pipe_tbl_match_spec *match_spec)
+{
+	return pipe_mgr_value_lookup_ent_del(sess_hdl, dev_tgt, tbl_hdl,
+					     match_spec);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntGet(pipe_sess_hdl_t sess_hdl,
+						    dev_target_t dev_tgt,
+						    pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						    pipe_val_lookup_ent_hdl_t ent_hdl,
+						    pipe_tbl_match_spec_t *match_spec,
+						    pipe_data_spec_t *data_spec)
+{
+	return pipe_mgr_value_lookup_ent_get(sess_hdl, dev_tgt, tbl_hdl, ent_hdl,
+					     match_spec, data_spec);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntGetFirst(pipe_sess_hdl_t sess_hdl,
+							 dev_target_t dev_tgt,
+							 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							 pipe_tbl_match_spec_t *match_spec,
+							 pipe_data_spec_t *data_spec,
+							 pipe_val_lookup_ent_hdl_t *ent_hdl_p)
+{
+	return pipe_mgr_value_lookup_ent_get_first(sess_hdl, dev_tgt, tbl_hdl,
+						   match_spec, data_spec, ent_hdl_p);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntGetNextNByKey(pipe_sess_hdl_t sess_hdl,
+							      dev_target_t dev_tgt,
+							      pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							      pipe_tbl_match_spec_t *cur_match_spec,
+							      uint32_t n,
+							      pipe_tbl_match_spec_t *match_specs,
+							      pipe_data_spec_t **data_specs,
+							      uint32_t *num)
+{
+	return pipe_mgr_value_lookup_ent_get_next_n_by_key(sess_hdl, dev_tgt, tbl_hdl,
+							   cur_match_spec, n, match_specs,
+							   data_specs, num);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntGetFirstEntHandle(pipe_sess_hdl_t sess_hdl,
+								  dev_target_t dev_tgt,
+								  pipe_val_lookup_tbl_hdl_t tbl_hdl,
+								  pipe_val_lookup_ent_hdl_t *ent_hdl_p)
+{
+	return pipe_mgr_value_lookup_get_first_ent_handle(sess_hdl, dev_tgt, tbl_hdl,
+							  ent_hdl_p);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupEntGetNextEntHandle(pipe_sess_hdl_t sess_hdl,
+								 dev_target_t dev_tgt,
+								 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+								 pipe_val_lookup_ent_hdl_t ent_hdl,
+								 uint32_t n,
+								 pipe_val_lookup_ent_hdl_t *nxt_ent_hdl)
+{
+	return pipe_mgr_value_lookup_get_next_n_ent_handle(sess_hdl, dev_tgt, tbl_hdl,
+							   ent_hdl, n, nxt_ent_hdl);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrValueLookupMatchSpecToEntHdl(pipe_sess_hdl_t sess_hdl,
+							       dev_target_t dev_tgt,
+							       pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							       pipe_tbl_match_spec_t *match_spec,
+							       pipe_val_lookup_ent_hdl_t *ent_hdl_p)
+{
+	return pipe_mgr_value_lookup_match_spec_to_ent_hdl(sess_hdl, dev_tgt,
+							   tbl_hdl, match_spec,
+							   ent_hdl_p);
+}
+
 pipe_status_t PipeMgrIntf::pipeMgrMeterEntSet(
     pipe_sess_hdl_t sess_hdl,
     dev_target_t dev_tgt,

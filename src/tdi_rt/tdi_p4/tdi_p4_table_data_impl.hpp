@@ -194,6 +194,30 @@ class CounterSpecData {
   pipe_stat_data_t counter_data;
 };
 
+class MatchValueLookupDataSpec {
+ public:
+	MatchValueLookupDataSpec() {}
+
+	MatchValueLookupDataSpec(const size_t &data_sz) {
+	std::memset(&spec_data, 0, sizeof(spec_data));
+	data_bytes.reset(new uint8_t[data_sz]());
+	spec_data.data_bytes = data_bytes.get();
+	spec_data.num_data_bytes = data_sz;};
+
+	tdi_status_t setMatchValueLookupData(const tdi::DataFieldInfo &field,
+				const uint64_t &value,const uint8_t *value_ptr, pipe_data_spec_t *spec_data);
+	void getMatchValueLookupDataBytes(const tdi::DataFieldInfo &field, const size_t size, uint8_t *value, pipe_data_spec_t *spec_data) const;
+	void getMatchValueLookupData(pipe_data_spec_t *value, pipe_data_spec_t *spec_data) const;
+	pipe_data_spec_t *getMatchValueLookupDataSpec()  { return &spec_data; }
+	const pipe_data_spec_t *getMatchValueLookupDataSpec() const { return &spec_data; }
+	void reset() {std::memset(&spec_data, 0, sizeof(spec_data)); }
+
+	~MatchValueLookupDataSpec() {}
+
+	pipe_data_spec_t spec_data {0};
+	std::unique_ptr<uint8_t[]> data_bytes{nullptr};
+};
+
 class MeterSpecData {
  public:
   MeterSpecData() { pipe_meter_spec = {}; };
@@ -878,6 +902,63 @@ class RegisterParamTableData : public tdi::TableData {
   int64_t value;
 };
 #endif
+
+class MatchValueLookupTableData : public tdi::TableData {
+ public:
+  MatchValueLookupTableData(const tdi::Table *table,
+                       tdi_id_t act_id,
+                       const std::vector<tdi_id_t> &fields)
+      : tdi::TableData(table, act_id, fields) {
+    size_t data_sz = 0;
+
+    data_sz = static_cast<const RtTableContextInfo *>(
+                    this->table_->tableInfoGet()->tableContextInfoGet())
+                    ->maxDataSzGet();
+    spec_data_ = new MatchValueLookupDataSpec(data_sz);
+  }
+
+  virtual ~MatchValueLookupTableData() {}
+  MatchValueLookupTableData(const tdi::Table *tbl_obj,
+                       const std::vector<tdi_id_t> &fields)
+      : MatchValueLookupTableData(tbl_obj, 0, fields) {}
+  tdi_status_t setValue(const tdi_id_t &field_id,
+                        const uint8_t *value,
+                        const size_t &size) override;
+  tdi_status_t getValue(const tdi_id_t &field_id,
+                        const size_t &size,
+                        uint8_t *value) const override;
+
+  virtual const pipe_data_spec_t *get_pipe_data_spec() const {
+	  return getMatchValueLookupDataSpecObj_().getMatchValueLookupDataSpec();
+  }
+
+  virtual pipe_data_spec_t *get_pipe_data_spec() {
+	  return getMatchValueLookupDataSpecObj_().getMatchValueLookupDataSpec();
+  }
+
+  // Functions not exposed
+  const MatchValueLookupDataSpec &getMatchValueLookupDataSpecObj() const { return *spec_data_; }
+  MatchValueLookupDataSpec &getMatchValueLookupDataSpecObj() { return *spec_data_; }
+  const MatchValueLookupDataSpec &getMatchValueLookupDataSpecObj_() const {
+	  return *(spec_data_wraper.get());
+  }
+  MatchValueLookupDataSpec &getMatchValueLookupDataSpecObj_() {
+	  return *(spec_data_wraper.get());
+  }
+  MatchValueLookupDataSpec *spec_data_;
+ protected:
+  std::unique_ptr<MatchValueLookupDataSpec> spec_data_wraper;
+
+ private:
+  tdi_status_t setValueInternal(const tdi_id_t &field_id,
+		  const size_t &size,
+		  const uint64_t &value,
+		  const uint8_t *value_ptr);
+  tdi_status_t getValueInternal(const tdi_id_t &field_id,
+                                uint64_t *value,
+                                uint8_t *value_ptr,
+                                const size_t &size) const;
+};
 
 }  // namespace rt
 }  // namespace pna

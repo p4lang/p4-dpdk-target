@@ -6728,6 +6728,253 @@ tdi_status_t RegisterParamTable::dataAllocate(
 }
 #endif
 
+// MatchValueLookupTable ******************
+
+tdi_status_t MatchValueLookupTable::entryAdd(const tdi::Session &session,
+                                         const tdi::Target &dev_tgt,
+                                         const tdi::Flags & /*flags*/,
+                                         const tdi::TableKey &key,
+                                         const tdi::TableData &data) const {
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+  const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
+  const MatchValueLookupTableData &match_data =
+      static_cast<const MatchValueLookupTableData &>(data);
+
+  if (this->tableInfoGet()->isConst()) {
+    LOG_TRACE(
+        "%s:%d %s Cannot perform this API because table has const entries",
+        __func__,
+        __LINE__,
+        this->tableInfoGet()->nameGet().c_str());
+    return TDI_INVALID_ARG;
+  }
+
+  pipe_tbl_match_spec_t pipe_match_spec = {0};
+  match_key.populate_match_spec(&pipe_match_spec);
+  pipe_mat_ent_hdl_t pipe_entry_hdl = 0;
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+  auto table_context_info = static_cast<const RtTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+
+  pipe_data_spec_t data_value;
+  match_data.getMatchValueLookupDataSpecObj().getMatchValueLookupData(&data_value, &match_data.spec_data_->spec_data);
+
+return pipeMgr->pipeMgrValueLookupEntAdd(session.handleGet(
+			  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		  pipe_dev_tgt,
+		  table_context_info->tableHdlGet(),
+		  &pipe_match_spec,
+		  &data_value,
+		  &pipe_entry_hdl);
+}
+
+tdi_status_t MatchValueLookupTable::entryMod(const tdi::Session &session,
+                                         const tdi::Target &dev_tgt,
+                                         const tdi::Flags &flags,
+                                         const tdi::TableKey &key,
+                                         const tdi::TableData &data) const {
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+  const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
+  if (this->tableInfoGet()->isConst()) {
+    LOG_TRACE(
+        "%s:%d %s Cannot perform this API because table has const entries",
+        __func__,
+        __LINE__,
+        this->tableInfoGet()->nameGet().c_str());
+    return TDI_INVALID_ARG;
+  }
+  pipe_tbl_match_spec_t pipe_match_spec = {0};
+
+  match_key.populate_match_spec(&pipe_match_spec);
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+  auto table_context_info = static_cast<const RtTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+
+  pipe_val_lookup_ent_hdl_t pipe_entry_hdl;
+  tdi_status_t status = pipeMgr->pipeMgrValueLookupMatchSpecToEntHdl(
+      session.handleGet(
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      table_context_info->tableHdlGet(),
+      &pipe_match_spec,
+      &pipe_entry_hdl);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
+              __func__,
+              __LINE__,
+              tableInfoGet()->nameGet().c_str());
+    return status;
+  }
+
+  return entryModInternal(*this, session, dev_tgt, flags, data, pipe_entry_hdl);
+}
+
+tdi_status_t MatchValueLookupTable::entryDel(const tdi::Session &session,
+                                         const tdi::Target &dev_tgt,
+                                         const tdi::Flags & /*flags*/,
+                                         const tdi::TableKey &key) const {
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+  const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
+  if (this->tableInfoGet()->isConst()) {
+    LOG_TRACE(
+        "%s:%d %s Cannot perform this API because table has const entries",
+        __func__,
+        __LINE__,
+        this->tableInfoGet()->nameGet().c_str());
+    return TDI_INVALID_ARG;
+  }
+  pipe_tbl_match_spec_t pipe_match_spec = {0};
+
+  match_key.populate_match_spec(&pipe_match_spec);
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+  auto table_context_info = static_cast<const RtTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+
+  tdi_status_t status = pipeMgr->pipeMgrValueLookupEntDel(
+      session.handleGet(
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      table_context_info->tableHdlGet(),
+      &pipe_match_spec);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE("%s:%d Entry delete failed for table %s, err %d",
+              __func__,
+              __LINE__,
+              tableInfoGet()->nameGet().c_str(),
+              status);
+  }
+  return status;
+}
+
+tdi_status_t MatchValueLookupTable::entryGet(const tdi::Session &session,
+                                         const tdi::Target &dev_tgt,
+                                         const tdi::Flags &flags,
+                                         const tdi::TableKey &key,
+                                         tdi::TableData *data) const {
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+
+  const Table *table_from_data;
+  data->getParent(&table_from_data);
+  auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
+
+  if (table_id_from_data != this->tableInfoGet()->idGet()) {
+    LOG_TRACE(
+        "%s:%d %s ERROR : Table Data object with object id %d does not match "
+        "the table",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str(),
+        table_id_from_data);
+    return TDI_INVALID_ARG;
+  }
+
+  const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
+  MatchValueLookupTableData *match_data =
+	        static_cast<MatchValueLookupTableData *>(data);
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+  auto table_context_info = static_cast<const RtTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+
+  // First, get pipe-mgr entry handle associated with this key, since any get
+  // API exposed by pipe-mgr needs entry handle
+  pipe_val_lookup_ent_hdl_t pipe_entry_hdl;
+  pipe_tbl_match_spec_t pipe_match_spec = {0};
+  match_key.populate_match_spec(&pipe_match_spec);
+  tdi_status_t status = pipeMgr->pipeMgrValueLookupMatchSpecToEntHdl((
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      table_context_info->tableHdlGet(),
+      &pipe_match_spec,
+      &pipe_entry_hdl);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
+              __func__,
+              __LINE__,
+              tableInfoGet()->nameGet().c_str());
+    return status;
+  }
+
+  pipe_data_spec_t *data_spec = match_data->getMatchValueLookupDataSpecObj().getMatchValueLookupDataSpec();
+  std::vector<tdi_id_t> dataFields;
+  status = pipeMgr->pipeMgrValueLookupEntGet((
+		  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+       		                                        pipe_dev_tgt,
+       		                                        table_context_info->tableHdlGet(),
+       		                                       pipe_entry_hdl,
+       		                                        &pipe_match_spec,
+       		                                        data_spec);
+  if (status != BF_SUCCESS) {
+           LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
+       	              __func__,
+       	              __LINE__,
+       	              tableInfoGet()->nameGet().c_str());
+           return status;
+         }
+    dataFields = tableInfoGet()->dataFieldIdListGet(0);
+    if (dataFields.empty()) {
+                  LOG_TRACE("%s:%d %s ERROR in getting data Fields, err %d",
+       	                           __func__,
+       	                           __LINE__,
+       	                           tableInfoGet()->nameGet().c_str(),
+       	                           status);
+                  return status;
+           }
+    match_data->activeFieldsSet(dataFields);
+	return status;
+}
+
+tdi_status_t MatchValueLookupTable::keyAllocate(
+    std::unique_ptr<TableKey> *key_ret) const {
+  *key_ret = std::unique_ptr<TableKey>(new MatchActionKey(this));
+  if (*key_ret == nullptr) {
+    return TDI_NO_SYS_RESOURCES;
+  }
+  return TDI_SUCCESS;
+}
+
+tdi_status_t MatchValueLookupTable::keyReset(TableKey *key) const {
+  MatchActionKey *match_key = static_cast<MatchActionKey *>(key);
+  return key_reset<MatchValueLookupTable, MatchActionKey>(*this, match_key);
+}
+
+tdi_status_t MatchValueLookupTable::dataAllocate(
+    std::unique_ptr<tdi::TableData> *data_ret) const {
+  std::vector<tdi_id_t> fields;
+  return dataAllocate_internal(0, data_ret, fields);
+}
+
+tdi_status_t MatchValueLookupTable::dataReset(tdi::TableData *data) const {
+  std::vector<tdi_id_t> fields;
+  return dataReset_internal(*this, 0, fields, data);
+}
+
+tdi_status_t MatchValueLookupTable::dataAllocate_internal(
+    tdi_id_t action_id,
+    std::unique_ptr<tdi::TableData> *data_ret,
+    const std::vector<tdi_id_t> &fields) const {
+  if (action_id && tableInfoGet()->actionGet(action_id) == nullptr) {
+    LOG_TRACE("%s:%d Action_ID %d not found", __func__, __LINE__, action_id);
+    return TDI_OBJECT_NOT_FOUND;
+  }
+  *data_ret = std::unique_ptr<tdi::TableData>(
+      new MatchValueLookupTableData(this, action_id, fields));
+  if (*data_ret == nullptr) {
+    return TDI_NO_SYS_RESOURCES;
+  }
+  return TDI_SUCCESS;
+}
+
 }  // namespace rt
 }  // namespace pna
 }  // namespace tdi

@@ -83,6 +83,7 @@ const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"PortConfigure", TDI_RT_TABLE_TYPE_PORT_CFG},
     {"PortStat", TDI_RT_TABLE_TYPE_PORT_STAT},
     {"DevConfigure", TDI_RT_TABLE_TYPE_DEV_CFG},
+    {"MatchValueLookupTable", TDI_RT_TABLE_TYPE_VALUE_LOOKUP},
 };
 }
 namespace pna {
@@ -143,6 +144,8 @@ class TableFactory : public tdi::pna::TableFactory {
       case TDI_RT_TABLE_TYPE_PORT_STAT:
 	LOG_DBG("%s:%d table info received for PORT_STAT", __func__, __LINE__);
         return std::unique_ptr<tdi::Table>(new tdi::PortStatTable(tdi_info, table_info));
+      case TDI_RT_TABLE_TYPE_VALUE_LOOKUP:
+        return std::unique_ptr<tdi::Table>(new MatchValueLookupTable(tdi_info, table_info));
       default:
         LOG_DBG("%s:%d table info received for other", __func__, __LINE__);
 	return nullptr;
