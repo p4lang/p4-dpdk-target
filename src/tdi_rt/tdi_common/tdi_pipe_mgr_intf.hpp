@@ -845,6 +845,61 @@ class IPipeMgrIntf {
 
   virtual tdi_status_t pipeMgrEnablePipeline(tdi_dev_id_t dev_id) const = 0;
 
+  // APIs for Value Lookup Manipulation
+
+  virtual pipe_status_t pipeMgrValueLookupEntAdd(pipe_sess_hdl_t sess_hdl,
+						 dev_target_t dev_tgt,
+						 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						 pipe_tbl_match_spec_t *match_spec,
+						 const pipe_data_spec_t *data_spec,
+						 pipe_val_lookup_ent_hdl_t *ent_hdl_p) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntDel(pipe_sess_hdl_t sess_hdl,
+						 dev_target_t dev_tgt,
+						 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						 struct pipe_tbl_match_spec *match_spec) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntGet(pipe_sess_hdl_t sess_hdl,
+						 dev_target_t dev_tgt,
+						 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						 pipe_val_lookup_ent_hdl_t ent_hdl,
+						 pipe_tbl_match_spec_t *match_spec,
+						 pipe_data_spec_t *data_spec) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntGetFirst(pipe_sess_hdl_t sess_hdl,
+						      dev_target_t dev_tgt,
+						      pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						      pipe_tbl_match_spec_t *match_spec,
+						      pipe_data_spec_t *data_spec,
+						      pipe_val_lookup_ent_hdl_t *ent_hdl_p) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntGetNextNByKey(pipe_sess_hdl_t sess_hdl,
+							   dev_target_t dev_tgt,
+							   pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							   pipe_tbl_match_spec_t *cur_match_spec,
+							   uint32_t n,
+							   pipe_tbl_match_spec_t *match_specs,
+							   pipe_data_spec_t **data_specs,
+							   uint32_t *num) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntGetFirstEntHandle(pipe_sess_hdl_t sess_hdl,
+							       dev_target_t dev_tgt,
+							       pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							       pipe_val_lookup_ent_hdl_t *ent_hdl_p) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupEntGetNextEntHandle(pipe_sess_hdl_t sess_hdl,
+							      dev_target_t dev_tgt,
+							      pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							      pipe_val_lookup_ent_hdl_t ent_hdl,
+							      uint32_t n,
+							      pipe_val_lookup_ent_hdl_t *nxt_ent_hdl) = 0;
+
+  virtual pipe_status_t pipeMgrValueLookupMatchSpecToEntHdl(pipe_sess_hdl_t sess_hdl,
+							    dev_target_t dev_tgt,
+							    pipe_val_lookup_tbl_hdl_t tbl_hdl,
+							    pipe_tbl_match_spec_t *match_spec,
+							    pipe_val_lookup_ent_hdl_t *ent_hdl_p) = 0;
+
  protected:
   static std::unique_ptr<IPipeMgrIntf> instance;
   static std::mutex pipe_mgr_intf_mtx;
@@ -1640,6 +1695,61 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                        uint32_t *num_pipes) const override;
 
   tdi_status_t pipeMgrEnablePipeline(tdi_dev_id_t dev_id) const;
+
+  // APIs for Value Lookup Manipulation
+
+  pipe_status_t pipeMgrValueLookupEntAdd(pipe_sess_hdl_t sess_hdl,
+					 dev_target_t dev_tgt,
+					 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+					 pipe_tbl_match_spec_t *match_spec,
+					 const pipe_data_spec_t *data_spec,
+					 pipe_val_lookup_ent_hdl_t *ent_hdl_p);
+
+  pipe_status_t pipeMgrValueLookupEntDel(pipe_sess_hdl_t sess_hdl,
+					 dev_target_t dev_tgt,
+					 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+					 struct pipe_tbl_match_spec *match_spec);
+
+  pipe_status_t pipeMgrValueLookupEntGet(pipe_sess_hdl_t sess_hdl,
+					 dev_target_t dev_tgt,
+					 pipe_val_lookup_tbl_hdl_t tbl_hdl,
+					 pipe_val_lookup_ent_hdl_t ent_hdl,
+					 pipe_tbl_match_spec_t *match_spec,
+					 pipe_data_spec_t *data_spec);
+
+  pipe_status_t pipeMgrValueLookupEntGetFirst(pipe_sess_hdl_t sess_hdl,
+					      dev_target_t dev_tgt,
+					      pipe_val_lookup_tbl_hdl_t tbl_hdl,
+					      pipe_tbl_match_spec_t *match_spec,
+					      pipe_data_spec_t *data_spec,
+					      pipe_val_lookup_ent_hdl_t *ent_hdl_p);
+
+  pipe_status_t pipeMgrValueLookupEntGetNextNByKey(pipe_sess_hdl_t sess_hdl,
+						   dev_target_t dev_tgt,
+						   pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						   pipe_tbl_match_spec_t *cur_match_spec,
+						   uint32_t n,
+						   pipe_tbl_match_spec_t *match_specs,
+						   pipe_data_spec_t **data_specs,
+						   uint32_t *num);
+
+  pipe_status_t pipeMgrValueLookupEntGetFirstEntHandle(pipe_sess_hdl_t sess_hdl,
+						       dev_target_t dev_tgt,
+						       pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						       pipe_val_lookup_ent_hdl_t *ent_hdl_p);
+
+  pipe_status_t pipeMgrValueLookupEntGetNextEntHandle(pipe_sess_hdl_t sess_hdl,
+						      dev_target_t dev_tgt,
+						      pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						      pipe_val_lookup_ent_hdl_t ent_hdl,
+						      uint32_t n,
+						      pipe_val_lookup_ent_hdl_t *nxt_ent_hdl);
+
+  pipe_status_t pipeMgrValueLookupMatchSpecToEntHdl(pipe_sess_hdl_t sess_hdl,
+						    dev_target_t dev_tgt,
+						    pipe_val_lookup_tbl_hdl_t tbl_hdl,
+						    pipe_tbl_match_spec_t *match_spec,
+						    pipe_val_lookup_ent_hdl_t *ent_hdl_p);
 
  private:
   PipeMgrIntf(const PipeMgrIntf &src) = delete;

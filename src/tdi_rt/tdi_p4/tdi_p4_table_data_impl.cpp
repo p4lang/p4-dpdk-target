@@ -71,7 +71,7 @@ tdi_status_t indirectResourceSetValueHelper(
     return TDI_OBJECT_NOT_FOUND;
   }
 
-  // field_type is set in data context info during context.json parsing 
+  // field_type is set in data context info during context.json parsing
   // this is not set if the table is not present in context.json.
   // for example: IndirectCounter Table.
   // caller should take care of field_type in such cases.
@@ -2368,6 +2368,121 @@ tdi_status_t TdiRegisterParamTableData::getValue(const tdi_id_t &field_id,
   return TDI_SUCCESS;
 }
 #endif
+
+// MATCH_VALUE_LOOKUP_TABLE_DATA
+tdi_status_t MatchValueLookupDataSpec::setMatchValueLookupData(
+               const tdi::DataFieldInfo &field, const uint64_t &value,
+         const uint8_t *value_ptr, pipe_data_spec_t *specData) {
+       size_t field_size = field.sizeGet();
+       size_t field_offset = static_cast<const RtDataFieldContextInfo *>(
+                       field.dataFieldContextInfoGet())
+               ->offsetGet();
+
+       auto size = (field_size + 7) / 8;
+       if (value_ptr) {
+               std::memcpy(specData->data_bytes + field_offset, value_ptr, size);
+       } else {
+               utils::TableFieldUtils::toNetworkOrderData(
+                               field, value, specData->data_bytes + field_offset);
+       }
+       return TDI_SUCCESS;
+}
+
+void MatchValueLookupDataSpec::getMatchValueLookupData(
+               pipe_data_spec_t *value, pipe_data_spec_t *specData) const {
+       value->num_data_bytes = specData->num_data_bytes;
+       value->data_bytes = specData->data_bytes;
+}
+
+void MatchValueLookupDataSpec::getMatchValueLookupDataBytes(const tdi::DataFieldInfo &field,  const size_t size,
+		uint8_t *value, pipe_data_spec_t *specData) const{
+	size_t offset = static_cast<const RtDataFieldContextInfo *>(
+                       field.dataFieldContextInfoGet())->offsetGet();
+	std::memcpy(value, specData->data_bytes+offset, size);
+}
+
+tdi_status_t MatchValueLookupTableData::setValueInternal(const tdi_id_t &field_id,
+                const size_t &size,
+                const uint64_t &value,
+		const uint8_t *value_ptr) {
+	const tdi::DataFieldInfo *tableDataField =
+		this->table_->tableInfoGet()->dataFieldGet(field_id, 0);
+
+	if (!tableDataField) {
+		LOG_ERROR("%s:%d %s ERROR : Invalid field id %d",
+				__func__,
+				__LINE__,
+				this->table_->tableInfoGet()->nameGet().c_str(),
+				field_id);
+		return TDI_OBJECT_NOT_FOUND;
+	}
+	// Do some bounds checking using the utility functions
+	auto sts = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
+			*this->table_, *tableDataField, &value, value_ptr, size);
+	if (sts != TDI_SUCCESS) {
+		LOG_ERROR( "ERROR: %s:%d %s : Input param compatibility i"
+				"check failed for field id %d",
+				__func__, __LINE__,
+				this->table_->tableInfoGet()->nameGet().c_str(),
+				tableDataField->idGet());
+		return sts;
+	}
+
+	sts = utils::TableFieldUtils::boundsCheck(
+			*this->table_, *tableDataField, value, value_ptr, size);
+	if (sts != TDI_SUCCESS) {
+		LOG_ERROR ("ERROR: %s:%d %s : Input Param bounds check failed"
+				" for field id %d action id %d",
+				__func__, __LINE__,
+				this->table_->tableInfoGet()->nameGet().c_str(),
+				tableDataField->idGet(), this->actionIdGet());
+		return sts;
+	}
+	sts = getMatchValueLookupDataSpecObj().setMatchValueLookupData(
+			*tableDataField, value, value_ptr, &this->spec_data_->spec_data);
+	if (sts != TDI_SUCCESS) {
+		LOG_ERROR("%s:%d %s Unable to set data",
+				__func__,
+				__LINE__,
+				this->table_->tableInfoGet()->nameGet().c_str());
+		return sts;
+	}
+	return TDI_SUCCESS;
+}
+
+tdi_status_t MatchValueLookupTableData::getValueInternal(
+		const tdi_id_t &field_id,
+		uint64_t *value,
+		uint8_t *value_ptr,
+		const size_t &size) const{
+       const tdi::DataFieldInfo *tableDataField =
+               this->table_->tableInfoGet()->dataFieldGet(field_id, 0);
+
+       if (!tableDataField) {
+               LOG_ERROR("%s:%d %s ERROR : Invalid field id %d",
+                               __func__,
+                               __LINE__,
+                               this->table_->tableInfoGet()->nameGet().c_str(),
+                               field_id);
+               return TDI_OBJECT_NOT_FOUND;
+       }
+
+       getMatchValueLookupDataSpecObj().getMatchValueLookupDataBytes(*tableDataField, size, value_ptr, &this->spec_data_->spec_data);
+	return BF_SUCCESS;
+}
+
+
+tdi_status_t MatchValueLookupTableData::setValue(const tdi_id_t &field_id,
+		const uint8_t *value_ptr,
+		const size_t &size) {
+	return this->setValueInternal(field_id, size, 0, value_ptr);
+}
+
+tdi_status_t MatchValueLookupTableData::getValue(const tdi_id_t &field_id,
+                                            const size_t &size,
+                                            uint8_t *value) const {
+  return this->getValueInternal(field_id, nullptr, value, size);
+}
 
 }  // namespace rt
 }  // namespace pna

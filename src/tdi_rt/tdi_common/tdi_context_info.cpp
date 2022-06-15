@@ -725,19 +725,18 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
     // get common data
     // Cjson common_data_cjson = table_bfrt["data"];
     const auto &table_data_map = tdi_table_info->tableDataMapGet();
+    size_t offset = 0;
+    size_t bitsize = 0;
     for (auto &kv : table_data_map) {
-      size_t offset = 0;
       // Bitsize is needed to fill out some back-end info
       // which has both action size in bytes and bits
       // This is not applicable for the common data, but only applicable
       // for per action data
-      size_t bitsize = 0;
       // TODO correct the zeroes down
       // making a null temp object to pass as contextJson info since we dont
       // need that
       Cjson temp;
       const DataFieldInfo *common_data_field = kv.second.get();
-
       auto data_field_context_info =
           parseDataFieldContext(temp,
                                 common_data_field,
@@ -749,6 +748,8 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
       common_data_field->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
+    table_context_info->maxDataSz_ = offset;
+    table_context_info->maxDataSzbits_ = bitsize;
   }
 
   // populate_depends_on_refs(bfrtTable.get(), table_bfrt);
