@@ -38,7 +38,8 @@ static int pipe_mgr_sel_pack_entry_data(u32 sel_tbl_hdl,
 	struct pipe_mgr_sel_entry_info *entry;
 	int status;
 
-	if (!*entry_info)
+	/* check the *entry_info is valid pointer */
+	if (*entry_info)
 		entry = *entry_info;
 	else
 		entry = P4_SDE_CALLOC(1, sizeof(*entry));
@@ -66,7 +67,7 @@ error:
 	return status;
 }
 
-/* Supports fetching either grp id or handle in a single call - not both.
+/* Supports fetching either grp id or handle in a single call.
  */
 pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
                                               pipe_sel_tbl_hdl_t sel_tbl_hdl,
@@ -81,12 +82,21 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 	int status;
 	u64 key;
 
-	if ((sel_grp_hdl != NULL && sel_grp_id != NULL) ||
-	    (grp_hdl == 0 && grp_id == 0) ||
-	    (sel_grp_hdl == NULL && sel_grp_id == NULL)) {
+	/* no need to check for sel_grp_hdl and sel_grp_id both are NULL.
+	 * since the sel_grp_hdl == 0 is the first allocated grp hdl
+	 * for dpdk (rte_swx_ctl_pipeline_selector_group_add),
+	 * to handle for the pipe_mgr_get_sel_grp_max_size case
+ 	 */
+	if (grp_hdl ==  0xffffffff && grp_id == 0) {
 		LOG_ERROR("Invalid input arguments for %s", __func__);
 		return BF_INVALID_ARG;
 	}
+
+	if (sel_grp_hdl == NULL && sel_grp_id == NULL && max_size == NULL) {
+		LOG_ERROR("Invalid output arguments for %s", __func__);
+		return BF_INVALID_ARG;
+	}
+
 	status = pipe_mgr_ctx_get_tbl(dev_tgt, sel_tbl_hdl, &tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
@@ -102,7 +112,8 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 		return BF_UNEXPECTED;
 	}
 
-	if (grp_hdl) {
+        /* grp_hdl = 0 is the first allocated grp_hdl id */
+	if (grp_hdl != 0xffffffff) {
 		key = (u64) grp_hdl;
 		/* Get the entry_handle-entry map */
 		P4_SDE_MAP_GET(&tbl_state->entry_info_htbl,
@@ -116,11 +127,16 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 
 	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);
 
+	if (entry == 0) {
+		LOG_DBG("Retrieving P4_SDE_MAP_GET grp_hdl=%d grp_id=%d failed",
+			 grp_hdl, grp_id);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
 	if (sel_grp_hdl)
 		*sel_grp_hdl = entry->sel_grp_hdl;
-	else if (sel_grp_id)
+	if (sel_grp_id)
 		*sel_grp_id = entry->sel_grp_id;
-
 	if (max_size)
 		*max_size = entry->max_grp_size;
 
@@ -145,8 +161,13 @@ pipe_status_t pipe_mgr_get_sel_grp_max_size(pipe_sess_hdl_t sess_hdl,
 		LOG_TRACE("Exiting %s", __func__);
 		return status;
 	}
-	status = pipe_mgr_sel_get_grp_id_hdl_int(
-      		dev_tgt, tbl_hdl, 0, grp_hdl, NULL, NULL, max_size);
+	status = pipe_mgr_sel_get_grp_id_hdl_int(dev_tgt,
+						 tbl_hdl,
+						 0,
+						 grp_hdl,
+						 NULL,
+						 NULL,
+						 max_size);
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
   	return status;
 }
@@ -170,8 +191,13 @@ pipe_status_t pipe_mgr_sel_grp_id_get(pipe_sess_hdl_t sess_hdl,
 		return status;
 	}
 
-  	status = pipe_mgr_sel_get_grp_id_hdl_int(
-      		dev_tgt, sel_tbl_hdl, 0, sel_grp_hdl, NULL, sel_grp_id, NULL);
+	status = pipe_mgr_sel_get_grp_id_hdl_int(dev_tgt,
+						 sel_tbl_hdl,
+						 0,
+						 sel_grp_hdl,
+						 NULL,
+						 sel_grp_id,
+						 NULL);
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
   	return status;
 }
@@ -195,8 +221,13 @@ pipe_status_t pipe_mgr_sel_grp_hdl_get(pipe_sess_hdl_t sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_sel_get_grp_id_hdl_int(
-      		dev_tgt, sel_tbl_hdl, sel_grp_id, 0, sel_grp_hdl, NULL, NULL);
+	status = pipe_mgr_sel_get_grp_id_hdl_int(dev_tgt,
+						 sel_tbl_hdl,
+						 sel_grp_id,
+						 0xffffffff,
+						 sel_grp_hdl,
+						 NULL,
+						 NULL);
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
   	return status;
 }
@@ -312,6 +343,7 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 	int status;
 	u64 key;
 	u32 i;
+	bool cleanup_map = true;
 
 	LOG_TRACE("Entering %s", __func__);
 
@@ -406,10 +438,14 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 			break;
 		}
 	}
-
+	/* if add mbrs refrence successfull and don't do cleanup_map
+	 */
+        cleanup_map = false;
 cleanup_map_add:
-	P4_SDE_FREE(entry->mbrs);
-	entry->mbrs = NULL;
+	if (cleanup_map == true ) {
+		P4_SDE_FREE(entry->mbrs);
+		entry->mbrs = NULL;
+	}
 	if (P4_SDE_MUTEX_UNLOCK(&adt_tbl_state->lock))
 		LOG_ERROR("Unlock of table %d failed", tbl->ctx.adt_handle);
 cleanup_tbl_unlock:

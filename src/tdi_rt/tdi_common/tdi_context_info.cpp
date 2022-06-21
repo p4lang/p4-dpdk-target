@@ -1274,6 +1274,8 @@ bool ContextInfoParser::isActionParam(Cjson action_table_cjson,
              indeed move to parsing the p4_parameters, we could get rid of
              the new type that we added "ACTION_PARAM_OPTIMIZED_OUT"
   */
+  /* For DPDK, currently only support the use_p4_params_node now */
+  use_p4_params_node = 1;
   if (!use_p4_params_node) {
     for (const auto &pack_format :
          action_table_cjson["stage_tables"][0]["pack_format"]

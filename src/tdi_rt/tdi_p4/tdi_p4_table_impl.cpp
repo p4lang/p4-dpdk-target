@@ -3669,7 +3669,15 @@ tdi_status_t MatchActionIndirect::entryGet_internal(
             tdi_id_t sel_grp_id;
             status = getGroupIdFromHndl(
                 session, dev_tgt, pipe_action_spec->sel_grp_hdl, &sel_grp_id);
-            TDI_ASSERT(status == TDI_SUCCESS);
+            //TDI_ASSERT(status == TDI_SUCCESS);
+            // Need to handle in case getGroupIdFromHndl failure (delete sel group)
+            if (status != TDI_SUCCESS) {
+              LOG_DBG("%s:%d Entry get for indirect group id sel_grp_id %d not found", 
+                  __func__,
+                  __LINE__,
+                  sel_grp_id);
+              return TDI_OBJECT_NOT_FOUND;
+            }
             match_data->setGroupId(sel_grp_id);
             // Remove oneof sibling from active fields
             for (const auto &sib : oneof_siblings)

@@ -77,9 +77,13 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
 	int status;
 	u64 key;
 
-	if ((adt_ent_hdl != NULL && adt_mbr_id != NULL) ||
-	    (adt_ent_hdl == NULL && adt_mbr_id == NULL) ||
-	    (ent_hdl == 0 && mbr_id == 0)) {
+	if (adt_ent_hdl == NULL && adt_mbr_id == NULL &&
+	    adt_ent_data == NULL) {
+		LOG_ERROR("Ivalid output arguments passed");
+		return BF_INVALID_ARG;
+	}
+
+	if (ent_hdl == 0 && mbr_id == 0) {
 		LOG_ERROR("Ivalid input arguments passed");
 		return BF_INVALID_ARG;
 	}
@@ -118,9 +122,8 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
 
 	if (adt_ent_hdl)
 		*adt_ent_hdl = entry->adt_ent_hdl;
-	else if (adt_mbr_id)
+	if (adt_mbr_id)
 		*adt_mbr_id = entry->mbr_id;
-
 	if (adt_ent_data)
 		*adt_ent_data = *entry->entry_data;
 
