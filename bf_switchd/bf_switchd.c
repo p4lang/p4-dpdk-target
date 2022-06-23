@@ -345,6 +345,7 @@ static void bf_switchd_switchlink_lib_init(bf_dev_id_t dev_id) {
 }
 #endif  // STATIC_LINK_LIB
 
+#if 0
 static void bf_switchd_ports_del(bf_dev_id_t dev_id) {
   unsigned int pipe = 0, port = 0;
       if (!switchd_ctx->state[dev_id].device_locked)
@@ -356,6 +357,7 @@ static void bf_switchd_ports_delete(int dev_id) {
   if (switchd_ctx->asic[dev_id].is_virtual) return;
     bf_switchd_ports_del(dev_id);
 }
+#endif
 
 /* Helper routine to initialize_profile structure needed by the driver */
 static bf_status_t bf_switchd_init_device_profile(
@@ -1884,7 +1886,10 @@ int bf_switchd_lib_init_local(void *ctx_local) {
   }
 #endif
 
+#if 0
+  // Disable this unused code for enable to build debug image (-O0)
   if (0) bf_switchd_ports_delete(0);  // Avoid the compiler warning
+#endif
 
   return ret;
 }
