@@ -82,7 +82,7 @@ class MatchActionDirect : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   }
 
   virtual tdi_status_t entryAdd(
