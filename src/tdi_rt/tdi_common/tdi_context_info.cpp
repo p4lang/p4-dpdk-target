@@ -1473,7 +1473,7 @@ void ContextInfoParser::applyMaskOnContextJsonHandle(T *handle,
     // figure out the pipeline_name
     std::string pipeline_name = "";
       pipeline_name = table_pipeline_name.at(name);
-      LOG_ERROR("%s:%d pipeline_name %s %s",
+      LOG_DBG("%s:%d pipeline_name %s %s",
 	         __func__,
 		__LINE__,
 		pipeline_name.c_str(),

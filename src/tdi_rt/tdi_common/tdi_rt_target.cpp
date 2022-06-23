@@ -95,7 +95,7 @@ Device::Device(const tdi_dev_id_t &device_id,
           device_id, arch_type, device_config, mgr_type_list, cookie) {
   // Parse tdi json for every program
   for (const auto &program_config : device_config) {
-    LOG_ERROR("%s:%d parsing %s",
+    LOG_DBG("%s:%d parsing %s",
               __func__,
               __LINE__,
               program_config.prog_name_.c_str());

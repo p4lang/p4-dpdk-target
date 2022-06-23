@@ -155,7 +155,7 @@ tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
                             bf_dev_init_mode_t warm_init_mode) {
   auto &dev_mgr_obj = DevMgr::getInstance();
 
-  LOG_ERROR("%s:%d TDI Device Add called for dev : %d : warm init mode : %d",
+  LOG_DBG("%s:%d TDI Device Add called for dev : %d : warm init mode : %d",
             __func__,
             __LINE__,
             dev_id,
