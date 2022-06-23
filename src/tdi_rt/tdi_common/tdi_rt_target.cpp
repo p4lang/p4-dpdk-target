@@ -38,42 +38,14 @@ namespace rt {
 
 tdi_status_t Target::setValue(const tdi_target_e &target_field,
                               const uint64_t &value) {
-    tdi_status_t status = TDI_SUCCESS;
-    switch(static_cast<pna_target_e>(target_field)) {
-      case PNA_TARGET_PIPE_ID:
-      	this->pipe_id_ = value;
-      break;
-      case PNA_TARGET_DEV_ID:
-      	this->dev_id_ = value;
-      break;
-      case PNA_TARGET_DIRECTION:
-        this->direction_ = static_cast<pna_direction_e>(value);
-      break;
-      default:
-        status = TDI_INVALID_ARG;
-      break;
-    }
-    return status;
+    // Since PNA can handle all the target_fields already,
+    // Just let the tdi::pna::Target to handle this
+    return tdi::pna::Target::setValue(target_field, value);
 }
 
 tdi_status_t Target::getValue(const tdi_target_e &target_field,
                               uint64_t *value) const {
-    tdi_status_t status = TDI_SUCCESS;
-    switch(static_cast<pna_target_e>(target_field)) {
-      case PNA_TARGET_PIPE_ID:
-      	*value = this->pipe_id_;
-      break;
-      case PNA_TARGET_DEV_ID:
-      	*value = this->dev_id_;
-      break;
-      case PNA_TARGET_DIRECTION:
-        *value = this->direction_;
-      break;
-      default:
-        status = TDI_INVALID_ARG;
-      break;
-    }
-    return status;
+    return tdi::pna::Target::getValue(target_field, value);
 }
 
 void Target::getTargetVals(bf_dev_target_t *dev_tgt,

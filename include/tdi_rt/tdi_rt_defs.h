@@ -199,7 +199,8 @@ enum tdi_rt_mgr_type_e {
 };
 
 enum tdi_rt_target_e {
-  TDI_RT_TARGET_PARSER_ID = TDI_TARGET_DEVICE,
+  // Note: currently TDI RT don't have this field type.
+  TDI_RT_TARGET_PARSER_ID = TDI_TARGET_DEVICE+1,
 };
 
 enum tdi_rt_attributes_type_e {
