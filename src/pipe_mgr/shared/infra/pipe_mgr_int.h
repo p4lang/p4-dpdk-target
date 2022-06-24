@@ -90,6 +90,7 @@ struct pipe_mgr_p4_parameters {
 
 struct pipe_mgr_actions_list {
 	char name[P4_SDE_NAME_LEN];
+	char target_action_name[P4_SDE_NAME_LEN];
 	uint32_t handle;
 	bool allowed_as_hit_action;
 	bool allowed_as_default_action;
@@ -154,6 +155,8 @@ struct pipe_mgr_adt_entry_info {
 	/* Entry handle */
 	u32 adt_ent_hdl;
 	u32 act_fn_hdl;
+	u32 mbr_id;
+	struct pipe_mgr_adt_ent_data *entry_data;
 	struct pipe_action_spec *act_data_spec;
 	u32 reference_count;
 	void *dal_data;
@@ -162,6 +165,8 @@ struct pipe_mgr_adt_entry_info {
 struct pipe_mgr_sel_entry_info {
 	u32 sel_tbl_hdl;
 	u32 sel_grp_hdl;
+	u32 sel_grp_id;
+	u32 max_grp_size;
 	u32 num_mbrs;
 	u32 *mbrs;
 };
@@ -170,6 +175,7 @@ struct pipe_mgr_mat_ctx {
 	char direction[P4_SDE_NAME_LEN];
 	uint32_t handle;
 	char name[P4_SDE_TABLE_NAME_LEN];
+	char target_table_name[P4_SDE_TABLE_NAME_LEN];
 	int size;
 	/* Specifies if Add on miss enabled or not */
 	bool add_on_miss;
@@ -207,6 +213,7 @@ struct pipe_mgr_mat_state {
 #define ENTRY_HANDLE_ARRAY_SIZE 0xFFFFFFFF
 	p4_sde_id *entry_handle_array;
 	p4_sde_map entry_info_htbl;
+	p4_sde_map mbr_id_htbl;
 
 	/* hashtable keyed by match-spec, used for duplicate entry
 	 * detection and access by match spec.

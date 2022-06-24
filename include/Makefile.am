@@ -12,6 +12,7 @@ nobase_libdrivers_include_HEADERS += ctx_json/ctx_json_utils.h
 nobase_libdrivers_include_HEADERS += bf_pal/bf_pal_port_intf.h
 nobase_libdrivers_include_HEADERS += bf_pal/dev_intf.h
 nobase_libdrivers_include_HEADERS += bf_rt/bf_rt.hpp
+nobase_libdrivers_include_HEADERS += tdi_rt/tdi_rt_defs.h
 nobase_libdrivers_include_HEADERS += bf_rt/bf_rt.h
 nobase_libdrivers_include_HEADERS += bf_rt/bf_rt_common.h
 nobase_libdrivers_include_HEADERS += bf_rt/bf_rt_table.hpp

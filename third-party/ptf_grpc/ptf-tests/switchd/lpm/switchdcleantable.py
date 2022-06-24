@@ -1,27 +1,24 @@
 import struct
 import traceback
-
-from ctypes import *
-
-from ptf.testutils import *
-from ptf.packet import *
-
-from ipaddress import IPv4Address
 import json
 import os
 import sys
-
+from ctypes import *
+from ptf.testutils import *
+from ptf.packet import *
+from ipaddress import IPv4Address
 from switchd_base_test import *
 import ptf_grpc.ptfRpc_pb2 as ptfrpc_pb2
 import ptf_grpc.ptfRpc_pb2_grpc as ptfrpc_pb2_grpc
-from utils import RESULT_STATUS
+from utils import REPORTING
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(THIS_DIR, '..'))
+test_name = os.path.splitext(os.path.basename(__file__))[0]
 
-class switchdAddTableEntry(SwitchdHelper):
+class switchdCleanTableEntry(SwitchdHelper):
     def setup(self):
-        super(switchdAddTableEntry, self).setup()
+        super(switchdCleanTableEntry, self).setup()
 
     def get_table_name(self, bfrt_json):
         if 'tables' in bfrt_json:
@@ -34,13 +31,13 @@ class switchdAddTableEntry(SwitchdHelper):
             return context_json['program_name']
         else:
             raise Exception("Program name not found in context.json")
+
     def get_id(self, bfrt_json):
         key = bfrt_json['tables'][-1].get('key')[0].get('id')
         action = bfrt_json['tables'][-1].get('action_specs')[-2].get('id')
         data =  bfrt_json['tables'][-1].get('action_specs')[-2].get('data')[0].get('id')
         return key, action, data
-
-
+            
     def entry(self,ipaddr, prefix, portout, oper, p4_name, table_name, key, action, data):
         print("Deleting IP %s with prefix %d" % (str(IPv4Address(ipaddr)), prefix))
         pn = ptfrpc_pb2.prog_name.simple_l2l3_lpm
@@ -61,27 +58,17 @@ class switchdAddTableEntry(SwitchdHelper):
             context_json = json.load(context)
             p4_name = self.get_p4_name(context_json)
             key, action, data = self.get_id(bf_rt)
-
             print("We are going to to delete the entry from the table.")
-
             oper = ptfrpc_pb2.table_operation.deletion
             status = self.entry(int(IPv4Address("192.168.1.0")), 24, 3, oper, p4_name, table_name, key, action, data)
-
             status = self.entry(int(IPv4Address("192.168.2.0")), 24, 3, oper, p4_name, table_name, key, action, data)
-
             status = self.entry(int(IPv4Address("192.168.3.0")), 24, 3, oper, p4_name, table_name, key, action, data)
-
             if(status.responsem != 0):
                 raise Exception("Entries Deletion failed with status ", status.responsem)
-
             print("All the rules have been successfully removed from the table.")
-            print(RESULT_STATUS.SUCCESS)
-
-
+            REPORTING.update_results(REPORTING.get_json(), test_name, "SUCCESS")
         except Exception as e:
-            print("Exception occurred ")
-            print(e)
             print(traceback.print_exc())
-            print(RESULT_STATUS.FAILURE)
+            REPORTING.update_results(REPORTING.get_json(), test_name, "FAILURE")
         finally:
             pass

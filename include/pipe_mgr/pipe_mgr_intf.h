@@ -121,41 +121,6 @@ typedef union pipe_mgr_tbl_prop_args {
 
 #define PIPE_DIR_MAX 2
 
-/*!
- * Typedefs for pipeline object handles
- */
-typedef uint32_t pipe_sess_hdl_t;
-
-typedef uint32_t pipe_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_mat_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_adt_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_sel_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_stat_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_meter_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_lpf_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_wred_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_stful_tbl_hdl_t;
-typedef pipe_tbl_hdl_t pipe_ind_res_hdl_t;
-typedef pipe_tbl_hdl_t pipe_res_hdl_t;
-typedef pipe_tbl_hdl_t pipe_prsr_instance_hdl_t;
-
-typedef uint32_t pipe_ent_hdl_t;
-typedef pipe_ent_hdl_t pipe_mat_ent_hdl_t;
-typedef pipe_ent_hdl_t pipe_adt_ent_hdl_t;
-typedef pipe_ent_hdl_t pipe_sel_grp_hdl_t;
-typedef pipe_ent_hdl_t pipe_stat_ent_idx_t;
-typedef pipe_ent_hdl_t pipe_meter_idx_t;
-typedef pipe_ent_hdl_t pipe_stful_mem_idx_t;
-typedef pipe_ent_hdl_t pipe_ind_res_idx_t;
-typedef pipe_ent_hdl_t pipe_res_idx_t;
-
-typedef uint32_t pipe_act_fn_hdl_t;
-typedef uint32_t pipe_fld_lst_hdl_t;
-typedef uint32_t pipe_reg_param_hdl_t;
-typedef uint8_t dev_stage_t;
-typedef int profile_id_t;
-typedef uint32_t pipe_idx_t;
-typedef uint8_t pipe_parser_id_t;
 
 typedef void (*pipe_mgr_stat_ent_sync_cback_fn)(bf_dev_id_t device_id,
                                                 void *cookie);
@@ -175,12 +140,19 @@ typedef void (*pipe_stful_tbl_sync_cback_fn)(bf_dev_id_t device_id,
 #define PIPE_FLAG_INTERNAL (1 << 1)
 
 /*!
+ * Flag to enable handling of mbr_id and grp_id for adt and selector tables.
+ * Without setting this flag arguments will be ignored. Should be set on
+ * the first *_ent_add() function call on a specific table.
+ * Cannot be turned off after turning on.
+ */
+#define PIPE_FLAG_CACHE_ENT_ID (1 << 2)
+
+/*!
  * Data types used with this library
  */
 
 /*! Definitions used to identify the target of an API request */
 #define DEV_PIPE_ALL BF_DEV_PIPE_ALL
-typedef bf_dev_target_t dev_target_t;
 
 typedef struct pipe_tbl_ha_reconc_report {
   /*!< Number of entries that were added after delta compute */
@@ -329,10 +301,6 @@ typedef struct pipe_res_get_data_t {
   bool has_hit_state;
 } pipe_res_get_data_t;
 
-/*!
- * Action data specification
- */
-typedef struct pipe_action_data_spec pipe_action_data_spec_t;
 
 /*!
  * Generalized action specification that encodes all types of action data refs
@@ -1042,15 +1010,6 @@ pipe_status_t pipe_mgr_sel_tbl_profile_set(
     pipe_sel_tbl_profile_t *sel_tbl_profile);
 
 /*!
- * API function to add a new group into a selection table
- */
-pipe_status_t pipe_mgr_sel_grp_add(pipe_sess_hdl_t sess_hdl,
-                                   dev_target_t dev_tgt,
-                                   pipe_sel_tbl_hdl_t sel_tbl_hdl,
-                                   uint32_t max_grp_size,
-                                   pipe_sel_grp_hdl_t *sel_grp_hdl_p,
-                                   uint32_t pipe_api_flags);
-/*!
  * API function to add a member to a group of a selection table
  */
 pipe_status_t pipe_mgr_sel_grp_mbr_add(pipe_sess_hdl_t sess_hdl,
@@ -1201,7 +1160,7 @@ pipe_status_t pipe_mgr_stat_table_reset(pipe_sess_hdl_t sess_hdl,
 /* API function to query a stats entry */
 pipe_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
                                       dev_target_t dev_target,
-                                      pipe_stat_tbl_hdl_t stat_tbl_hdl,
+                                      const char *table_name,
                                       pipe_stat_ent_idx_t stat_ent_idx,
                                       pipe_stat_data_t *stat_data);
 
@@ -1694,11 +1653,6 @@ pipe_status_t pipe_mgr_enable_pipeline(bf_dev_id_t dev_id);
 pipe_status_t pipe_mgr_get_num_pipelines(bf_dev_id_t dev_id,
                                          uint32_t *num_pipes);
 
-
-typedef struct adt_data_resources_ {
-  pipe_res_hdl_t tbl_hdl;
-  pipe_res_idx_t tbl_idx;
-} adt_data_resources_t;
 
 /*  ---- Table debug counter APIs start  ---- */
 

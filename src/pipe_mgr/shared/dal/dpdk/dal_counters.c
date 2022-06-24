@@ -19,9 +19,9 @@
  *
  * @description Utilities for counters
  */
-
+#include <infra/dpdk_infra.h>
 #include "../dal_counters.h"
-
+#include "../../pipe_mgr_shared_intf.h"
 /*!
  * Initialize the global counter pool.
  *
@@ -112,9 +112,37 @@ dal_cnt_read_flow_counter_pair(uint32_t id, void *stats)
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_assignable_counter_set(int id, void *stats)
+dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt, const char *name, int id, void *stats)
 {
-	LOG_TRACE("STUB:%s\n", __func__);
+	bf_status_t status;
+	struct pipe_mgr_profile *profile = NULL;
+	struct pipeline *pipe;
+	const char *ptr = NULL;
+
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
+	if (status) {
+		LOG_ERROR("not able find profile with device_id  %d",
+			  dev_tgt.device_id);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	/* get dpdk pipeline, table and action info */
+	pipe = pipeline_find(profile->pipeline_name);
+	if (!pipe) {
+		LOG_ERROR("dpdk pipeline %s get failed",
+			  profile->pipeline_name);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	ptr = strrchr(name, '.');
+	ptr = ptr ? (ptr + 1) : name;
+	status = rte_swx_ctl_pipeline_regarray_read(pipe->p, ptr, id, stats);
+	if (status) {
+		LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n", __func__, ptr, id);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
 	return BF_SUCCESS;
 }
 

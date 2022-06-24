@@ -33,18 +33,27 @@
  * Start BF Runtime CLI. This program heavily borrows from the python C
  * interface example program.
  */
+PyObject *bfrtpModule = NULL;
 static int bf_rt_start_cli(int in_fd,
                            int out_fd,
                            const char *install_dir,
                            const char *udf,
                            bool interactive) {
-  PyObject *pName = NULL, *pModule = NULL, *pFunc = NULL;
+  PyObject *pFunc = NULL;
   PyObject *pArgs = NULL, *pValue = NULL;
   uint32_t array_size = 0;
   bf_dev_id_t *dev_id_list = NULL;
   int ret_val = 0;
+  PyConfig config;
+  wchar_t cfg_home_path[256];
 
-  Py_Initialize();
+  PyConfig_InitPythonConfig(&config);
+
+  swprintf(cfg_home_path, 256, L"%s", install_dir);
+
+  config.home = cfg_home_path;
+
+  Py_InitializeFromConfig(&config);
 
   bf_rt_num_device_id_list_get(&array_size);
   if (array_size) {
@@ -57,17 +66,26 @@ static int bf_rt_start_cli(int in_fd,
     bf_rt_device_id_list_get(dev_id_list);
   }
 
-  /* Load the bfrtcli python program. Py_Initialize loads its libraries from
-  the install dir we installed Python into. */
-  pName = PyUnicode_DecodeFSDefault("bfrtcli");
-  if (pName) {
-      pModule = PyImport_Import(pName);
-      Py_DECREF(pName);
+  // first run, initialize python interpreter
+  if (bfrtpModule == NULL) {
+    Py_Initialize();
+    PyObject *pName;
+    /* Load the bfrtcli python program. Py_Initialize loads its libraries from
+    the install dir we installed Python into. */
+    pName = PyUnicode_DecodeFSDefault("bfrtcli");
+    /* Error checking of pName left out */
+    bfrtpModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+    if (bfrtpModule == NULL) {
+      printf("cannot import module in bfrt\n");
+      ret_val = 1;
+      goto cleanup;
+    }
   }
 
-  if (pModule != NULL) {
+  if (bfrtpModule != NULL) {
     // Create a call to the start_bfrt function in bfrtcli.py
-    pFunc = PyObject_GetAttrString(pModule, "start_bfrt");
+    pFunc = PyObject_GetAttrString(bfrtpModule, "start_bfrt");
     /* pFunc is a new reference */
 
     if (pFunc && PyCallable_Check(pFunc)) {
@@ -129,7 +147,6 @@ static int bf_rt_start_cli(int in_fd,
         Py_DECREF(pValue);
       } else {
         Py_DECREF(pFunc);
-        Py_DECREF(pModule);
         PyErr_Print();
         fprintf(stderr, "bf_rt cli python call failed\n");
         ret_val = 1;
@@ -140,7 +157,6 @@ static int bf_rt_start_cli(int in_fd,
       fprintf(stderr, "Cannot find start_bfrt function.\n");
     }
     Py_XDECREF(pFunc);
-    Py_DECREF(pModule);
   } else {
     PyErr_Print();
     fprintf(stderr, "Failed to load bfrtcli python library\n");
@@ -148,8 +164,10 @@ static int bf_rt_start_cli(int in_fd,
     goto cleanup;
   }
 cleanup:
-  // This will free all remaining memory allocated by python & the CLI.
-  Py_Finalize();
+  // After execution of Py_Fynalize will be needed call
+  // Py_Initialize and PyImport_Import that leads to a memory leak
+  // because of previous imported lib will not be removed
+  PyGC_Collect();
   if (dev_id_list) {
     bf_sys_free(dev_id_list);
   }

@@ -1,0 +1,800 @@
+/*
+ * Copyright(c) 2021 Intel Corporation.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef _TDI_TABLE_OBJ_HPP
+#define _TDI_TABLE_OBJ_HPP
+
+#include <string>
+#include <cstring>
+#include <vector>
+#include <map>
+#include <memory>
+#include <set>
+#include <unordered_map>
+#include <algorithm>
+#include <mutex>
+
+#include <pipe_mgr/pipe_mgr_intf.h>
+
+#include <tdi/common/tdi_session.hpp>
+#include <tdi/common/tdi_info.hpp>
+#include <tdi/common/tdi_table.hpp>
+#include <tdi/common/tdi_table_data.hpp>
+#include <tdi/common/tdi_table_key.hpp>
+//#include <tdi/common/tdi_table_attributes.hpp>
+//#include <tdi/common/tdi_table_operations.hpp>
+//#include "tdi_table_key_impl.hpp"
+//#include "tdi_table_data_impl.hpp"
+//#include "tdi_table_attributes_impl.hpp"
+#include "tdi/common/tdi_utils.hpp"
+
+namespace tdi {
+using AnnotationSet =
+    std::set<std::reference_wrapper<const Annotation>, Annotation::Less>;
+
+enum TableGetFlag_e {
+  /** Read from hw */
+  GET_FROM_HW,
+  /** Read from sw value */
+  GET_FROM_SW
+};
+
+typedef struct key_size_ {
+  size_t bytes;
+  size_t bits;
+} key_size_t;
+
+/* Struct to keep info regarding a reference to a table */
+typedef struct tdi_table_ref_info_ {
+  std::string name;
+  tdi_id_t id;
+  pipe_tbl_hdl_t tbl_hdl;
+  // A flag to indicate if the reference is indirect. TRUE when it is, FALSE
+  // when the refernece is direct
+  bool indirect_ref;
+} tdi_table_ref_info_t;
+
+/* Structure to keep action info */
+typedef struct tdi_info_action_info_ {
+  tdi_id_t action_id;
+  std::string name;
+  pipe_act_fn_hdl_t act_fn_hdl;
+  // Map of table_data_fields
+  std::map<tdi_id_t, std::unique_ptr<DataFieldInfo>> data_fields;
+  // Map of table_data_fields with names
+  std::map<std::string, DataFieldInfo *> data_fields_names;
+  // Size of the action data in bytes
+  size_t dataSz;
+  // Size of the action data in bits (not including byte padding)
+  size_t dataSzbits;
+  std::set<Annotation> annotations{};
+} tdi_info_action_info_t;
+
+class TableObj : public Table {
+ public:
+  virtual ~TableObj() = default;
+
+  TableObj(const std::string &program_name,
+               const tdi_id_t &id,
+               const std::string &name,
+               const size_t &size,
+               const tdi_table_type_e &type,
+               const std::set<tdi_table_api_type_e> table_apis,
+               const pipe_tbl_hdl_t &pipe_hdl)
+      : TableObj(program_name, id, name, size, type, table_apis) {
+    this->pipe_tbl_hdl = pipe_hdl;
+  };
+
+  TableObj(const std::string &program_name,
+               const tdi_id_t &id,
+               const std::string &name,
+               const size_t &size,
+               const tdi_table_type_e &type,
+               const std::set<tdi_table_api_type_e> table_apis)
+      : prog_name(program_name),
+        actProfTbl(nullptr),
+        selectorTbl(nullptr),
+        object_id(id),
+        key_size(),
+        _table_size(size),
+        act_prof_id(),
+        selector_tbl_id(),
+        object_name(name),
+        object_type(type),
+        table_apis_(table_apis) {}
+
+  static std::unique_ptr<TableObj> make_table(
+      const std::string &prog_name,
+      const tdi_table_type_e &table_type,
+      const tdi_id_t &id,
+      const std::string &name,
+      const size_t &size,
+      const pipe_tbl_hdl_t &pipe_hdl);
+
+  static std::unique_ptr<TableObj> make_table(const std::string &prog_name,
+                                                  const tdi_table_type_e &table_type,
+                                                  const tdi_id_t &id,
+                                                  const std::string &name,
+                                                  const size_t &size);
+
+  tdi_status_t entryAdd(const Session &session,
+                            const Target &dev_tgt,
+                            const TableKey &key,
+                            const TableData &data) const ;
+
+  tdi_status_t entryMod(const Session &session,
+                            const Target &dev_tgt,
+                            const TableKey &key,
+                            const TableData &data) const ;
+#if 0
+  tdi_status_t entryModInc(
+      const Session &session,
+      const Target &dev_tgt,
+      const TableKey &key,
+      const TableData &data,
+      const Table::TableModIncFlag &flag) const ;
+#endif
+  tdi_status_t entryDel(const Session &session,
+                            const Target &dev_tgt,
+                            const TableKey &key) const ;
+
+  tdi_status_t clear(const Session &session,
+                         const Target &dev_tgt) const ;
+
+  tdi_status_t defaultEntrySet(
+      const Session &session,
+      const Target &dev_tgt,
+      const TableData &data) const ;
+
+  tdi_status_t defaultEntryReset(
+      const Session &session,
+      const Target &dev_tgt) const ;
+
+  tdi_status_t defaultEntryGet(const Session &session,
+                                   const Target &dev_tgt,
+                                   const TableGetFlag_e &flag,
+                                   TableData *data) const ;
+
+  tdi_status_t entryGet(const Session &session,
+                            const Target &dev_tgt,
+                            const TableGetFlag_e &flag,
+                            const tdi_handle_t &entry_handle,
+                            TableKey *key,
+                            TableData *data) const ;
+
+  tdi_status_t entryKeyGet(const Session &session,
+                               const Target &dev_tgt,
+                               const tdi_handle_t &entry_handle,
+                               Target *entry_tgt,
+                               TableKey *key) const ;
+
+  tdi_status_t entryHandleGet(
+      const Session &session,
+      const Target &dev_tgt,
+      const TableKey &key,
+      tdi_handle_t *entry_handle) const ;
+
+  tdi_status_t entryGet(const Session &session,
+                            const Target &dev_tgt,
+                            const TableKey &key,
+                            const TableGetFlag_e &flag,
+                            TableData *data) const ;
+
+  tdi_status_t entryGetFirst(const Session &session,
+                                 const Target &dev_tgt,
+                                 const TableGetFlag_e &flag,
+                                 TableKey *key,
+                                 TableData *data) const ;
+
+  tdi_status_t entryGetNext_n(const Session &session,
+                                  const Target &dev_tgt,
+                                  const TableKey &key,
+                                  const uint32_t &n,
+                                  const TableGetFlag_e &flag,
+                                  keyDataPairs *key_data_pairs,
+                                  uint32_t *num_returned) const ;
+
+  virtual tdi_status_t entryAdd(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    const TableKey &key,
+                                    const TableData &data) const ;
+
+  virtual tdi_status_t entryMod(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    const TableKey &key,
+                                    const TableData &data) const ;
+#if 0
+  virtual tdi_status_t entryModInc(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags,
+      const TableKey &key,
+      const TableData &data) const override;
+#endif
+  virtual tdi_status_t entryDel(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    const TableKey &key) const override;
+
+  virtual tdi_status_t clear(const Session &session,
+                                 const Target &dev_tgt,
+                                 const Flags &flags) const override;
+
+  virtual tdi_status_t defaultEntrySet(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags,
+      const TableData &data) const override;
+
+  virtual tdi_status_t defaultEntryReset(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags) const override;
+
+  virtual tdi_status_t defaultEntryGet(const Session &session,
+                                           const Target &dev_tgt,
+                                           const Flags &flags,
+                                           TableData *data) const override;
+
+  virtual tdi_status_t entryGet(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    const tdi_handle_t &entry_handle,
+                                    TableKey *key,
+                                    TableData *data) const override;
+
+  virtual tdi_status_t entryKeyGet(const Session &session,
+                                       const Target &dev_tgt,
+                                       const Flags &flags,
+                                       const tdi_handle_t &entry_handle,
+                                       Target *entry_tgt,
+                                       TableKey *key) const override;
+
+  virtual tdi_status_t entryHandleGet(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags,
+      const TableKey &key,
+      tdi_handle_t *entry_handle) const override;
+
+  virtual tdi_status_t entryGet(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    const TableKey &key,
+                                    TableData *data) const override;
+
+  virtual tdi_status_t entryGetFirst(const Session &session,
+                                         const Target &dev_tgt,
+                                         const Flags &flags,
+                                         TableKey *key,
+                                         TableData *data) const override;
+
+  virtual tdi_status_t entryGetNextN(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags,
+      const TableKey &key,
+      const uint32_t &n,
+      keyDataPairs *key_data_pairs,
+      uint32_t *num_returned) const override;
+
+  virtual tdi_status_t usageGet(const Session &session,
+                                    const Target &dev_tgt,
+                                    const Flags &flags,
+                                    uint32_t *count) const override;
+
+  virtual tdi_status_t sizeGet(const Session &session,
+                                   const Target &dev_tgt,
+                                   const Flags &flags,
+                                   size_t *size) const override;
+
+  tdi_status_t nameGet(std::string *name) const;
+
+  tdi_status_t idGet(tdi_id_t *id) const;
+
+  tdi_status_t sizeGet(const Session &session,
+                           const Target &dev_tgt,
+                           size_t *size) const;
+
+  tdi_status_t typeGet(tdi_table_type_e *type) const;
+
+  tdi_status_t usageGet(const Session &session,
+                            const Target &dev_tgt,
+                            const TableGetFlag_e &flag,
+                            uint32_t *count) const;
+
+  tdi_status_t hasConstDefaultAction(
+      bool *has_const_default_action) const;
+
+  tdi_status_t isConst(bool *is_const) const;
+#if 0
+  tdi_status_t annotationsGet(
+      AnnotationSet *annotations) const override ;
+  tdi_status_t apiSupportedGet(TableApiSet *tableApis) const override ;
+#endif
+  // Table sub-object allocate APIs
+  virtual tdi_status_t keyAllocate(
+      std::unique_ptr<TableKey> *key_ret) const override;
+
+  virtual tdi_status_t keyReset(TableKey *key) const override;
+
+  virtual tdi_status_t dataAllocate(
+      std::unique_ptr<TableData> *data_ret) const override;
+
+  virtual tdi_status_t dataAllocate(
+      const tdi_id_t &action_id,
+      std::unique_ptr<TableData> *data_ret) const override;
+
+  virtual tdi_status_t dataAllocate(
+      const std::vector<tdi_id_t> &fields,
+      std::unique_ptr<TableData> *data_ret) const override;
+  virtual tdi_status_t dataAllocate(
+      const std::vector<tdi_id_t> &fields,
+      const tdi_id_t &action_id,
+      std::unique_ptr<TableData> *data_ret) const override;
+
+  virtual tdi_status_t dataAllocateContainer(
+      const tdi_id_t &container_id,
+      std::unique_ptr<TableData> *data_ret) const;
+  virtual tdi_status_t dataAllocateContainer(
+      const tdi_id_t &container_id,
+      const tdi_id_t &action_id,
+      std::unique_ptr<TableData> *data_ret) const;
+  virtual tdi_status_t dataAllocateContainer(
+      const tdi_id_t &container_id,
+      const std::vector<tdi_id_t> &fields,
+      std::unique_ptr<TableData> *data_ret) const;
+  virtual tdi_status_t dataAllocateContainer(
+      const tdi_id_t &container_id,
+      const std::vector<tdi_id_t> &fields,
+      const tdi_id_t &action_id,
+      std::unique_ptr<TableData> *data_ret) const;
+
+  virtual tdi_status_t dataReset(TableData *data) const override;
+
+  virtual tdi_status_t dataReset(const tdi_id_t &action_id,
+                                TableData *data) const override;
+
+  virtual tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
+                                TableData *data) const override;
+
+  virtual tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
+                                const tdi_id_t &action_id,
+                                TableData *data) const override;
+#if 0
+  virtual tdi_status_t attributeAllocate(
+      const TableAttributesType &type,
+      std::unique_ptr<TableAttributes> *attr) const override;
+
+  virtual tdi_status_t attributeAllocate(
+      const TableAttributesType &type,
+      const TableAttributesIdleTableMode &idle_table_type,
+      std::unique_ptr<TableAttributes> *attr) const override;
+
+  virtual tdi_status_t attributeReset(
+      const TableAttributesType &type,
+      std::unique_ptr<TableAttributes> *attr) const override;
+
+  virtual tdi_status_t attributeReset(
+      const TableAttributesType &type,
+      const TableAttributesIdleTableMode &idle_table_type,
+      std::unique_ptr<TableAttributes> *attr) const override;
+
+  virtual tdi_status_t operationsAllocate(
+      const TableOperationsType &type,
+      std::unique_ptr<TableOperations> *table_ops) const override;
+#endif
+
+#if 0
+  //// KeyField APIs
+  tdi_status_t keyFieldIdListGet(
+      std::vector<tdi_id_t> *id_vec) const override ;
+
+  tdi_status_t keyFieldTypeGet(const tdi_id_t &field_id,
+                              KeyFieldType *field_type) const override ;
+
+  tdi_status_t keyFieldDataTypeGet(const tdi_id_t &field_id,
+                                  DataType *data_type) const override ;
+
+  tdi_status_t keyFieldIdGet(const std::string &name,
+                            tdi_id_t *field_id) const override ;
+
+  tdi_status_t keyFieldSizeGet(const tdi_id_t &field_id,
+                              size_t *size) const override ;
+
+  tdi_status_t keyFieldIsPtrGet(const tdi_id_t &field_id,
+                               bool *is_ptr) const override ;
+
+  tdi_status_t keyFieldNameGet(const tdi_id_t &field_id,
+                              std::string *name) const override ;
+
+  tdi_status_t keyFieldAllowedChoicesGet(
+      const tdi_id_t &field_id,
+      std::vector<std::reference_wrapper<const std::string>> *choices)
+      const override ;
+
+  //// DataField APIs
+  tdi_status_t dataFieldIdListGet(
+      const tdi_id_t &action_id,
+      std::vector<tdi_id_t> *id_vec) const override ;
+
+  tdi_status_t dataFieldIdListGet(
+      std::vector<tdi_id_t> *id_vec) const override ;
+
+  tdi_status_t containerDataFieldIdListGet(
+      const tdi_id_t &field_id,
+      std::vector<tdi_id_t> *id_vec) const override ;
+
+  tdi_status_t dataFieldIdGet(const std::string &name,
+                             tdi_id_t *field_id) const override ;
+
+  tdi_status_t dataFieldIdGet(const std::string &name,
+                             const tdi_id_t &action_id,
+                             tdi_id_t *field_id) const override ;
+
+  tdi_status_t dataFieldSizeGet(const tdi_id_t &field_id,
+                               size_t *size) const override ;
+
+  tdi_status_t dataFieldSizeGet(const tdi_id_t &field_id,
+                               const tdi_id_t &action_id,
+                               size_t *size) const override ;
+
+  tdi_status_t dataFieldIsPtrGet(const tdi_id_t &field_id,
+                                bool *is_ptr) const override ;
+
+  tdi_status_t dataFieldIsPtrGet(const tdi_id_t &field_id,
+                                const tdi_id_t &action_id,
+                                bool *is_ptr) const override ;
+
+  tdi_status_t dataFieldMandatoryGet(const tdi_id_t &field_id,
+                                    bool *is_mandatory) const override ;
+
+  tdi_status_t dataFieldMandatoryGet(const tdi_id_t &field_id,
+                                    const tdi_id_t &action_id,
+                                    bool *is_mandatory) const override ;
+
+  tdi_status_t dataFieldReadOnlyGet(const tdi_id_t &field_id,
+                                   bool *is_read_only) const override ;
+
+  tdi_status_t dataFieldReadOnlyGet(const tdi_id_t &field_id,
+                                   const tdi_id_t &action_id,
+                                   bool *is_read_only) const override ;
+
+  tdi_status_t dataFieldOneofSiblingsGet(
+      const tdi_id_t &field_id,
+      std::set<tdi_id_t> *oneof_siblings) const override ;
+
+  tdi_status_t dataFieldOneofSiblingsGet(
+      const tdi_id_t &field_id,
+      const tdi_id_t &action_id,
+      std::set<tdi_id_t> *oneof_siblings) const override ;
+
+  tdi_status_t dataFieldNameGet(const tdi_id_t &field_id,
+                               std::string *name) const override ;
+
+  tdi_status_t dataFieldNameGet(const tdi_id_t &field_id,
+                               const tdi_id_t &action_id,
+                               std::string *name) const override ;
+
+  tdi_status_t dataFieldDataTypeGet(const tdi_id_t &field_id,
+                                   DataType *type) const override ;
+
+  tdi_status_t dataFieldDataTypeGet(const tdi_id_t &field_id,
+                                   const tdi_id_t &action_id,
+                                   DataType *type) const override ;
+
+  tdi_status_t dataFieldAllowedChoicesGet(
+      const tdi_id_t &field_id,
+      std::vector<std::reference_wrapper<const std::string>> *choices)
+      const override ;
+
+  tdi_status_t dataFieldAllowedChoicesGet(
+      const tdi_id_t &field_id,
+      const tdi_id_t &action_id,
+      std::vector<std::reference_wrapper<const std::string>> *choices)
+      const override ;
+
+  tdi_status_t dataFieldAnnotationsGet(
+      const tdi_id_t &field_id,
+      AnnotationSet *annotations) const override ;
+  tdi_status_t dataFieldAnnotationsGet(
+      const tdi_id_t &field_id,
+      const tdi_id_t &action_id,
+      AnnotationSet *annotations) const override ;
+
+  tdi_status_t defaultDataValueGet(const tdi_id_t &field_id,
+                                  const tdi_id_t action_id,
+                                  uint64_t *default_value) const;
+
+  tdi_status_t defaultDataValueGet(const tdi_id_t &field_id,
+                                  const tdi_id_t action_id,
+                                  std::string *default_value) const;
+
+  tdi_status_t defaultDataValueGet(const tdi_id_t &field_id,
+                                  const tdi_id_t action_id,
+                                  float *default_value) const;
+  // Action ID APIs
+  tdi_status_t actionIdGet(const std::string &name,
+                          tdi_id_t *action_id) const override ;
+  tdi_status_t actionNameGet(const tdi_id_t &action_id,
+                            std::string *name) const override ;
+  tdi_status_t actionIdListGet(
+      std::vector<tdi_id_t> *action_id) const override ;
+
+  virtual bool actionIdApplicable() const override;
+
+  tdi_status_t actionAnnotationsGet(
+      const tdi_id_t &action_id,
+      AnnotationSet *annotations) const override ;
+#endif
+#if 0
+  // Table attributes APIs
+  tdi_status_t attributesSet(
+      const Session &session,
+      const Target &dev_tgt,
+      const TableAttributes &attributes) const override ;
+  tdi_status_t attributesGet(
+      const Session &session,
+      const Target &dev_tgt,
+      TableAttributes *attributes) const override ;
+  virtual tdi_status_t attributesSet(
+      const Session &session,
+      const Target &dev_tgt,
+      const Flags &flags,
+      const TableAttributes &attributes) const override;
+  virtual tdi_status_t attributesGet(
+      const Session &session,
+      const TargeTarget &dev_tgt,
+      const Flags &flags,
+      TableAttributes *attributes) const override;
+  tdi_status_t attributesSupported(
+      std::set<TableAttributesType> *type_set) const override ;
+
+  // Table operations APIs
+  tdi_status_t operationsSupported(
+      std::set<TableOperationsType> *type_set) const override ;
+  tdi_status_t operationsExecute(
+      const TableOperations &operations) const override ;
+#endif
+
+#if 0
+  // Unexposed APIs
+  // This API sets the pipe table handle of the internally generated table
+  // by the compiler for a particular resource table. This allows us to
+  // expose certain table operations on indrect resource tables which are
+  // not explicitly attached to any match action table in the p4.
+
+  virtual tdi_status_t ghostTableHandleSet(const pipe_tbl_hdl_t &pipe_hdl);
+
+  tdi_status_t dataFieldTypeGet(const tdi_id_t &field_id,
+                               std::set<DataFieldType> *ret_type) const;
+
+  tdi_status_t dataFieldTypeGet(const tdi_id_t &field_id,
+                               const tdi_id_t &action_id,
+                               std::set<DataFieldType> *ret_type) const;
+
+  uint32_t keyFieldListSize() const { return key_fields.size(); }
+
+  uint32_t dataFieldListSize() const;
+
+  uint32_t dataFieldListSize(const tdi_id_t &action_id) const;
+
+  tdi_status_t getKeyField(const tdi_id_t &field_id,
+                          const KeyFieldInfo **field) const;
+
+  tdi_status_t getDataField(const tdi_id_t &field_id,
+                           const DataFieldInfo **field) const;
+  tdi_status_t getDataField(const tdi_id_t &field_id,
+                           const tdi_id_t &action_id,
+                           const DataFieldInfo **field) const;
+
+  // getDataField() takes in a vector
+  // container field IDs instead of a single container field.
+  // This is because since this function is on a table, we need to
+  // be able to process recursive containers. The above helper func
+  // also takes care of containers recursively but it assumes
+  // that the first found container is good enough for metadata
+  // which is usually the case.
+  //
+  // if containers are organized
+  // {a: {a1: {a2: { a3}}},
+  //  b: {a1: {b2: { a3}},
+  //      b1: {b2: { a3}}},
+  //  c: {a1: {a2: { c3}}}
+  //  }
+  //
+  //  Then in order to get info of b.a1.b2.a3 , vec(b, a1, b2)
+  //  should be given to identify it.
+  //
+  tdi_status_t getDataField(const tdi_id_t &field_id,
+                           const tdi_id_t &action_id,
+                           const std::vector<tdi_id_t> &container_id_v,
+                           const DataFieldInfo **field) const;
+  const DataFieldInfo *getDataFieldHelper(
+      const tdi_id_t &field_id,
+      const std::vector<tdi_id_t> &container_id_v,
+      const uint32_t depth,
+      const std::map<tdi_id_t, std::unique_ptr<DataFieldInfo>> &
+          field_map) const;
+
+  // Below 2 funcs are similar to the ones above but they work
+  // on using names instead. They internally use name maps instead
+  // of traversing through id_maps linearly and finding a name match
+  tdi_status_t getDataField(const std::string &field_name,
+                           const tdi_id_t &action_id,
+                           const std::vector<tdi_id_t> &container_id_v,
+                           const DataFieldInfo **field) const;
+  const DataFieldInfo *getDataFieldHelper(
+      const std::string &field_name,
+      const std::vector<tdi_id_t> &container_id_v,
+      const uint32_t depth,
+      const std::map<std::string, DataFieldInfo *> &field_map) const;
+
+  const key_size_t &getKeySize() const { return key_size; }
+
+  size_t getMaxdataSz() const;
+  size_t getMaxdataSzbits() const;
+
+  size_t getdataSz(tdi_id_t act_id) const;
+  size_t getdataSzbits(tdi_id_t act_id) const;
+
+  pipe_tbl_hdl_t getResourceHdl(const DataFieldType &field_type) const;
+
+  pipe_tbl_hdl_t getIndirectResourceHdl(const DataFieldType &field_type) const;
+  pipe_act_fn_hdl_t getActFnHdl(const tdi_id_t &action_id) const;
+
+  tdi_id_t getActProfId() const { return act_prof_id; }
+
+  tdi_id_t getSelectorId() const { return selector_tbl_id; }
+
+  tdi_id_t getActIdFromActFnHdl(const pipe_act_fn_hdl_t &act_fn_hdl) const;
+#endif
+  const pipe_tbl_hdl_t &pipeHandleGet() const { return pipe_tbl_hdl; }
+
+  const std::string &programNameGet() const { return prog_name; }
+
+  const std::string &table_name_get() const;
+  tdi_id_t table_id_get() const;
+  const uint64_t &hash_bit_width_get() const { return hash_bit_width; }
+  const bool &hasConstDefaultAction() const {
+    return has_const_default_action_;
+  }
+
+  const std::string &key_field_name_get(const tdi_id_t &field_id) const;
+  const std::string &data_field_name_get(const tdi_id_t &field_id) const;
+  const std::string &data_field_name_get(const tdi_id_t &field_id,
+                                         const tdi_id_t &action_id) const;
+  const std::string &action_name_get(const tdi_id_t &action_id) const;
+
+  virtual bool idleTableEnabled() const { return false; }
+  virtual bool idleTablePollMode() const { return false; }
+
+  // Function to verify if the key object is associated with the table
+  bool validateTable_from_keyObj(const TableKeyObj &key) const;
+  // Function to verify if the data object is associated with the table
+  bool validateTable_from_dataObj(const TableDataObj &data) const;
+
+  const std::map<std::string, std::vector<tdi_table_ref_info_t>> &
+  getTableRefMap() const {
+    return table_ref_map;
+  }
+  uint32_t commonDataFieldListSizeGet() const {
+    return common_data_fields.size();
+  }
+
+  virtual void setActionResources(const bf_dev_id_t & /*dev_id*/) { return; };
+  void getActionResources(const tdi_id_t action_id,
+                          bool *meter,
+                          bool *reg,
+                          bool *cntr) const;
+
+  virtual void setIsTernaryTable(const bf_dev_id_t & /*dev_id*/) { return; };
+  const bool &getIsTernaryTable() const { return is_ternary_table_; };
+
+  const TdiInfo *tdiInfoGet() const { return tdi_info_; };
+
+ protected:
+  // Name of the program to which this table obj belongs
+  std::string prog_name;
+
+  // Store information about direct resources applicable per action
+  std::map<tdi_id_t, bool> act_uses_dir_meter;
+  std::map<tdi_id_t, bool> act_uses_dir_cntr;
+  std::map<tdi_id_t, bool> act_uses_dir_reg;
+
+  // if this table is a ternary table
+  bool is_ternary_table_{false};
+  TableObj *actProfTbl;
+  TableObj *selectorTbl;
+  const tdi_id_t object_id;
+  key_size_t key_size;
+  pipe_tbl_hdl_t pipe_tbl_hdl{0};
+  const size_t _table_size;
+  // Action profile table ID associated with this table. Applicable for
+  // MatchAction_Indirect, MatchAction_Indirect_Selector and Selector table
+  // types
+  tdi_id_t act_prof_id;
+  // Selector table ID associated with this table. Applicable for
+  // MatchAction_Indirect_Selector table
+  tdi_id_t selector_tbl_id;
+  // hash_bit_width of hash object. Only required for the hash tables
+  uint64_t hash_bit_width = 0;
+  // action_info map
+  std::map<tdi_id_t, std::unique_ptr<tdi_info_action_info_t>>
+      action_info_list;
+  // action_info map but with names. Owner is still above map.
+  // This one only contains the raw pointers
+  std::map<std::string, tdi_info_action_info_t *> action_info_list_name;
+
+  // A map from action fn handle to action id
+  std::map<pipe_act_fn_hdl_t, tdi_id_t> act_fn_hdl_to_id;
+
+  mutable std::mutex state_lock;
+  tdi_status_t action_id_get_helper(const std::string &name,
+                                   tdi_id_t *action_id) const;
+  // Whether this table has a const default action or not
+  bool has_const_default_action_{false};
+  // Whether this is a const table
+  bool is_const_table_{false};
+  // Table annotations
+  std::set<Annotation> annotations_{};
+
+  // Helper functions
+  tdi_status_t getKeyStringChoices(const std::string &key_str,
+                                  std::vector<std::string> &choices) const;
+
+  tdi_status_t getDataStringChoices(const std::string &data_str,
+                                   std::vector<std::string> &choices) const;
+ private:
+  std::vector<tdi_table_ref_info_t> tableGetRefNameVec(
+      std::string ref) const {
+    if (table_ref_map.find(ref) != table_ref_map.end()) {
+      return table_ref_map.at(ref);
+    }
+    return {};
+  }
+#if 0
+  void addDataFieldType(const tdi_id_t &field_id, const DataFieldType &type);
+
+  tdi_status_t getResourceInternal(const DataFieldType &field_type,
+                                  tdi_table_ref_info_t *tbl_ref) const;
+#endif
+  const std::string object_name;
+  const tdi_table_type_e object_type;
+  const std::set<tdi_table_api_type_e> table_apis_{};
+  // Map of reference_type -> vector of ref_info structs
+  std::map<std::string, std::vector<tdi_table_ref_info_t>> table_ref_map;
+  // key-fields map
+  std::map<tdi_id_t, std::unique_ptr<DataFieldInfo>> key_fields;
+
+  // Map of common data-fields like TTL/Counter etc
+  std::map<tdi_id_t, std::unique_ptr<DataFieldInfo>> common_data_fields;
+  // Map of common data-fields like TTL/Counter etc with names
+  std::map<std::string, DataFieldInfo *> common_data_fields_names;
+#if 0
+  std::set<TableOperationsType> operations_type_set;
+  std::set<TableAttributesType> attributes_type_set;
+#endif
+  // Backpointer to Info object
+  const TdiInfo *tdi_info_;
+
+  friend class InfoImpl;
+};
+
+}  // tdi
+
+#endif  //

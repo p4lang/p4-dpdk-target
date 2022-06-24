@@ -42,6 +42,7 @@ AS_IF([test "x$with_generic_flags" = "xno"],
       [GENERIC_FLAGS=],
       [test "x$with_generic_flags" = "xyes"],
       [GENERIC_FLAGS="-DBFRT_GENERIC_FLAGS"],
+      [GENERIC_FLAGS="-DTDI_GENERIC_FLAGS"],
       [GENERIC_FLAGS="$with_generic_flags"])
 
 AC_ARG_ENABLE([coverage],

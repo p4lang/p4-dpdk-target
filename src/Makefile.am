@@ -12,12 +12,19 @@ dist_bfruntime_grpc_protocol_DATA = bf_rt/proto/bfruntime.proto
 
 if IS_BFRT_ENABLED
 bfrt_pythondir = $(libdir)/python3.8
-bfrt_python_DATA = $(bfrt_python_python_sources)
+bfrt_python_DATA = $(bfrt_python_python_sources) $(tdi_python_python_sources)
 bfrt_python_python_sources = \
 bf_rt/bf_rt_python/bfrtInfo.py \
 bf_rt/bf_rt_python/bfrtTable.py \
 bf_rt/bf_rt_python/bfrtTableEntry.py \
 bf_rt/bf_rt_python/bfrtcli.py
+
+tdi_python_python_sources = \
+../third-party/tdi/tdi_python/tdicli.py \
+../third-party/tdi/tdi_python/tdiTable.py \
+../third-party/tdi/tdi_python/tdiTableEntry.py \
+../third-party/tdi/tdi_python/tdiInfo.py
+
 endif # end IS_BFRT_ENABLED
 
 libdriver_la_CFLAGS = $(AM_CFLAGS) $(BF_DRIVERS_CFLAGS) -Wno-absolute-value -Wno-deprecated-declarations
@@ -33,7 +40,28 @@ libutils_la_CFLAGS = $(libdriver_la_CFLAGS)
 if IS_BFRT_ENABLED
 libbfrt_la_CFLAGS = $(libdriver_la_CFLAGS)
 libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk -I$(top_builddir)third_party/ptf_grpc
+libtdirt_la_CFLAGS = $(libdriver_la_CFLAGS)
+libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt \
+                                                -I$(srcdir)/../third-party/tdi/include \
+						-I$(srcdir)/bf_rt \
+                                                -I$(srcdir)/tdi_rt/tdi_port/dpdk
 endif # end IS_BFRT_ENABLED
+
+
+tdirt_sources = \
+tdi_rt/tdi_common/tdi_rt_init.cpp \
+tdi_rt/tdi_common/tdi_context_info.cpp \
+tdi_rt/tdi_common/tdi_pipe_mgr_intf.cpp \
+tdi_rt/tdi_common/tdi_session_impl.cpp \
+tdi_rt/tdi_common/tdi_rt_target.cpp \
+tdi_rt/c_frontend/tdi_rt_init_c.cpp \
+tdi_rt/tdi_port/tdi_port_table_key_impl.cpp \
+tdi_rt/tdi_port/dpdk/tdi_port_table_data_impl.cpp \
+tdi_rt/tdi_port/tdi_table_data_utils.cpp \
+tdi_rt/tdi_port/dpdk/tdi_port_table_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
+tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp
 
 bfrt_sources = \
 bf_rt/bf_rt_common/bf_rt_info_impl.cpp \
@@ -178,6 +206,7 @@ ctx_json/ctx_json_utils.c
 
 if IS_BFRT_ENABLED
 libbfrt_la_SOURCES = $(bfrt_sources)
+libtdirt_la_SOURCES = $(tdirt_sources)
 endif
 libdvm_la_SOURCES = $(dvm_sources)
 liblld_la_SOURCES = $(lld_sources)
@@ -238,8 +267,9 @@ lib_LTLIBRARIES += libdriver.la
 
 libdriver_la_LDFLAGS = -Wl,-Bsymbolic
 libdriver_la_LDFLAGS += -ltarget_utils
+
 if IS_BFRT_ENABLED
-libdriver_la_LDFLAGS += -lpython3.8
+libdriver_la_LDFLAGS += -lpython3.8 -ltdi -ltdi_pna 
 else
 if IS_DEBUG_PYTHON_SHELL_ENABLED
 libdriver_la_LDFLAGS += -lpython3.8
@@ -259,7 +289,8 @@ libutils.la
 
 if IS_BFRT_ENABLED
 noinst_LTLIBRARIES += \
-libbfrt.la
+libbfrt.la \
+libtdirt.la
 endif
 
 
@@ -274,7 +305,7 @@ libport_mgr.la \
 libutils.la
 
 if IS_BFRT_ENABLED
-libdriver_la_LIBADD += libbfrt.la
+libdriver_la_LIBADD += libbfrt.la libtdirt.la
 endif
 
 if IS_BFRT_ENABLED
@@ -336,11 +367,17 @@ endif #IS_GRPC_ENABLED
 
 bf_rt_xmldir = $(datadir)/cli/xml
 bf_rt_xml_DATA = bf_rt/xml/bf_rt.xml
+bf_rt_xml_DATA += tdi_rt/xml/tdi.xml
 
 lib_LTLIBRARIES += bfshell_plugin_bf_rt.la
 bfshell_plugin_bf_rt_la_CFLAGS = $(AM_CFLAGS) $(BF_DRIVERS_CFLAGS)
 bfshell_plugin_bf_rt_la_LDFLAGS = -module
 bfshell_plugin_bf_rt_la_SOURCES = bf_rt/cli/bf_rt_cli.c
+
+lib_LTLIBRARIES += bfshell_plugin_tdi.la
+bfshell_plugin_tdi_la_CFLAGS = $(AM_CFLAGS) $(BF_DRIVERS_CFLAGS)
+bfshell_plugin_tdi_la_LDFLAGS = -module
+bfshell_plugin_tdi_la_SOURCES = tdi_rt/cli/tdi_cli.c
 
 endif #IS_BFRT_ENABLED
 

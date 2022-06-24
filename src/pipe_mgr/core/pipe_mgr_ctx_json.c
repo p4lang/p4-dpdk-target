@@ -289,12 +289,16 @@ static int ctx_json_parse_mat_actions_json
 	bool allowed_as_hit_action = 0;
 	bf_status_t rc = BF_SUCCESS;
 	char *action_name = NULL;
+	char *target_action_name = NULL;
 	char *name = NULL;
 	int err = 0;
 	int handle;
 
 	err |= bf_cjson_get_string(actions_cjson,
 			CTX_JSON_ACTION_NAME, &name);
+
+	err |= bf_cjson_try_get_string(actions_cjson,
+			CTX_JSON_TARGET_ACTION_NAME, &target_action_name);
 
 	err |= bf_cjson_get_int(actions_cjson,
 			CTX_JSON_ACTION_HANDLE,
@@ -326,6 +330,18 @@ static int ctx_json_parse_mat_actions_json
 	}
 	strncpy(action->name, action_name, P4_SDE_NAME_LEN - 1);
 	action->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	if (target_action_name) {
+		action_name = trim_classifier_str(target_action_name);
+		if (!action_name) {
+			LOG_ERROR("trg_act_name %s trim_classifier_str failed"
+				  , name);
+			return BF_UNEXPECTED;
+		}
+		strncpy(action->target_action_name, action_name,
+			P4_SDE_NAME_LEN - 1);
+		action->target_action_name[P4_SDE_NAME_LEN - 1] = '\0';
+	}
 
 	action->handle = handle;
 	action->allowed_as_hit_action = allowed_as_hit_action;
@@ -557,7 +573,7 @@ static int ctx_json_parse_match_table_json
 	char *table_name = NULL;
 	char *direction = NULL;
 	int adt_handle = 0;
-	char *name = NULL;
+	char *name = NULL, *target_table_name = NULL;
 	bool uses_range;
 	int handle = 0;
 	int size = 0;
@@ -565,6 +581,9 @@ static int ctx_json_parse_match_table_json
 
 	err |= bf_cjson_get_string
 			(table_cjson, CTX_JSON_TABLE_NAME, &name);
+	err |= bf_cjson_try_get_string
+			(table_cjson, CTX_JSON_TARGET_TABLE_NAME,
+			 &target_table_name);
 	err |= bf_cjson_try_get_string(table_cjson,
 				  CTX_JSON_TABLE_DIRECTION, &direction);
 	err |= bf_cjson_get_handle
@@ -611,6 +630,18 @@ static int ctx_json_parse_match_table_json
 	}
 	strncpy(mat_ctx->name, table_name, P4_SDE_NAME_LEN - 1);
 	mat_ctx->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	if (target_table_name) {
+		table_name = trim_classifier_str(target_table_name);
+		if (!table_name) {
+			LOG_ERROR("target_table_name %s trim_str failed",
+					target_table_name);
+			return BF_UNEXPECTED;
+		}
+		strncpy(mat_ctx->target_table_name, table_name,
+			P4_SDE_NAME_LEN - 1);
+		mat_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
+	}
 
 	if (direction) {
 		strncpy(mat_ctx->direction, direction, P4_SDE_NAME_LEN - 1);
@@ -1045,14 +1076,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 		goto version_parse_err;
 	}
 
-	rc = ctx_json_compile_command(root, pkg_ctx);
-	if (rc) {
-		LOG_ERROR
-			("%s:%d: Failed to parse compile_cmd from ContextJSON",
-			 __func__, __LINE__);
-		goto version_parse_err;
-	}
-
 	rc = ctx_json_parse_target(root, pkg_ctx);
 	if (rc) {
 		LOG_ERROR
@@ -1060,6 +1083,17 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __func__, __LINE__);
 		goto version_parse_err;
 	}
+
+	if (pkg_ctx->target == PIPE_MGR_TARGET_DPDK) {
+		rc = ctx_json_compile_command(root, pkg_ctx);
+		if (rc) {
+			LOG_ERROR
+			("%s:%d: Failed to parse compile_cmd from ContextJSON",
+			 __func__, __LINE__);
+			goto version_parse_err;
+		}
+	}
+
 
 	rc = ctx_json_parse_tables_json(dev_id, profile_id, root, pkg_ctx);
 

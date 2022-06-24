@@ -51,6 +51,7 @@
 #include <lld/lld_err.h>
 #include <port_mgr/bf_port_if.h>
 #include <bf_rt/bf_rt_init.h>
+#include <tdi_rt/c_frontend/tdi_rt_init.h>
 #include <bf_pal/dev_intf.h>
 #include <bf_pal/bf_pal_port_intf.h>
 
@@ -1442,6 +1443,11 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
         printf("ERROR: bf_rt_init failed : %d\n", ret);
         return ret;
       }
+      ret = tdi_module_init(NULL, 0);
+      if (ret != 0) {
+        printf("ERROR: tdi_init failed : %d\n", ret);
+        return ret;
+      }
       init_done = true;
     }
     for (dev_id = 0; dev_id < BF_MAX_DEV_COUNT; dev_id++) {
@@ -1457,6 +1463,11 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
           ret = bf_rt_module_init(switchd_ctx->skip_hld.port_mgr);
           if (ret != 0) {
             printf("ERROR: bf_rt_init failed : %d\n", ret);
+            return ret;
+          }
+          ret = tdi_module_init(NULL, 0);
+          if (ret != 0) {
+            printf("ERROR: tdi_init failed : %d\n", ret);
             return ret;
           }
           init_done = true;

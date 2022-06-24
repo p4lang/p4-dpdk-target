@@ -92,7 +92,8 @@ apt_packages = ['git',
                 'connect-proxy',
                 'tshark',
                 'cmake',
-		 'patch'
+                'libglib2.0-dev',
+                'patch'
                 ]
 
 pip_packages = ['thrift', 'protobuf','pyelftools','scapy','six']
@@ -121,7 +122,8 @@ dnf_pkg = [ "clang", #libstdc++ is part of clang
             "wireshark",
             "cmake",
             "libunwind-devel",
-	     "patch"
+            "glib2-devel",
+            "patch"
 ]
 
 

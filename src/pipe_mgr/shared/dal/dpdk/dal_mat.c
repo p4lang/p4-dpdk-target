@@ -26,6 +26,17 @@
 #include "pipe_mgr_dpdk_ctx_util.h"
 #include "../../infra/pipe_mgr_int.h"
 
+int is_match_value_present(struct pipe_tbl_match_spec *match_spec)
+{
+	int i;
+
+	for (i = 0; i < match_spec->num_match_bytes; i++)
+		if (match_spec->match_value_bits[i] ||
+		    match_spec->match_mask_bits[i])
+			return 1;
+	return 0;
+}
+
 static int table_match_field_info(char *table_name,
 		struct dal_dpdk_table_metadata *meta)
 {
@@ -85,8 +96,8 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 			status = BF_NO_SPACE;
 			goto cleanup;
 		}
-
-		action_id = get_action_id(meta->pipe, action->name);
+		action_id = get_action_id(meta->pipe,
+					  action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -165,6 +176,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 	struct rte_swx_ctl_action_arg_info *action_arg_info;
 	struct pipe_mgr_dpdk_action_format *act_fmt;
 	struct pipe_mgr_dpdk_stage_table *stage_table;
+	struct pipe_mgr_actions_list *action;
 	int status = BF_SUCCESS;
 	uint64_t action_id;
 	uint32_t index;
@@ -174,6 +186,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 	stage_table = mat_ctx->match_attr.stage_table;
 	n_action = meta->dpdk_table_info.n_actions;
 
+	action = mat_ctx->actions;
 	meta->action_data_size = 0;
 	act_fmt = stage_table->act_fmt;
 	/* Indirect table will not have action format
@@ -190,8 +203,12 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			return BF_UNEXPECTED;
 		}
 
+		if (!action) {
+			LOG_ERROR("reached end of actions in context");
+			return BF_UNEXPECTED;
+		}
 		action_id = get_action_id(meta->pipe,
-					  act_fmt->target_action_name);
+					  action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
 					act_fmt->action_name);
@@ -241,6 +258,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 			meta->action_data_size = act_fmt->arg_nbits;
 
 		act_fmt = act_fmt->next;
+		action = action->next;
 	}
 	return status;
 }
@@ -459,7 +477,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	if (!stage_table->table_meta) {
 		status = dal_dpdk_table_metadata_get(mat_ctx,
 				profile->pipeline_name,
-				mat_ctx->name, 0);
+				mat_ctx->target_table_name, 0);
 		if (status) {
 			LOG_ERROR("not able get table metadata for table %s",
 					mat_ctx->name);
@@ -530,8 +548,13 @@ int dal_table_ent_add(u32 sess_hdl,
 		}
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_add(pipe->ctl, mat_ctx->name,
-						      entry);
+	if (is_match_value_present(match_spec))
+		status = rte_swx_ctl_pipeline_table_entry_add
+				(pipe->ctl, mat_ctx->name, entry);
+	else
+		status = rte_swx_ctl_pipeline_table_default_entry_add
+				(pipe->ctl, mat_ctx->name, entry);
+
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");
 		status = BF_UNEXPECTED;

@@ -1,0 +1,30 @@
+From 8b9083a0c53786178ce9e5ef88efc1032a4d9840 Mon Sep 17 00:00:00 2001
+From: yjangra <yogesh.jangra@intel.com>
+Date: Thu, 2 Jun 2022 11:49:43 +0530
+Subject: [PATCH] pipeline: Fix structs initialization
+
+Added reinitialization of structs. This fix the packet corruption
+by the same thread in the same packet buffer.
+
+Signed-off-by: Kamalakannan R <kamalakannan.r@intel.com>
+Signed-off-by: Yogesh Jangra <yogesh.jangra@intel.com>
+Acked-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+---
+ lib/pipeline/rte_swx_pipeline_internal.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/pipeline/rte_swx_pipeline_internal.h b/lib/pipeline/rte_swx_pipeline_internal.h
+index 5feee8eff6..c9c654b806 100644
+--- a/lib/pipeline/rte_swx_pipeline_internal.h
++++ b/lib/pipeline/rte_swx_pipeline_internal.h
+@@ -2068,6 +2068,8 @@ __instr_hdr_emit_many_exec(struct rte_swx_pipeline *p __rte_unused,
+ 
+ 		uint8_t *hi_ptr = t->structs[struct_id];
+ 
++		t->structs[struct_id] = hi->ptr0;
++
+ 		if (!MASK64_BIT_GET(valid_headers, header_id)) {
+ 			TRACE("[Thread %2u]: emit header %u (invalid)\n",
+ 			      p->thread_id,
+-- 
+2.25.1

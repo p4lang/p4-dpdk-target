@@ -1,0 +1,21 @@
+id: 001
+name: simple_l2l3_lpm
+p4_file: "NAT_SDE_examples/DPDK/simple_l2l3_lpm.p4"
+stages:
+  - switchdportadd
+  - switchdenablepipeline
+  - switchdaddtableentry
+  - switchdverifytraffic
+  - switchdcleantable
+port_config: "third-party/ptf_grpc/ptf-tests/switchd/port_info.json"
+---
+id: 002
+name: simple_l2l3_wcm
+p4_file: "NAT_SDE_examples/DPDK/simple_l2l3_wcm.p4"
+stages :
+  - switchdportadd
+  - switchdenablepipeline
+  - switchdaddwcmtableentry
+  - switchdverifywcmtraffic
+  - switchdcleanwcmtable
+port_config: "third-party/ptf_grpc/ptf-tests/switchd/port_info.json"

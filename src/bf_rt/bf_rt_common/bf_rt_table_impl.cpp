@@ -56,12 +56,6 @@ std::unique_ptr<BfRtTableObj> BfRtTableObj::make_table(
     case TableType::SELECTOR:
       return std::unique_ptr<BfRtTableObj>(
           new BfRtSelectorTable(prog_name, id, name, size, pipe_hdl));
-    case TableType::COUNTER:
-      return std::unique_ptr<BfRtTableObj>(
-          new BfRtCounterTable(prog_name, id, name, size, pipe_hdl));
-    case TableType::METER:
-      return std::unique_ptr<BfRtTableObj>(
-          new BfRtMeterTable(prog_name, id, name, size, pipe_hdl));
     default:
       break;
   }
@@ -87,6 +81,12 @@ std::unique_ptr<BfRtTableObj> BfRtTableObj::make_table(
     case TableType::SELECTOR_GET_MEMBER:
       return std::unique_ptr<BfRtTableObj>(
           new BfRtSelectorGetMemberTable(prog_name, id, name, size));
+    case TableType::COUNTER:
+      return std::unique_ptr<BfRtTableObj>(
+          new BfRtCounterTable(prog_name, id, name, size));
+    case TableType::METER:
+      return std::unique_ptr<BfRtTableObj>(
+          new BfRtMeterTable(prog_name, id, name, size));
     default:
       break;
   }

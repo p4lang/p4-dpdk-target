@@ -73,7 +73,7 @@ pipe_mgr_cnt_read_flow_counter_pair(uint32_t id, void *stats);
  * @return Status of the API call
  */
 bf_status_t
-pipe_mgr_cnt_read_assignable_counter_set(int id, void *stats);
+pipe_mgr_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt, const char *name, int id, void *stats);
 
 /*!
  * Clears the flow counter pair (pkts and bytes).

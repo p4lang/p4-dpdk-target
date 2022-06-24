@@ -313,6 +313,7 @@ pipe_status_t PipeMgrIntf::pipeMgrAdtEntAdd(
                               dev_tgt,
                               adt_tbl_hdl,
                               act_fn_hdl,
+			      0,
                               (pipe_action_spec_t *)action_spec,
                               adt_ent_hdl_p,
                               pipe_api_flags);
@@ -377,6 +378,7 @@ pipe_status_t PipeMgrIntf::pipeMgrSelGrpAdd(pipe_sess_hdl_t sess_hdl,
   return pipe_mgr_sel_grp_add(sess_hdl,
                               dev_tgt,
                               sel_tbl_hdl,
+			      0,
                               max_grp_size,
                               sel_grp_hdl_p,
                               pipe_api_flags);
@@ -617,11 +619,11 @@ pipe_status_t PipeMgrIntf::pipeMgrMatEntDirectStatLoad(
 
 pipe_status_t PipeMgrIntf::pipeMgrStatEntQuery(pipe_sess_hdl_t sess_hdl,
                                                dev_target_t dev_target,
-                                               pipe_stat_tbl_hdl_t stat_tbl_hdl,
+                                               const char *name,
                                                pipe_stat_ent_idx_t stat_ent_idx,
                                                pipe_stat_data_t *stat_data) {
   return pipe_mgr_stat_ent_query(
-      sess_hdl, dev_target, stat_tbl_hdl, stat_ent_idx, stat_data);
+      sess_hdl, dev_target, name, stat_ent_idx, stat_data);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrStatTableReset(

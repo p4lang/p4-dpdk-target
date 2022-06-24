@@ -1,8 +1,83 @@
+From patchwork Wed Apr  6 18:55:30 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109345
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id 7A5B4A0509;
+	Wed,  6 Apr 2022 20:55:40 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id 14E6640689;
+	Wed,  6 Apr 2022 20:55:40 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id 343F54014F
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:38 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271338; x=1680807338;
+ h=from:to:cc:subject:date:message-id:in-reply-to: references;
+ bh=Xp/wjiLaSYg9aMxxnlefhSoA+Q3Unk5nofpZyZ18sr8=;
+ b=fCaO8Q9+XtzwFI/mB74pOeIOWqbSwKU8L8lReKbYchYleKvX8x3xdp3A
+ OwkEUJvqWGYDp10iBSqNplYFE+9eVbUMB+iM9RKqPtrDnH3vap8ovqD9u
+ 9I3a3x3mZFJmRxxgvO4r1Fhv0GS+cm1Dg9O17ZgUdYyvOPuBTXGbdcuhF
+ SpHY7TWqQrIKgyd+yHK09IJ5JvlR+Ypu3+WC3U/kaxFpzzEVMaq/Ur1/Y
+ XxvWco2GZMP0ydN4b/6HQl7u/Jz6tF0lMi+PeX+ozsVeG3SszjSZC5+Ph
+ W9vSHMRmVFw87ndyQLUmZd7QpTMGB9Wn2Gl2n3o7wZgB2gb3kNXBg76Ca A==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266949"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266949"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:37 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055127"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:36 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Cc: Kamalakannan R <kamalakannan.r@intel.com>
+Subject: [PATCH V5 1/6] port: support packet mirroring
+Date: Wed,  6 Apr 2022 19:55:30 +0100
+Message-Id: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add packet clone operation to the output ports in order to support
+packet mirroring.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+Signed-off-by: Kamalakannan R <kamalakannan.r@intel.com>
+---
+ lib/port/rte_swx_port.h             | 37 ++++++++++++++++
+ lib/port/rte_swx_port_ethdev.c      | 67 ++++++++++++++++++++++++++++-
+ lib/port/rte_swx_port_fd.c          | 65 +++++++++++++++++++++++++++-
+ lib/port/rte_swx_port_ring.c        | 65 +++++++++++++++++++++++++++-
+ lib/port/rte_swx_port_source_sink.c | 51 +++++++++++++++++++++-
+ 5 files changed, 281 insertions(+), 4 deletions(-)
+
 diff --git a/lib/port/rte_swx_port.h b/lib/port/rte_swx_port.h
 index ecf109d2ca..2c94335ffd 100644
 --- a/lib/port/rte_swx_port.h
 +++ b/lib/port/rte_swx_port.h
-@@ -147,6 +147,31 @@  typedef void
+@@ -147,6 +147,31 @@ typedef void
  (*rte_swx_port_out_pkt_tx_t)(void *port,
  			     struct rte_swx_pkt *pkt);
  
@@ -34,7 +109,7 @@ index ecf109d2ca..2c94335ffd 100644
  /**
   * Output port flush
   *
-@@ -163,6 +188,12 @@  struct rte_swx_port_out_stats {
+@@ -163,6 +188,12 @@ struct rte_swx_port_out_stats {
  
  	/** Number of bytes. */
  	uint64_t n_bytes;
@@ -47,7 +122,7 @@ index ecf109d2ca..2c94335ffd 100644
  };
  
  /**
-@@ -188,6 +219,12 @@  struct rte_swx_port_out_ops {
+@@ -188,6 +219,12 @@ struct rte_swx_port_out_ops {
  	/** Packet transmission. Must be non-NULL. */
  	rte_swx_port_out_pkt_tx_t pkt_tx;
  
@@ -64,7 +139,7 @@ diff --git a/lib/port/rte_swx_port_ethdev.c b/lib/port/rte_swx_port_ethdev.c
 index 18d1c0b5db..ca4a43ac4f 100644
 --- a/lib/port/rte_swx_port_ethdev.c
 +++ b/lib/port/rte_swx_port_ethdev.c
-@@ -252,8 +252,8 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -252,8 +252,8 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  	if (TRACE_LEVEL)
  		rte_hexdump(stdout, NULL, &pkt->pkt[pkt->offset], pkt->length);
  
@@ -74,7 +149,7 @@ index 18d1c0b5db..ca4a43ac4f 100644
  	m->data_off = (uint16_t)pkt->offset;
  
  	p->stats.n_pkts++;
-@@ -264,6 +264,69 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -264,6 +264,69 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  		__writer_flush(p);
  }
  
@@ -144,7 +219,7 @@ index 18d1c0b5db..ca4a43ac4f 100644
  static void
  writer_flush(void *port)
  {
-@@ -308,6 +371,8 @@  struct rte_swx_port_out_ops rte_swx_port_ethdev_writer_ops = {
+@@ -308,6 +371,8 @@ struct rte_swx_port_out_ops rte_swx_port_ethdev_writer_ops = {
  	.create = writer_create,
  	.free = writer_free,
  	.pkt_tx = writer_pkt_tx,
@@ -157,7 +232,7 @@ diff --git a/lib/port/rte_swx_port_fd.c b/lib/port/rte_swx_port_fd.c
 index 51bcd3bb7b..1ee5086684 100644
 --- a/lib/port/rte_swx_port_fd.c
 +++ b/lib/port/rte_swx_port_fd.c
-@@ -237,8 +237,8 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -237,8 +237,8 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  	if (TRACE_LEVEL)
  		rte_hexdump(stdout, NULL, &pkt->pkt[pkt->offset], pkt->length);
  
@@ -167,7 +242,7 @@ index 51bcd3bb7b..1ee5086684 100644
  	m->data_off = (uint16_t)pkt->offset;
  
  	p->stats.n_pkts++;
-@@ -249,6 +249,67 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -249,6 +249,67 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  		__writer_flush(p);
  }
  
@@ -235,7 +310,7 @@ index 51bcd3bb7b..1ee5086684 100644
  static void
  writer_flush(void *port)
  {
-@@ -293,6 +354,8 @@  struct rte_swx_port_out_ops rte_swx_port_fd_writer_ops = {
+@@ -293,6 +354,8 @@ struct rte_swx_port_out_ops rte_swx_port_fd_writer_ops = {
  	.create = writer_create,
  	.free = writer_free,
  	.pkt_tx = writer_pkt_tx,
@@ -248,7 +323,7 @@ diff --git a/lib/port/rte_swx_port_ring.c b/lib/port/rte_swx_port_ring.c
 index 8a076a2135..c62fb3d8c8 100644
 --- a/lib/port/rte_swx_port_ring.c
 +++ b/lib/port/rte_swx_port_ring.c
-@@ -252,8 +252,8 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -252,8 +252,8 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  	if (TRACE_LEVEL)
  		rte_hexdump(stdout, NULL, &pkt->pkt[pkt->offset], pkt->length);
  
@@ -258,7 +333,7 @@ index 8a076a2135..c62fb3d8c8 100644
  	m->data_off = (uint16_t)pkt->offset;
  
  	p->stats.n_pkts++;
-@@ -264,6 +264,67 @@  writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -264,6 +264,67 @@ writer_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  		__writer_flush(p);
  }
  
@@ -326,7 +401,7 @@ index 8a076a2135..c62fb3d8c8 100644
  static void
  writer_flush(void *port)
  {
-@@ -312,6 +373,8 @@  struct rte_swx_port_out_ops rte_swx_port_ring_writer_ops = {
+@@ -312,6 +373,8 @@ struct rte_swx_port_out_ops rte_swx_port_ring_writer_ops = {
  	.create = writer_create,
  	.free = writer_free,
  	.pkt_tx = writer_pkt_tx,
@@ -339,7 +414,7 @@ diff --git a/lib/port/rte_swx_port_source_sink.c b/lib/port/rte_swx_port_source_
 index 93c346cfb1..d3cf42c30b 100644
 --- a/lib/port/rte_swx_port_source_sink.c
 +++ b/lib/port/rte_swx_port_source_sink.c
-@@ -295,8 +295,8 @@  sink_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -295,8 +295,8 @@ sink_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  	if (TRACE_LEVEL)
  		rte_hexdump(stdout, NULL, &pkt->pkt[pkt->offset], pkt->length);
  
@@ -349,7 +424,7 @@ index 93c346cfb1..d3cf42c30b 100644
  	m->data_off = (uint16_t)pkt->offset;
  
  	p->stats.n_pkts++;
-@@ -319,6 +319,53 @@  sink_pkt_tx(void *port, struct rte_swx_pkt *pkt)
+@@ -319,6 +319,53 @@ sink_pkt_tx(void *port, struct rte_swx_pkt *pkt)
  	rte_pktmbuf_free(m);
  }
  
@@ -403,7 +478,7 @@ index 93c346cfb1..d3cf42c30b 100644
  static void
  sink_stats_read(void *port, struct rte_swx_port_out_stats *stats)
  {
-@@ -337,6 +384,8 @@  struct rte_swx_port_out_ops rte_swx_port_sink_ops = {
+@@ -337,6 +384,8 @@ struct rte_swx_port_out_ops rte_swx_port_sink_ops = {
  	.create = sink_create,
  	.free = sink_free,
  	.pkt_tx = sink_pkt_tx,
@@ -413,3 +488,1784 @@ index 93c346cfb1..d3cf42c30b 100644
  	.stats_read = sink_stats_read,
  };
 
+From patchwork Wed Apr  6 18:55:31 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109346
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id BFC5CA0509;
+	Wed,  6 Apr 2022 20:55:46 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id 101D442860;
+	Wed,  6 Apr 2022 20:55:41 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id 1881F4014F
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:38 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271339; x=1680807339;
+ h=from:to:cc:subject:date:message-id:in-reply-to: references;
+ bh=+aDZ8RNYE6Mzqm8SABiim3xH2l/q2/7GJU1fT6hvU0A=;
+ b=kKHI4tbhHIiI0r/Vy9gBme/JliTmnvxcynbF6QYieq/fCIfFZq3DMJie
+ wnt7BDZ1cRQJa8nY8Sw4+N6rYsJByu/B+WcX3plONFqu20B5b/KQ92f0G
+ nTRv5Z+AvkvFcG+EUbmwkVkY/w+kYXZ1Tm7UlRCWG6oebWJ6edkaAZDvP
+ kATqpaFpZfdJ3yl9UWTYPjTU4/NWv1j5OYm8oc/aNcQ6aONtgJoE88cgP
+ DFMF99WyNOcuweUCrXfZ5vD5w7cr8InEcIRTDRWHybuKWUvnsGkwrqfzA
+ +I4eRT405SxH90FyeR88DQ/Fl3UWdjV8SvwmLGb6cLKKT608TZX5rY2G7 g==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266954"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266954"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:38 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055133"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:37 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Cc: Kamalakannan R <kamalakannan.r@intel.com>
+Subject: [PATCH V5 2/6] pipeline: support packet mirroring
+Date: Wed,  6 Apr 2022 19:55:31 +0100
+Message-Id: <20220406185535.73084-2-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+ <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+The packet mirroring is configured through slots and sessions, with
+the number of slots and sessions set at init.
+
+The new "mirror" instruction assigns one of the existing sessions to a
+specific slot, which results in scheduling a mirror operation for the
+current packet to be executed later at the time the packet is either
+transmitted or dropped.
+
+Several copies of the same input packet can be mirrored to different
+output ports by using multiple slots.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+Signed-off-by: Kamalakannan R <kamalakannan.r@intel.com>
+---
+ lib/pipeline/rte_swx_ctl.h               |  42 +++++
+ lib/pipeline/rte_swx_pipeline.c          | 198 +++++++++++++++++++++++
+ lib/pipeline/rte_swx_pipeline.h          |  30 ++++
+ lib/pipeline/rte_swx_pipeline_internal.h |  76 +++++++++
+ lib/pipeline/version.map                 |   2 +
+ 5 files changed, 348 insertions(+)
+
+diff --git a/lib/pipeline/rte_swx_ctl.h b/lib/pipeline/rte_swx_ctl.h
+index ed752ad5eb..204026dc0e 100644
+--- a/lib/pipeline/rte_swx_ctl.h
++++ b/lib/pipeline/rte_swx_ctl.h
+@@ -41,6 +41,12 @@ struct rte_swx_ctl_pipeline_info {
+ 	/** Number of input ports. */
+ 	uint32_t n_ports_out;
+ 
++	/** Number of packet mirroring slots. */
++	uint32_t n_mirroring_slots;
++
++	/** Number of packet mirroring sessions. */
++	uint32_t n_mirroring_sessions;
++
+ 	/** Number of actions. */
+ 	uint32_t n_actions;
+ 
+@@ -655,6 +661,42 @@ rte_swx_ctl_pipeline_learner_stats_read(struct rte_swx_pipeline *p,
+ 				      const char *learner_name,
+ 				      struct rte_swx_learner_stats *stats);
+ 
++/*
++ * Packet mirroring API.
++ */
++
++/** Packet mirroring session parameters. */
++struct rte_swx_pipeline_mirroring_session_params {
++	/** Output port ID. */
++	uint32_t port_id;
++
++	/** Fast clone flag. */
++	int fast_clone;
++
++	/** Truncation packet length (in bytes). Zero means no truncation. */
++	uint32_t truncation_length;
++};
++
++/**
++ * Packet mirroring session set
++ *
++ * @param[in] p
++ *   Pipeline handle.
++ * @param[in] session_id
++ *   Packet mirroring session ID.
++ * @param[in] params
++ *   Packet mirroring session parameters.
++ * @return
++ *   0 on success or the following error codes otherwise:
++ *   -EINVAL: Invalid argument;
++ *   -EEXIST: Pipeline was already built successfully.
++ */
++__rte_experimental
++int
++rte_swx_ctl_pipeline_mirroring_session_set(struct rte_swx_pipeline *p,
++	uint32_t session_id,
++	struct rte_swx_pipeline_mirroring_session_params *params);
++
+ /*
+  * Table Update API.
+  */
+diff --git a/lib/pipeline/rte_swx_pipeline.c b/lib/pipeline/rte_swx_pipeline.c
+index 8c4670e111..062fbcfc89 100644
+--- a/lib/pipeline/rte_swx_pipeline.c
++++ b/lib/pipeline/rte_swx_pipeline.c
+@@ -423,6 +423,8 @@ rte_swx_pipeline_port_out_type_register(struct rte_swx_pipeline *p,
+ 	CHECK(ops->create, EINVAL);
+ 	CHECK(ops->free, EINVAL);
+ 	CHECK(ops->pkt_tx, EINVAL);
++	CHECK(ops->pkt_fast_clone_tx, EINVAL);
++	CHECK(ops->pkt_clone_tx, EINVAL);
+ 	CHECK(ops->stats_read, EINVAL);
+ 
+ 	CHECK(!port_out_type_find(p, name), EEXIST);
+@@ -509,6 +511,8 @@ port_out_build(struct rte_swx_pipeline *p)
+ 		struct port_out_runtime *out = &p->out[port->id];
+ 
+ 		out->pkt_tx = port->type->ops.pkt_tx;
++		out->pkt_fast_clone_tx = port->type->ops.pkt_fast_clone_tx;
++		out->pkt_clone_tx = port->type->ops.pkt_clone_tx;
+ 		out->flush = port->type->ops.flush;
+ 		out->obj = port->obj;
+ 	}
+@@ -554,6 +558,81 @@ port_out_free(struct rte_swx_pipeline *p)
+ 	}
+ }
+ 
++/*
++ * Packet mirroring.
++ */
++int
++rte_swx_pipeline_mirroring_config(struct rte_swx_pipeline *p,
++				  struct rte_swx_pipeline_mirroring_params *params)
++{
++	CHECK(p, EINVAL);
++	CHECK(params, EINVAL);
++	CHECK(params->n_slots, EINVAL);
++	CHECK(params->n_sessions, EINVAL);
++	CHECK(!p->build_done, EEXIST);
++
++	p->n_mirroring_slots = rte_align32pow2(params->n_slots);
++	if (p->n_mirroring_slots > 64)
++		p->n_mirroring_slots = 64;
++
++	p->n_mirroring_sessions = rte_align32pow2(params->n_sessions);
++
++	return 0;
++}
++
++static void
++mirroring_build_free(struct rte_swx_pipeline *p)
++{
++	uint32_t i;
++
++	for (i = 0; i < RTE_SWX_PIPELINE_THREADS_MAX; i++) {
++		struct thread *t = &p->threads[i];
++
++		/* mirroring_slots. */
++		free(t->mirroring_slots);
++		t->mirroring_slots = NULL;
++	}
++
++	/* mirroring_sessions. */
++	free(p->mirroring_sessions);
++	p->mirroring_sessions = NULL;
++}
++
++static void
++mirroring_free(struct rte_swx_pipeline *p)
++{
++	mirroring_build_free(p);
++}
++
++static int
++mirroring_build(struct rte_swx_pipeline *p)
++{
++	uint32_t i;
++
++	if (!p->n_mirroring_slots || !p->n_mirroring_sessions)
++		return 0;
++
++	for (i = 0; i < RTE_SWX_PIPELINE_THREADS_MAX; i++) {
++		struct thread *t = &p->threads[i];
++
++		/* mirroring_slots. */
++		t->mirroring_slots = calloc(p->n_mirroring_slots, sizeof(uint32_t));
++		if (!t->mirroring_slots)
++			goto error;
++	}
++
++	/* mirroring_sessions. */
++	p->mirroring_sessions = calloc(p->n_mirroring_sessions, sizeof(struct mirroring_session));
++	if (!p->mirroring_sessions)
++		goto error;
++
++	return 0;
++
++error:
++	mirroring_build_free(p);
++	return -ENOMEM;
++}
++
+ /*
+  * Extern object.
+  */
+@@ -1653,6 +1732,56 @@ instr_drop_exec(struct rte_swx_pipeline *p)
+ 	instr_rx_exec(p);
+ }
+ 
++/*
++ * mirror.
++ */
++static int
++instr_mirror_translate(struct rte_swx_pipeline *p,
++		       struct action *action,
++		       char **tokens,
++		       int n_tokens,
++		       struct instruction *instr,
++		       struct instruction_data *data __rte_unused)
++{
++	char *dst = tokens[1], *src = tokens[2];
++	struct field *fdst, *fsrc;
++	uint32_t dst_struct_id = 0, src_struct_id = 0;
++
++	CHECK(n_tokens == 3, EINVAL);
++
++	fdst = struct_field_parse(p, action, dst, &dst_struct_id);
++	CHECK(fdst, EINVAL);
++	CHECK(dst[0] != 'h', EINVAL);
++	CHECK(!fdst->var_size, EINVAL);
++
++	fsrc = struct_field_parse(p, action, src, &src_struct_id);
++	CHECK(fsrc, EINVAL);
++	CHECK(src[0] != 'h', EINVAL);
++	CHECK(!fsrc->var_size, EINVAL);
++
++	instr->type = INSTR_MIRROR;
++	instr->mirror.dst.struct_id = (uint8_t)dst_struct_id;
++	instr->mirror.dst.n_bits = fdst->n_bits;
++	instr->mirror.dst.offset = fdst->offset / 8;
++	instr->mirror.src.struct_id = (uint8_t)src_struct_id;
++	instr->mirror.src.n_bits = fsrc->n_bits;
++	instr->mirror.src.offset = fsrc->offset / 8;
++
++	return 0;
++}
++
++static inline void
++instr_mirror_exec(struct rte_swx_pipeline *p)
++{
++	struct thread *t = &p->threads[p->thread_id];
++	struct instruction *ip = t->ip;
++
++	__instr_mirror_exec(p, t, ip);
++
++	/* Thread. */
++	thread_ip_inc(p);
++}
++
+ /*
+  * extract.
+  */
+@@ -5653,6 +5782,14 @@ instr_translate(struct rte_swx_pipeline *p,
+ 					    instr,
+ 					    data);
+ 
++	if (!strcmp(tokens[tpos], "mirror"))
++		return instr_mirror_translate(p,
++					      action,
++					      &tokens[tpos],
++					      n_tokens - tpos,
++					      instr,
++					      data);
++
+ 	if (!strcmp(tokens[tpos], "extract"))
+ 		return instr_hdr_extract_translate(p,
+ 						   action,
+@@ -6677,6 +6814,7 @@ static instr_exec_t instruction_table[] = {
+ 	[INSTR_TX] = instr_tx_exec,
+ 	[INSTR_TX_I] = instr_tx_i_exec,
+ 	[INSTR_DROP] = instr_drop_exec,
++	[INSTR_MIRROR] = instr_mirror_exec,
+ 
+ 	[INSTR_HDR_EXTRACT] = instr_hdr_extract_exec,
+ 	[INSTR_HDR_EXTRACT2] = instr_hdr_extract2_exec,
+@@ -9026,6 +9164,7 @@ rte_swx_pipeline_free(struct rte_swx_pipeline *p)
+ 	header_free(p);
+ 	extern_func_free(p);
+ 	extern_obj_free(p);
++	mirroring_free(p);
+ 	port_out_free(p);
+ 	port_in_free(p);
+ 	struct_free(p);
+@@ -9234,6 +9373,10 @@ rte_swx_pipeline_build(struct rte_swx_pipeline *p)
+ 	if (status)
+ 		goto error;
+ 
++	status = mirroring_build(p);
++	if (status)
++		goto error;
++
+ 	status = struct_build(p);
+ 	if (status)
+ 		goto error;
+@@ -9305,6 +9448,7 @@ rte_swx_pipeline_build(struct rte_swx_pipeline *p)
+ 	header_build_free(p);
+ 	extern_func_build_free(p);
+ 	extern_obj_build_free(p);
++	mirroring_build_free(p);
+ 	port_out_build_free(p);
+ 	port_in_build_free(p);
+ 	struct_build_free(p);
+@@ -9356,6 +9500,8 @@ rte_swx_ctl_pipeline_info_get(struct rte_swx_pipeline *p,
+ 
+ 	pipeline->n_ports_in = p->n_ports_in;
+ 	pipeline->n_ports_out = p->n_ports_out;
++	pipeline->n_mirroring_slots = p->n_mirroring_slots;
++	pipeline->n_mirroring_sessions = p->n_mirroring_sessions;
+ 	pipeline->n_actions = n_actions;
+ 	pipeline->n_tables = n_tables;
+ 	pipeline->n_selectors = p->n_selectors;
+@@ -10043,6 +10189,27 @@ rte_swx_ctl_meter_stats_read(struct rte_swx_pipeline *p,
+ 	return 0;
+ }
+ 
++int
++rte_swx_ctl_pipeline_mirroring_session_set(struct rte_swx_pipeline *p,
++					   uint32_t session_id,
++					   struct rte_swx_pipeline_mirroring_session_params *params)
++{
++	struct mirroring_session *s;
++
++	CHECK(p, EINVAL);
++	CHECK(p->build_done, EEXIST);
++	CHECK(session_id < p->n_mirroring_sessions, EINVAL);
++	CHECK(params, EINVAL);
++	CHECK(params->port_id < p->n_ports_out, EINVAL);
++
++	s = &p->mirroring_sessions[session_id];
++	s->port_id = params->port_id;
++	s->fast_clone = params->fast_clone;
++	s->truncation_length = params->truncation_length ? params->truncation_length : UINT32_MAX;
++
++	return 0;
++}
++
+ /*
+  * Pipeline compilation.
+  */
+@@ -10055,6 +10222,7 @@ instr_type_to_name(struct instruction *instr)
+ 	case INSTR_TX: return "INSTR_TX";
+ 	case INSTR_TX_I: return "INSTR_TX_I";
+ 	case INSTR_DROP: return "INSTR_DROP";
++	case INSTR_MIRROR: return "INSTR_MIRROR";
+ 
+ 	case INSTR_HDR_EXTRACT: return "INSTR_HDR_EXTRACT";
+ 	case INSTR_HDR_EXTRACT2: return "INSTR_HDR_EXTRACT2";
+@@ -10357,6 +10525,34 @@ instr_io_export(struct instruction *instr, FILE *f)
+ 		"\t},\n");
+ }
+ 
++static void
++instr_mirror_export(struct instruction *instr, FILE *f)
++{
++	fprintf(f,
++		"\t{\n"
++		"\t\t.type = %s,\n"
++		"\t\t.mirror = {\n"
++		"\t\t\t.dst = {\n"
++		"\t\t\t\t.struct_id = %u,\n"
++		"\t\t\t\t.n_bits = %u,\n"
++		"\t\t\t\t.offset = %u,\n"
++		"\t\t\t}\n,"
++		"\t\t\t.src = {\n"
++		"\t\t\t\t.struct_id = %u,\n"
++		"\t\t\t\t.n_bits = %u,\n"
++		"\t\t\t\t.offset = %u,\n"
++		"\t\t\t}\n,"
++		"\t\t},\n"
++		"\t},\n",
++		instr_type_to_name(instr),
++		instr->mirror.dst.struct_id,
++		instr->mirror.dst.n_bits,
++		instr->mirror.dst.offset,
++		instr->mirror.src.struct_id,
++		instr->mirror.src.n_bits,
++		instr->mirror.src.offset);
++}
++
+ static void
+ instr_hdr_validate_export(struct instruction *instr, FILE *f)
+ {
+@@ -10924,6 +11120,7 @@ static instruction_export_t export_table[] = {
+ 	[INSTR_TX] = instr_io_export,
+ 	[INSTR_TX_I] = instr_io_export,
+ 	[INSTR_DROP] = instr_io_export,
++	[INSTR_MIRROR] = instr_mirror_export,
+ 
+ 	[INSTR_HDR_EXTRACT] = instr_io_export,
+ 	[INSTR_HDR_EXTRACT2] = instr_io_export,
+@@ -11142,6 +11339,7 @@ instr_type_to_func(struct instruction *instr)
+ 	case INSTR_TX: return "__instr_tx_exec";
+ 	case INSTR_TX_I: return "__instr_tx_i_exec";
+ 	case INSTR_DROP: return "__instr_drop_exec";
++	case INSTR_MIRROR: return "__instr_mirror_exec";
+ 
+ 	case INSTR_HDR_EXTRACT: return "__instr_hdr_extract_exec";
+ 	case INSTR_HDR_EXTRACT2: return "__instr_hdr_extract2_exec";
+diff --git a/lib/pipeline/rte_swx_pipeline.h b/lib/pipeline/rte_swx_pipeline.h
+index 430e458335..1cfd1c542f 100644
+--- a/lib/pipeline/rte_swx_pipeline.h
++++ b/lib/pipeline/rte_swx_pipeline.h
+@@ -159,6 +159,36 @@ rte_swx_pipeline_port_out_config(struct rte_swx_pipeline *p,
+ 				 uint32_t port_id,
+ 				 const char *port_type_name,
+ 				 void *args);
++/*
++ * Packet mirroring
++ */
++
++/** Packet mirroring parameters. */
++struct rte_swx_pipeline_mirroring_params {
++	/** Number of packet mirroring slots. */
++	uint32_t n_slots;
++
++	/** Maximum number of packet mirroring sessions. */
++	uint32_t n_sessions;
++};
++
++/**
++ * Packet mirroring configure
++ *
++ * @param[in] p
++ *   Pipeline handle.
++ * @param[in] params
++ *   Packet mirroring parameters.
++ * @return
++ *   0 on success or the following error codes otherwise:
++ *   -EINVAL: Invalid argument;
++ *   -ENOMEM: Not enough memory;
++ *   -EEXIST: Pipeline was already built successfully.
++ */
++__rte_experimental
++int
++rte_swx_pipeline_mirroring_config(struct rte_swx_pipeline *p,
++				  struct rte_swx_pipeline_mirroring_params *params);
+ 
+ /*
+  * Extern objects and functions
+diff --git a/lib/pipeline/rte_swx_pipeline_internal.h b/lib/pipeline/rte_swx_pipeline_internal.h
+index da3e88bfa8..808a0cbdbb 100644
+--- a/lib/pipeline/rte_swx_pipeline_internal.h
++++ b/lib/pipeline/rte_swx_pipeline_internal.h
+@@ -104,10 +104,21 @@ TAILQ_HEAD(port_out_tailq, port_out);
+ 
+ struct port_out_runtime {
+ 	rte_swx_port_out_pkt_tx_t pkt_tx;
++	rte_swx_port_out_pkt_fast_clone_tx_t pkt_fast_clone_tx;
++	rte_swx_port_out_pkt_clone_tx_t pkt_clone_tx;
+ 	rte_swx_port_out_flush_t flush;
+ 	void *obj;
+ };
+ 
++/*
++ * Packet mirroring.
++ */
++struct mirroring_session {
++	uint32_t port_id;
++	int fast_clone;
++	uint32_t truncation_length;
++};
++
+ /*
+  * Extern object.
+  */
+@@ -227,6 +238,13 @@ enum instruction_type {
+ 	INSTR_TX_I, /* port_out = I */
+ 	INSTR_DROP,
+ 
++	/*
++	 * mirror slot_id session_id
++	 * slot_id = MEFT
++	 * session_id = MEFT
++	 */
++	INSTR_MIRROR,
++
+ 	/* extract h.header */
+ 	INSTR_HDR_EXTRACT,
+ 	INSTR_HDR_EXTRACT2,
+@@ -670,6 +688,7 @@ struct instruction {
+ 	enum instruction_type type;
+ 	union {
+ 		struct instr_io io;
++		struct instr_dst_src mirror;
+ 		struct instr_hdr_validity valid;
+ 		struct instr_dst_src mov;
+ 		struct instr_regarray regarray;
+@@ -902,6 +921,8 @@ struct thread {
+ 	/* Packet. */
+ 	struct rte_swx_pkt pkt;
+ 	uint8_t *ptr;
++	uint32_t *mirroring_slots;
++	uint64_t mirroring_slots_mask;
+ 
+ 	/* Structures. */
+ 	uint8_t **structs;
+@@ -1399,6 +1420,7 @@ struct rte_swx_pipeline {
+ 
+ 	struct port_in_runtime *in;
+ 	struct port_out_runtime *out;
++	struct mirroring_session *mirroring_sessions;
+ 	struct instruction **action_instructions;
+ 	action_func_t *action_funcs;
+ 	struct rte_swx_table_state *table_state;
+@@ -1416,6 +1438,8 @@ struct rte_swx_pipeline {
+ 	uint32_t n_structs;
+ 	uint32_t n_ports_in;
+ 	uint32_t n_ports_out;
++	uint32_t n_mirroring_slots;
++	uint32_t n_mirroring_sessions;
+ 	uint32_t n_extern_objs;
+ 	uint32_t n_extern_funcs;
+ 	uint32_t n_actions;
+@@ -1511,6 +1535,8 @@ __instr_rx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instr
+ 	      pkt_received ? "1 pkt" : "0 pkts",
+ 	      p->port_id);
+ 
++	t->mirroring_slots_mask = 0;
++
+ 	/* Headers. */
+ 	t->valid_headers = 0;
+ 	t->n_headers_out = 0;
+@@ -1596,6 +1622,33 @@ emit_handler(struct thread *t)
+ 	}
+ }
+ 
++static inline void
++mirroring_handler(struct rte_swx_pipeline *p, struct thread *t, struct rte_swx_pkt *pkt)
++{
++	uint64_t slots_mask = t->mirroring_slots_mask, slot_mask;
++	uint32_t slot_id;
++
++	for (slot_id = 0, slot_mask = 1LLU ; slots_mask; slot_id++, slot_mask <<= 1)
++		if (slot_mask & slots_mask) {
++			struct port_out_runtime *port;
++			struct mirroring_session *session;
++			uint32_t port_id, session_id;
++
++			session_id = t->mirroring_slots[slot_id];
++			session = &p->mirroring_sessions[session_id];
++
++			port_id = session->port_id;
++			port = &p->out[port_id];
++
++			if (session->fast_clone)
++				port->pkt_fast_clone_tx(port->obj, pkt);
++			else
++				port->pkt_clone_tx(port->obj, pkt, session->truncation_length);
++
++			slots_mask &= ~slot_mask;
++		}
++}
++
+ static inline void
+ __instr_tx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instruction *ip)
+ {
+@@ -1611,6 +1664,7 @@ __instr_tx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instr
+ 	emit_handler(t);
+ 
+ 	/* Packet. */
++	mirroring_handler(p, t, pkt);
+ 	port->pkt_tx(port->obj, pkt);
+ }
+ 
+@@ -1629,6 +1683,7 @@ __instr_tx_i_exec(struct rte_swx_pipeline *p, struct thread *t, const struct ins
+ 	emit_handler(t);
+ 
+ 	/* Packet. */
++	mirroring_handler(p, t, pkt);
+ 	port->pkt_tx(port->obj, pkt);
+ }
+ 
+@@ -1648,9 +1703,30 @@ __instr_drop_exec(struct rte_swx_pipeline *p,
+ 	emit_handler(t);
+ 
+ 	/* Packet. */
++	mirroring_handler(p, t, pkt);
+ 	port->pkt_tx(port->obj, pkt);
+ }
+ 
++static inline void
++__instr_mirror_exec(struct rte_swx_pipeline *p,
++		    struct thread *t,
++		    const struct instruction *ip)
++{
++	uint64_t slot_id = instr_operand_hbo(t, &ip->mirror.dst);
++	uint64_t session_id = instr_operand_hbo(t, &ip->mirror.src);
++
++	slot_id &= p->n_mirroring_slots - 1;
++	session_id &= p->n_mirroring_sessions - 1;
++
++	TRACE("[Thread %2u]: mirror pkt (slot = %u, session = %u)\n",
++	      p->thread_id,
++	      (uint32_t)slot_id,
++	      (uint32_t)session_id);
++
++	t->mirroring_slots[slot_id] = session_id;
++	t->mirroring_slots_mask |= 1LLU << slot_id;
++}
++
+ /*
+  * extract.
+  */
+diff --git a/lib/pipeline/version.map b/lib/pipeline/version.map
+index 8bc90e7cd7..44332aad26 100644
+--- a/lib/pipeline/version.map
++++ b/lib/pipeline/version.map
+@@ -67,6 +67,7 @@ EXPERIMENTAL {
+ 	rte_swx_ctl_pipeline_create;
+ 	rte_swx_ctl_pipeline_free;
+ 	rte_swx_ctl_pipeline_info_get;
++	rte_swx_ctl_pipeline_mirroring_session_set;
+ 	rte_swx_ctl_pipeline_numa_node_get;
+ 	rte_swx_ctl_pipeline_port_in_stats_read;
+ 	rte_swx_ctl_pipeline_port_out_stats_read;
+@@ -90,6 +91,7 @@ EXPERIMENTAL {
+ 	rte_swx_pipeline_flush;
+ 	rte_swx_pipeline_free;
+ 	rte_swx_pipeline_instructions_config;
++	rte_swx_pipeline_mirroring_config;
+ 	rte_swx_pipeline_packet_header_register;
+ 	rte_swx_pipeline_packet_metadata_register;
+ 	rte_swx_pipeline_port_in_config;
+
+From patchwork Wed Apr  6 18:55:32 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109347
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id 94CE9A0509;
+	Wed,  6 Apr 2022 20:55:52 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id D792342852;
+	Wed,  6 Apr 2022 20:55:42 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id 979DD427EB
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:40 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271340; x=1680807340;
+ h=from:to:cc:subject:date:message-id:in-reply-to: references;
+ bh=ow/gEBZrlrAYOkN0k7owaNLHMPjDHCg7J06VA9wbBio=;
+ b=GFsA8ni4aybk8TNP9imW965vPF9dhs7hdTtzfpCPHLdjixnrMYXK1r8p
+ UQl4vPi/cjbFVcSssKm7wFK20Rr8zwE8OPT/V4zBJiRniFdIfolX1lu5U
+ j+9eM43lFcm3ClgAsdGYbGj4HXlbtgEvDleIBDG4CMM5/XXPuSXo8skFm
+ pkCLEp3y6ktIJpo10LjZnRsoRKlnFtSc2t1ez3fDZ1RTs+5MEpyjq6/ng
+ vBMToLZXC3yAuxnWhCKZHtzMOdVizZ/nElki6+safP94kL2z30X9KazU8
+ 3FDDqrqB0G4wvyn600sKYGR16ecLQUGCgqnUFzu3WGk3eiTx6/OxlIshz Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266960"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266960"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:40 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055139"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:38 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Cc: Yogesh Jangra <yogesh.jangra@intel.com>,
+ Kamalakannan R <kamalakannan.r@intel.com>
+Subject: [PATCH V5 3/6] examples/pipeline: support packet mirroring
+Date: Wed,  6 Apr 2022 19:55:32 +0100
+Message-Id: <20220406185535.73084-3-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+ <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add CLI commands for packet mirroring.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+Signed-off-by: Yogesh Jangra <yogesh.jangra@intel.com>
+Signed-off-by: Kamalakannan R <kamalakannan.r@intel.com>
+---
+ examples/pipeline/cli.c | 203 ++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 195 insertions(+), 8 deletions(-)
+
+diff --git a/examples/pipeline/cli.c b/examples/pipeline/cli.c
+index edae63dae6..d52ad6b61e 100644
+--- a/examples/pipeline/cli.c
++++ b/examples/pipeline/cli.c
+@@ -2572,15 +2572,23 @@ cmd_pipeline_stats(char **tokens,
+ 		rte_swx_ctl_pipeline_port_out_stats_read(p->p, i, &stats);
+ 
+ 		if (i != info.n_ports_out - 1)
+-			snprintf(out, out_size, "\tPort %u:"
+-				" packets %" PRIu64
+-				" bytes %" PRIu64 "\n",
+-				i, stats.n_pkts, stats.n_bytes);
++			snprintf(out, out_size, "\tPort %u:", i);
+ 		else
+-			snprintf(out, out_size, "\tDROP:"
+-				" packets %" PRIu64
+-				" bytes %" PRIu64 "\n",
+-				stats.n_pkts, stats.n_bytes);
++			snprintf(out, out_size, "\tDROP:");
++
++		out_size -= strlen(out);
++		out += strlen(out);
++
++		snprintf(out,
++			out_size,
++			" packets %" PRIu64
++			" bytes %" PRIu64
++			" clone %" PRIu64
++			" clonerr %" PRIu64 "\n",
++			stats.n_pkts,
++			stats.n_bytes,
++			stats.n_pkts_clone,
++			stats.n_pkts_clone_err);
+ 
+ 		out_size -= strlen(out);
+ 		out += strlen(out);
+@@ -2697,6 +2705,156 @@ cmd_pipeline_stats(char **tokens,
+ 	}
+ }
+ 
++static const char cmd_pipeline_mirror_help[] =
++"pipeline <pipeline_name> mirror slots <n_slots> sessions <n_sessions>\n";
++
++static void
++cmd_pipeline_mirror(char **tokens,
++	uint32_t n_tokens,
++	char *out,
++	size_t out_size,
++	void *obj)
++{
++	struct rte_swx_pipeline_mirroring_params params;
++	struct pipeline *p;
++	int status;
++
++	if (n_tokens != 7) {
++		snprintf(out, out_size, MSG_ARG_MISMATCH, tokens[0]);
++		return;
++	}
++
++	if (strcmp(tokens[0], "pipeline")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "pipeline");
++		return;
++	}
++
++	p = pipeline_find(obj, tokens[1]);
++	if (!p) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "pipeline_name");
++		return;
++	}
++
++	if (strcmp(tokens[2], "mirror")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "mirror");
++		return;
++	}
++
++	if (strcmp(tokens[3], "slots")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "slots");
++		return;
++	}
++
++	if (parser_read_uint32(&params.n_slots, tokens[4])) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "n_slots");
++		return;
++	}
++
++	if (strcmp(tokens[5], "sessions")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "sessions");
++		return;
++	}
++
++	if (parser_read_uint32(&params.n_sessions, tokens[6])) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "n_sessions");
++		return;
++	}
++
++	status = rte_swx_pipeline_mirroring_config(p->p, &params);
++	if (status) {
++		snprintf(out, out_size, "Command failed!\n");
++		return;
++	}
++}
++
++static const char cmd_pipeline_mirror_session_help[] =
++"pipeline <pipeline_name> mirror session <session_id> port <port_id> clone fast | slow "
++"truncate <truncation_length>\n";
++
++static void
++cmd_pipeline_mirror_session(char **tokens,
++	uint32_t n_tokens,
++	char *out,
++	size_t out_size,
++	void *obj)
++{
++	struct rte_swx_pipeline_mirroring_session_params params;
++	struct pipeline *p;
++	uint32_t session_id;
++	int status;
++
++	if (n_tokens != 11) {
++		snprintf(out, out_size, MSG_ARG_MISMATCH, tokens[0]);
++		return;
++	}
++
++	if (strcmp(tokens[0], "pipeline")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "pipeline");
++		return;
++	}
++
++	p = pipeline_find(obj, tokens[1]);
++	if (!p || !p->ctl) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "pipeline_name");
++		return;
++	}
++
++	if (strcmp(tokens[2], "mirror")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "mirror");
++		return;
++	}
++
++	if (strcmp(tokens[3], "session")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "session");
++		return;
++	}
++
++	if (parser_read_uint32(&session_id, tokens[4])) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "session_id");
++		return;
++	}
++
++	if (strcmp(tokens[5], "port")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "port");
++		return;
++	}
++
++	if (parser_read_uint32(&params.port_id, tokens[6])) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "port_id");
++		return;
++	}
++
++	if (strcmp(tokens[7], "clone")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "clone");
++		return;
++	}
++
++	if (!strcmp(tokens[8], "fast"))
++		params.fast_clone = 1;
++	else if (!strcmp(tokens[8], "slow"))
++		params.fast_clone = 0;
++	else {
++		snprintf(out, out_size, MSG_ARG_INVALID, "clone");
++		return;
++	}
++
++	if (strcmp(tokens[9], "truncate")) {
++		snprintf(out, out_size, MSG_ARG_NOT_FOUND, "truncate");
++		return;
++	}
++
++	if (parser_read_uint32(&params.truncation_length, tokens[10])) {
++		snprintf(out, out_size, MSG_ARG_INVALID, "truncation_length");
++		return;
++	}
++
++	status = rte_swx_ctl_pipeline_mirroring_session_set(p->p, session_id, &params);
++	if (status) {
++		snprintf(out, out_size, "Command failed!\n");
++		return;
++	}
++}
++
+ static const char cmd_thread_pipeline_enable_help[] =
+ "thread <thread_id> pipeline <pipeline_name> enable\n";
+ 
+@@ -2837,6 +2995,8 @@ cmd_help(char **tokens,
+ 			"\tpipeline meter set\n"
+ 			"\tpipeline meter stats\n"
+ 			"\tpipeline stats\n"
++			"\tpipeline mirror\n"
++			"\tpipeline mirror session\n"
+ 			"\tthread pipeline enable\n"
+ 			"\tthread pipeline disable\n\n");
+ 		return;
+@@ -3056,6 +3216,19 @@ cmd_help(char **tokens,
+ 		return;
+ 	}
+ 
++	if (!strcmp(tokens[0], "pipeline") &&
++		(n_tokens == 2) && !strcmp(tokens[1], "mirror")) {
++		snprintf(out, out_size, "\n%s\n", cmd_pipeline_mirror_help);
++		return;
++	}
++
++	if (!strcmp(tokens[0], "pipeline") &&
++		(n_tokens == 3) && !strcmp(tokens[1], "mirror")
++		&& !strcmp(tokens[2], "session")) {
++		snprintf(out, out_size, "\n%s\n", cmd_pipeline_mirror_session_help);
++		return;
++	}
++
+ 	if ((n_tokens == 3) &&
+ 		(strcmp(tokens[0], "thread") == 0) &&
+ 		(strcmp(tokens[1], "pipeline") == 0)) {
+@@ -3310,6 +3483,20 @@ cli_process(char *in, char *out, size_t out_size, void *obj)
+ 				obj);
+ 			return;
+ 		}
++
++		if ((n_tokens >= 4) &&
++			(strcmp(tokens[2], "mirror") == 0) &&
++			(strcmp(tokens[3], "slots") == 0)) {
++			cmd_pipeline_mirror(tokens, n_tokens, out, out_size, obj);
++			return;
++		}
++
++		if ((n_tokens >= 4) &&
++			(strcmp(tokens[2], "mirror") == 0) &&
++			(strcmp(tokens[3], "session") == 0)) {
++			cmd_pipeline_mirror_session(tokens, n_tokens, out, out_size, obj);
++			return;
++		}
+ 	}
+ 
+ 	if (strcmp(tokens[0], "thread") == 0) {
+
+From patchwork Wed Apr  6 18:55:33 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109348
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id BC6DDA0509;
+	Wed,  6 Apr 2022 20:55:57 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id BDCD342868;
+	Wed,  6 Apr 2022 20:55:43 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id A602342863
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:41 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271341; x=1680807341;
+ h=from:to:subject:date:message-id:in-reply-to:references;
+ bh=8cFvikGpkmc4eY5KDhn6GhqWS1BPs5HIAGdrtFAzQnY=;
+ b=nUG0VjBmbgKODXEapsE2NLUiMu3J7mU1k3L9CapB6BjzcsIMfRcpIbe9
+ Ne2aFYGpu9hN2uYXz5CyrMGFhiDUrzwvD0GkiRImSvmLsFwh5Sd+Qtsim
+ Yw6mEL5w/Zr0QpeaFWgPW+SHiLflaJtQyGb073hirqpGZXEwekgxmoBBO
+ EaIZXUhvgabeKSLFZjUj5m9/X2LMyzzBbokB1gySik6p/jJ/UZSI5SnV3
+ D1jzuWa3KO7utEvzWjRokW49e08np7oXHQj91pdz+9D6EUGFuGeBWNauC
+ SLLoG0e/NGGzTpWSqbGwk745holUGyCpoMRp2vGk8DmvC0yCmdP8cJOVI Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266963"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266963"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:41 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055140"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:40 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Subject: [PATCH V5 4/6] examples/pipeline: add packet mirroring example
+Date: Wed,  6 Apr 2022 19:55:33 +0100
+Message-Id: <20220406185535.73084-4-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+ <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add example program to illustrate packet mirroring.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+---
+ examples/pipeline/examples/mirroring.cli  | 43 ++++++++++++
+ examples/pipeline/examples/mirroring.spec | 80 +++++++++++++++++++++++
+ 2 files changed, 123 insertions(+)
+ create mode 100644 examples/pipeline/examples/mirroring.cli
+ create mode 100644 examples/pipeline/examples/mirroring.spec
+
+diff --git a/examples/pipeline/examples/mirroring.cli b/examples/pipeline/examples/mirroring.cli
+new file mode 100644
+index 0000000000..46d57db4ec
+--- /dev/null
++++ b/examples/pipeline/examples/mirroring.cli
+@@ -0,0 +1,43 @@
++; SPDX-License-Identifier: BSD-3-Clause
++; Copyright(c) 2022 Intel Corporation
++
++;
++; Customize the LINK parameters to match your setup.
++;
++mempool MEMPOOL0 buffer 2304 pool 32K cache 256 cpu 0
++
++link LINK0 dev 0000:18:00.0 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK1 dev 0000:18:00.1 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK2 dev 0000:3b:00.0 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK3 dev 0000:3b:00.1 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++
++;
++; PIPELINE0 setup.
++;
++pipeline PIPELINE0 create 0
++pipeline PIPELINE0 mirror slots 4 sessions 16
++
++pipeline PIPELINE0 port in 0 link LINK0 rxq 0 bsz 32
++pipeline PIPELINE0 port in 1 link LINK1 rxq 0 bsz 32
++pipeline PIPELINE0 port in 2 link LINK2 rxq 0 bsz 32
++pipeline PIPELINE0 port in 3 link LINK3 rxq 0 bsz 32
++
++pipeline PIPELINE0 port out 0 link LINK0 txq 0 bsz 32
++pipeline PIPELINE0 port out 1 link LINK1 txq 0 bsz 32
++pipeline PIPELINE0 port out 2 link LINK2 txq 0 bsz 32
++pipeline PIPELINE0 port out 3 link LINK3 txq 0 bsz 32
++
++pipeline PIPELINE0 build ./examples/pipeline/examples/mirroring.spec
++
++;
++; Packet mirroring sessions.
++;
++pipeline PIPELINE0 mirror session 0 port 1 clone fast truncate 0
++pipeline PIPELINE0 mirror session 1 port 2 clone slow truncate 0
++pipeline PIPELINE0 mirror session 2 port 3 clone slow truncate 64
++pipeline PIPELINE0 mirror session 3 port 0 clone slow truncate 128
++
++;
++; Pipelines-to-threads mapping.
++;
++thread 1 pipeline PIPELINE0 enable
+diff --git a/examples/pipeline/examples/mirroring.spec b/examples/pipeline/examples/mirroring.spec
+new file mode 100644
+index 0000000000..024e3efad5
+--- /dev/null
++++ b/examples/pipeline/examples/mirroring.spec
+@@ -0,0 +1,80 @@
++; SPDX-License-Identifier: BSD-3-Clause
++; Copyright(c) 2022 Intel Corporation
++
++; This simple example illustrates how to perform packet mirroring. The "mirror" instruction is used
++; to flag the current packet for mirroring, which means that at TX time, before the current packet
++; is sent out, it will first be cloned (using either the fast or the slow/deep cloning method) and
++; the clone packet sent out on the output port specified by the mirror session.
++;
++; In this example, the UDP packets with destination port 5000 are mirrored to the output port
++; specified by the mirror session 0, while the rest of the packets are not mirrored. Therefore, for
++; every UDP input packet with this specific destination port there will be two output packets (the
++; current packet and its clone packet), while for every other input packet there will be a single
++; output packet.
++
++//
++// Headers
++//
++struct ethernet_h {
++	bit<48> dst_addr
++	bit<48> src_addr
++	bit<16> ethertype
++}
++
++struct ipv4_h {
++	bit<8> ver_ihl
++	bit<8> diffserv
++	bit<16> total_len
++	bit<16> identification
++	bit<16> flags_offset
++	bit<8> ttl
++	bit<8> protocol
++	bit<16> hdr_checksum
++	bit<32> src_addr
++	bit<32> dst_addr
++}
++
++struct udp_h {
++	bit<16> src_port
++	bit<16> dst_port
++	bit<16> length
++	bit<16> checksum
++}
++
++header ethernet instanceof ethernet_h
++header ipv4 instanceof ipv4_h
++header udp instanceof udp_h
++
++//
++// Meta-data.
++//
++struct metadata_t {
++	bit<32> port
++	bit<32> mirror_slot
++	bit<32> mirror_session
++}
++
++metadata instanceof metadata_t
++
++//
++// Pipeline.
++//
++apply {
++	rx m.port
++	extract h.ethernet
++	extract h.ipv4
++	extract h.udp
++
++	//
++	// Mark for mirroring all packets with UDP destination port of 5000.
++	//
++	MIRROR_UDP_DST_PORT_5000 : jmpneq EMIT h.udp.dst_port 5000
++	mov m.mirror_slot 0
++	mov m.mirror_session 0
++	mirror m.mirror_slot m.mirror_session
++
++	EMIT : emit h.ethernet
++	emit h.ipv4
++	emit h.udp
++	tx m.port
++}
+
+From patchwork Wed Apr  6 18:55:34 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109349
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id 58F32A0509;
+	Wed,  6 Apr 2022 20:56:04 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id E727D42879;
+	Wed,  6 Apr 2022 20:55:44 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id AFD2F4014F
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:42 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271342; x=1680807342;
+ h=from:to:subject:date:message-id:in-reply-to:references;
+ bh=f+BY1vLKNoKQI+/O2dhJ4mc+NwAlKUVdrbmA1OAjHfM=;
+ b=JKb+8gPr8iZelsXYa4y4MIoYaJVjY4S+fg8c8XY+kllG9frqtDV99/pX
+ 53818j/sIdmU9lTIXHH1B9sPt5ckeBjvnnd08SGYVUFqomiIxII6G6BRz
+ kU7g7mXT0kcCYcy2fKGfCTvB2NbjN7ih7oxSv6jM3Y/vPWXgJhizM8cxu
+ 0LZWgV9nlSeqZdZvf5fXGl23fyQDd8lXjqAhjnO+ZK/0rmqfguU4Epmle
+ i54Jmnc0vODPT95EqH2bDeKh7JmTro/E/oe/rijBvSXz9cs+SWDjhtDsD
+ VvBGMNtyIaUU/0V0p56+r1+0S7fNoqG4kILHgEgW0J99/oZL3A5UpKHW7 Q==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266969"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266969"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:42 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055148"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:41 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Subject: [PATCH V5 5/6] pipeline: support packet recirculation
+Date: Wed,  6 Apr 2022 19:55:34 +0100
+Message-Id: <20220406185535.73084-5-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+ <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add support for packet recirculation. The current packet is flagged
+for recirculation using the new "recirculate" instruction; on TX, this
+flag causes the packet to execute the full pipeline again as if it was
+a new packet, except the packet meta-data is preserved. The new
+"recircid" instruction can be used to read the pass number in case the
+packet goes several times through the pipeline.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+---
+ lib/pipeline/rte_swx_pipeline.c          | 112 +++++++++++++++++++++++
+ lib/pipeline/rte_swx_pipeline_internal.h |  86 +++++++++++++++++
+ 2 files changed, 198 insertions(+)
+
+diff --git a/lib/pipeline/rte_swx_pipeline.c b/lib/pipeline/rte_swx_pipeline.c
+index 062fbcfc89..17da11c015 100644
+--- a/lib/pipeline/rte_swx_pipeline.c
++++ b/lib/pipeline/rte_swx_pipeline.c
+@@ -1782,6 +1782,68 @@ instr_mirror_exec(struct rte_swx_pipeline *p)
+ 	thread_ip_inc(p);
+ }
+ 
++/*
++ * recirculate.
++ */
++static int
++instr_recirculate_translate(struct rte_swx_pipeline *p __rte_unused,
++			    struct action *action __rte_unused,
++			    char **tokens __rte_unused,
++			    int n_tokens,
++			    struct instruction *instr,
++			    struct instruction_data *data __rte_unused)
++{
++	CHECK(n_tokens == 1, EINVAL);
++
++	instr->type = INSTR_RECIRCULATE;
++	return 0;
++}
++
++static int
++instr_recircid_translate(struct rte_swx_pipeline *p,
++			 struct action *action __rte_unused,
++			 char **tokens,
++			 int n_tokens,
++			 struct instruction *instr,
++			 struct instruction_data *data __rte_unused)
++{
++	struct field *f;
++
++	CHECK(n_tokens == 2, EINVAL);
++
++	f = metadata_field_parse(p, tokens[1]);
++	CHECK(f, EINVAL);
++
++	instr->type = INSTR_RECIRCID;
++	instr->io.io.offset = f->offset / 8;
++	instr->io.io.n_bits = f->n_bits;
++	return 0;
++}
++
++static inline void
++instr_recirculate_exec(struct rte_swx_pipeline *p)
++{
++	struct thread *t = &p->threads[p->thread_id];
++	struct instruction *ip = t->ip;
++
++	__instr_recirculate_exec(p, t, ip);
++
++	/* Thread. */
++	thread_ip_inc(p);
++}
++
++static inline void
++instr_recircid_exec(struct rte_swx_pipeline *p)
++{
++	struct thread *t = &p->threads[p->thread_id];
++	struct instruction *ip = t->ip;
++
++	__instr_recircid_exec(p, t, ip);
++
++	/* Thread. */
++	thread_ip_inc(p);
++}
++
+ /*
+  * extract.
+  */
+@@ -5790,6 +5852,22 @@ instr_translate(struct rte_swx_pipeline *p,
+ 					      instr,
+ 					      data);
+ 
++	if (!strcmp(tokens[tpos], "recirculate"))
++		return instr_recirculate_translate(p,
++					      action,
++					      &tokens[tpos],
++					      n_tokens - tpos,
++					      instr,
++					      data);
++
++	if (!strcmp(tokens[tpos], "recircid"))
++		return instr_recircid_translate(p,
++					      action,
++					      &tokens[tpos],
++					      n_tokens - tpos,
++					      instr,
++					      data);
++
+ 	if (!strcmp(tokens[tpos], "extract"))
+ 		return instr_hdr_extract_translate(p,
+ 						   action,
+@@ -6815,6 +6893,8 @@ static instr_exec_t instruction_table[] = {
+ 	[INSTR_TX_I] = instr_tx_i_exec,
+ 	[INSTR_DROP] = instr_drop_exec,
+ 	[INSTR_MIRROR] = instr_mirror_exec,
++	[INSTR_RECIRCULATE] = instr_recirculate_exec,
++	[INSTR_RECIRCID] = instr_recircid_exec,
+ 
+ 	[INSTR_HDR_EXTRACT] = instr_hdr_extract_exec,
+ 	[INSTR_HDR_EXTRACT2] = instr_hdr_extract2_exec,
+@@ -10223,6 +10303,8 @@ instr_type_to_name(struct instruction *instr)
+ 	case INSTR_TX_I: return "INSTR_TX_I";
+ 	case INSTR_DROP: return "INSTR_DROP";
+ 	case INSTR_MIRROR: return "INSTR_MIRROR";
++	case INSTR_RECIRCULATE: return "INSTR_RECIRCULATE";
++	case INSTR_RECIRCID: return "INSTR_RECIRCID";
+ 
+ 	case INSTR_HDR_EXTRACT: return "INSTR_HDR_EXTRACT";
+ 	case INSTR_HDR_EXTRACT2: return "INSTR_HDR_EXTRACT2";
+@@ -10553,6 +10635,32 @@ instr_mirror_export(struct instruction *instr, FILE *f)
+ 		instr->mirror.src.offset);
+ }
+ 
++static void
++instr_recirculate_export(struct instruction *instr, FILE *f)
++{
++	fprintf(f,
++		"\t{\n"
++		"\t\t.type = %s,\n"
++		"\t},\n",
++		instr_type_to_name(instr));
++}
++
++static void
++instr_recircid_export(struct instruction *instr, FILE *f)
++{
++	fprintf(f,
++		"\t{\n"
++		"\t\t.type = %s,\n"
++		"\t\t.io = {\n"
++		"\t\t\t.offset = %u,\n"
++		"\t\t\t.n_bits = %u,\n"
++		"\t\t},\n"
++		"\t},\n",
++		instr_type_to_name(instr),
++		instr->io.io.offset,
++		instr->io.io.n_bits);
++}
++
+ static void
+ instr_hdr_validate_export(struct instruction *instr, FILE *f)
+ {
+@@ -11121,6 +11229,8 @@ static instruction_export_t export_table[] = {
+ 	[INSTR_TX_I] = instr_io_export,
+ 	[INSTR_DROP] = instr_io_export,
+ 	[INSTR_MIRROR] = instr_mirror_export,
++	[INSTR_RECIRCULATE] = instr_recirculate_export,
++	[INSTR_RECIRCID] = instr_recircid_export,
+ 
+ 	[INSTR_HDR_EXTRACT] = instr_io_export,
+ 	[INSTR_HDR_EXTRACT2] = instr_io_export,
+@@ -11340,6 +11450,8 @@ instr_type_to_func(struct instruction *instr)
+ 	case INSTR_TX_I: return "__instr_tx_i_exec";
+ 	case INSTR_DROP: return "__instr_drop_exec";
+ 	case INSTR_MIRROR: return "__instr_mirror_exec";
++	case INSTR_RECIRCULATE: return "__instr_recirculate_exec";
++	case INSTR_RECIRCID: return "__instr_recircid_exec";
+ 
+ 	case INSTR_HDR_EXTRACT: return "__instr_hdr_extract_exec";
+ 	case INSTR_HDR_EXTRACT2: return "__instr_hdr_extract2_exec";
+diff --git a/lib/pipeline/rte_swx_pipeline_internal.h b/lib/pipeline/rte_swx_pipeline_internal.h
+index 808a0cbdbb..381a35c6e0 100644
+--- a/lib/pipeline/rte_swx_pipeline_internal.h
++++ b/lib/pipeline/rte_swx_pipeline_internal.h
+@@ -245,6 +245,15 @@ enum instruction_type {
+ 	 */
+ 	INSTR_MIRROR,
+ 
++	/* recirculate
++	 */
++	INSTR_RECIRCULATE,
++
++	/* recircid m.recirc_pass_id
++	 * Read the internal recirculation pass ID into the specified meta-data field.
++	 */
++	INSTR_RECIRCID,
++
+ 	/* extract h.header */
+ 	INSTR_HDR_EXTRACT,
+ 	INSTR_HDR_EXTRACT2,
+@@ -923,6 +932,8 @@ struct thread {
+ 	uint8_t *ptr;
+ 	uint32_t *mirroring_slots;
+ 	uint64_t mirroring_slots_mask;
++	int recirculate;
++	uint32_t recirc_pass_id;
+ 
+ 	/* Structures. */
+ 	uint8_t **structs;
+@@ -1525,6 +1536,28 @@ __instr_rx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instr
+ 	struct rte_swx_pkt *pkt = &t->pkt;
+ 	int pkt_received;
+ 
++	/* Recirculation: keep the current packet. */
++	if (t->recirculate) {
++		TRACE("[Thread %2u] rx - recirculate (pass %u)\n",
++		      p->thread_id,
++		      t->recirc_pass_id + 1);
++
++		/* Packet. */
++		t->ptr = &pkt->pkt[pkt->offset];
++		t->mirroring_slots_mask = 0;
++		t->recirculate = 0;
++		t->recirc_pass_id++;
++
++		/* Headers. */
++		t->valid_headers = 0;
++		t->n_headers_out = 0;
++
++		/* Tables. */
++		t->table_state = p->table_state;
++
++		return 1;
++	}
++
+ 	/* Packet. */
+ 	pkt_received = port->pkt_rx(port->obj, pkt);
+ 	t->ptr = &pkt->pkt[pkt->offset];
+@@ -1536,6 +1569,7 @@ __instr_rx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instr
+ 	      p->port_id);
+ 
+ 	t->mirroring_slots_mask = 0;
++	t->recirc_pass_id = 0;
+ 
+ 	/* Headers. */
+ 	t->valid_headers = 0;
+@@ -1656,6 +1690,20 @@ __instr_tx_exec(struct rte_swx_pipeline *p, struct thread *t, const struct instr
+ 	struct port_out_runtime *port = &p->out[port_id];
+ 	struct rte_swx_pkt *pkt = &t->pkt;
+ 
++	/* Recirculation: keep the current packet. */
++	if (t->recirculate) {
++		TRACE("[Thread %2u]: tx 1 pkt - recirculate\n",
++		      p->thread_id);
++
++		/* Headers. */
++		emit_handler(t);
++
++		/* Packet. */
++		mirroring_handler(p, t, pkt);
++
++		return;
++	}
++
+ 	TRACE("[Thread %2u]: tx 1 pkt to port %u\n",
+ 	      p->thread_id,
+ 	      (uint32_t)port_id);
+@@ -1675,6 +1723,20 @@ __instr_tx_i_exec(struct rte_swx_pipeline *p, struct thread *t, const struct ins
+ 	struct port_out_runtime *port = &p->out[port_id];
+ 	struct rte_swx_pkt *pkt = &t->pkt;
+ 
++	/* Recirculation: keep the current packet. */
++	if (t->recirculate) {
++		TRACE("[Thread %2u]: tx (i) 1 pkt - recirculate\n",
++		      p->thread_id);
++
++		/* Headers. */
++		emit_handler(t);
++
++		/* Packet. */
++		mirroring_handler(p, t, pkt);
++
++		return;
++	}
++
+ 	TRACE("[Thread %2u]: tx (i) 1 pkt to port %u\n",
+ 	      p->thread_id,
+ 	      (uint32_t)port_id);
+@@ -1727,6 +1789,30 @@ __instr_mirror_exec(struct rte_swx_pipeline *p,
+ 	t->mirroring_slots_mask |= 1LLU << slot_id;
+ }
+ 
++static inline void
++__instr_recirculate_exec(struct rte_swx_pipeline *p __rte_unused,
++			 struct thread *t,
++			 const struct instruction *ip __rte_unused)
++{
++	TRACE("[Thread %2u]: recirculate\n",
++	      p->thread_id);
++
++	t->recirculate = 1;
++}
++
++static inline void
++__instr_recircid_exec(struct rte_swx_pipeline *p __rte_unused,
++		      struct thread *t,
++		      const struct instruction *ip)
++{
++	TRACE("[Thread %2u]: recircid (pass %u)\n",
++	      p->thread_id,
++	      t->recirc_pass_id);
++
++	/* Meta-data. */
++	METADATA_WRITE(t, ip->io.io.offset, ip->io.io.n_bits, t->recirc_pass_id);
++}
++
+ /*
+  * extract.
+  */
+
+From patchwork Wed Apr  6 18:55:35 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+X-Patchwork-Id: 109350
+X-Patchwork-Delegate: thomas@monjalon.net
+Return-Path: <dev-bounces@dpdk.org>
+X-Original-To: patchwork@inbox.dpdk.org
+Delivered-To: patchwork@inbox.dpdk.org
+Received: from mails.dpdk.org (mails.dpdk.org [217.70.189.124])
+	by inbox.dpdk.org (Postfix) with ESMTP id 6EC78A0509;
+	Wed,  6 Apr 2022 20:56:09 +0200 (CEST)
+Received: from [217.70.189.124] (localhost [127.0.0.1])
+	by mails.dpdk.org (Postfix) with ESMTP id C0EB942881;
+	Wed,  6 Apr 2022 20:55:45 +0200 (CEST)
+Received: from mga18.intel.com (mga18.intel.com [134.134.136.126])
+ by mails.dpdk.org (Postfix) with ESMTP id BD00442867
+ for <dev@dpdk.org>; Wed,  6 Apr 2022 20:55:43 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+ d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+ t=1649271343; x=1680807343;
+ h=from:to:subject:date:message-id:in-reply-to:references;
+ bh=TaIWtsMryOqRat4+0tfDCYBIWovcUcsaNHwE7q1tg3k=;
+ b=njnA/3z6GOR00A8PZFVQuD06FT1ujf+4MqDOq86inlGjJ7qQv7uMPJdE
+ yN+KG/Hzx5636jGTE7dkqcU3/WVAeuKT8O/v1NiBRnLVjyLemO4K2BOX3
+ V18cK9/KhLncDXVZP9phtOczTB65Tsnkfqa+LzRfFgB2NPP/QJZZavpeh
+ zh6jx+CIV7QjhaythcsTUAkwaNE2ID2uuR6Y8+4v1eE/GXgh0gEq+GlwA
+ XZyRT6oQyrW/uM4BuImlJp2/MptpnpKO8ZsdMtLjqTRHMkTq7klPlr44d
+ utJJAVNlZBRUlQ1tUDlRhrd2jFJWJ5/Zsh7zzJ/EDxAfxn7et0qcFQSEK A==;
+X-IronPort-AV: E=McAfee;i="6200,9189,10309"; a="243266971"
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="243266971"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+ by orsmga106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384;
+ 06 Apr 2022 11:55:43 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.90,240,1643702400"; d="scan'208";a="524055158"
+Received: from silpixa00400573.ir.intel.com (HELO
+ silpixa00400573.ger.corp.intel.com) ([10.237.223.107])
+ by orsmga002.jf.intel.com with ESMTP; 06 Apr 2022 11:55:42 -0700
+From: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+To: dev@dpdk.org
+Subject: [PATCH V5 6/6] examples/pipeline: add packet recirculation example
+Date: Wed,  6 Apr 2022 19:55:35 +0100
+Message-Id: <20220406185535.73084-6-cristian.dumitrescu@intel.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+References: <20220406184836.72784-1-cristian.dumitrescu@intel.com>
+ <20220406185535.73084-1-cristian.dumitrescu@intel.com>
+X-BeenThere: dev@dpdk.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: DPDK patches and discussions <dev.dpdk.org>
+List-Unsubscribe: <https://mails.dpdk.org/options/dev>,
+ <mailto:dev-request@dpdk.org?subject=unsubscribe>
+List-Archive: <http://mails.dpdk.org/archives/dev/>
+List-Post: <mailto:dev@dpdk.org>
+List-Help: <mailto:dev-request@dpdk.org?subject=help>
+List-Subscribe: <https://mails.dpdk.org/listinfo/dev>,
+ <mailto:dev-request@dpdk.org?subject=subscribe>
+Errors-To: dev-bounces@dpdk.org
+
+Add example program to illustrate packet recirculation.
+
+Signed-off-by: Cristian Dumitrescu <cristian.dumitrescu@intel.com>
+---
+ examples/pipeline/examples/recirculation.cli  | 34 ++++++++
+ examples/pipeline/examples/recirculation.spec | 81 +++++++++++++++++++
+ 2 files changed, 115 insertions(+)
+ create mode 100644 examples/pipeline/examples/recirculation.cli
+ create mode 100644 examples/pipeline/examples/recirculation.spec
+
+diff --git a/examples/pipeline/examples/recirculation.cli b/examples/pipeline/examples/recirculation.cli
+new file mode 100644
+index 0000000000..f855c5c327
+--- /dev/null
++++ b/examples/pipeline/examples/recirculation.cli
+@@ -0,0 +1,34 @@
++; SPDX-License-Identifier: BSD-3-Clause
++; Copyright(c) 2022 Intel Corporation
++
++;
++; Customize the LINK parameters to match your setup.
++;
++mempool MEMPOOL0 buffer 2304 pool 32K cache 256 cpu 0
++
++link LINK0 dev 0000:18:00.0 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK1 dev 0000:18:00.1 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK2 dev 0000:3b:00.0 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++link LINK3 dev 0000:3b:00.1 rxq 1 128 MEMPOOL0 txq 1 512 promiscuous on
++
++;
++; PIPELINE0 setup.
++;
++pipeline PIPELINE0 create 0
++
++pipeline PIPELINE0 port in 0 link LINK0 rxq 0 bsz 32
++pipeline PIPELINE0 port in 1 link LINK1 rxq 0 bsz 32
++pipeline PIPELINE0 port in 2 link LINK2 rxq 0 bsz 32
++pipeline PIPELINE0 port in 3 link LINK3 rxq 0 bsz 32
++
++pipeline PIPELINE0 port out 0 link LINK0 txq 0 bsz 32
++pipeline PIPELINE0 port out 1 link LINK1 txq 0 bsz 32
++pipeline PIPELINE0 port out 2 link LINK2 txq 0 bsz 32
++pipeline PIPELINE0 port out 3 link LINK3 txq 0 bsz 32
++
++pipeline PIPELINE0 build ./examples/pipeline/examples/recirculation.spec
++
++;
++; Pipelines-to-threads mapping.
++;
++thread 1 pipeline PIPELINE0 enable
+diff --git a/examples/pipeline/examples/recirculation.spec b/examples/pipeline/examples/recirculation.spec
+new file mode 100644
+index 0000000000..3cc115610e
+--- /dev/null
++++ b/examples/pipeline/examples/recirculation.spec
+@@ -0,0 +1,81 @@
++; SPDX-License-Identifier: BSD-3-Clause
++; Copyright(c) 2022 Intel Corporation
++
++; This simple example illustrates how to perform packet recirculation. The "recirculate" instruction
++; is used to mark the current packet for recirculation, which means that at TX time the packet is
++; reinjected into the pipeline for another full pass as opposed to being sent to the output port.
++;
++; The same packet can be recirculated multiple times, with the recirculation pass ID retrieved by
++; the "recircid" instruction. The pass ID can be used by the program to execute different code on
++; the same packet in different pipeline passes. The packet meta-data is preserved between the
++; pipeline passes.
++
++//
++// Headers
++//
++struct ethernet_h {
++	bit<48> dst_addr
++	bit<48> src_addr
++	bit<16> ethertype
++}
++
++struct ipv4_h {
++	bit<8> ver_ihl
++	bit<8> diffserv
++	bit<16> total_len
++	bit<16> identification
++	bit<16> flags_offset
++	bit<8> ttl
++	bit<8> protocol
++	bit<16> hdr_checksum
++	bit<32> src_addr
++	bit<32> dst_addr
++}
++
++struct udp_h {
++	bit<16> src_port
++	bit<16> dst_port
++	bit<16> length
++	bit<16> checksum
++}
++
++header ethernet instanceof ethernet_h
++header ipv4 instanceof ipv4_h
++header udp instanceof udp_h
++
++//
++// Meta-data.
++//
++struct metadata_t {
++	bit<32> port
++	bit<32> pass_id
++}
++
++metadata instanceof metadata_t
++
++//
++// Pipeline.
++//
++apply {
++	rx m.port
++	extract h.ethernet
++	extract h.ipv4
++	extract h.udp
++
++	//
++	// State machine based on the recirculation pass ID.
++	//
++	// During each of the first 5 passes through the pipeline (m.pass_id is 0 .. 4), the UDP
++	// source port is incremented and the packet is marked for recirculation, while on the final
++	// iteration (m.pass_id is 5) the packet is sent out.
++	//
++	recircid m.pass_id
++	jmpgt EMIT m.pass_id 4
++	add h.udp.src_port 1
++	recirculate
++
++	EMIT : emit h.ethernet
++	emit h.ipv4
++	emit h.udp
++	tx m.port
++}
