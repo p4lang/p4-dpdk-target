@@ -24,7 +24,7 @@
 #define SOCK_IP_LEN 64
 #define SOCK_PATH_LEN 256
 #define MAC_STR_LEN 18
-
+#if 0
 /**
  * DPDK Hotplug attributes
  */
@@ -38,6 +38,7 @@ struct hotplug_attributes_t {
 	char native_socket_path[SOCK_PATH_LEN];
 	bool qemu_hotplug;
 };
+#endif
 
 /**
  * @brief Port add function
