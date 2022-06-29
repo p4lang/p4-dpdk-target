@@ -711,7 +711,7 @@ class SelectorTableData : public tdi::TableData {
 class CounterIndirectTableData : public tdi::TableData {
  public:
   CounterIndirectTableData(const tdi::Table *table)
-      : tdi::TableData(table){};
+      : tdi::TableData(table), counter_spec_(){};
   ~CounterIndirectTableData() = default;
 
   tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value) override;
