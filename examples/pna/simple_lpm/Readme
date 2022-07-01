@@ -1,10 +1,16 @@
 This document describes simple test scenario and provides sample commands to run the test manually.
 
+Versioning              : commit-id
+==================================================================================================================================================
+p4sde                   : c9dc2f256e5ab3ae0d49adb1faa815abb046a557
+p4c                     : 026de0abf21ad576ab4e290faa94bfda46d51fce
+==================================================================================================================================================
+
 artifacts generation steps:
 ============================
 simple_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
 
-p4c-dpdk :  version - 0.1 (SHA: 362c2dbf2 BUILD: RELEASE)
+p4c-dpdk :  version - 1.2.2.2 (SHA: 026de0abf BUILD: RELEASE)
 artifacts:  bfrt.json, context.json, sample_lpm.spec.spec and p4Info.txt
 
 Command to generate artifacts:
@@ -15,20 +21,6 @@ Test scenario  :
 1. Add rule to send
 2. Packet from interface "TAP0" should reach interface "TAP2"
 3. Delete rule and packet should not reach interface "TAP2"
-
-Running bf_swtichd application:
-===============================
-export SDE=    ////////sde path
-export SDE_INSTALL=$SDE/install
-export LD_LIBRARY_PATH=$SDE_INSTALL/lib/:$SDE_INSTALL/lib/x86_64-linux-gnu/:$SDE_INSTALL/lib64:$SDE_INSTALL/lib64/pkgconfig
-export PYTHONPATH=$SDE_INSTALL/lib/python3.8/:$SDE_INSTALL/lib/python3.8/lib-dynload:$SDE_INSTALL/lib/python3.8/site-packages
-export PYTHONHOME=$SDE_INSTALL/lib/python3.8
-
-mkdir -p $SDE_INSTALL/share/examples
-cp -rf examples/pna/simple_lpm/ $SDE_INSTALL/share/examples/
-cd $SDE_INSTALL/bin
-
-./bf_switchd --install-dir $SDE_INSTALL --conf-file $SDE_INSTALL/share/examples/simple_lpm/simple_lpm.conf --init-mode=cold --status-port 7777
 
 BF_RT commands:
 ===============
