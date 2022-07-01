@@ -1,11 +1,16 @@
 This document describes simple test scenario and provides sample commands to run the test manually.
 
+Versioning              : commit-id
+==================================================================================================================================================
+p4sde                   : c9dc2f256e5ab3ae0d49adb1faa815abb046a557
+p4c                     : 026de0abf21ad576ab4e290faa94bfda46d51fce
+==================================================================================================================================================
 
 artifacts generation steps:
 ============================
 simple_l2l3_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
 
-p4c-dpdk :  version - 0.1 (SHA: 362c2dbf2 BUILD: RELEASE) 
+p4c-dpdk :  version - 1.2.2.2 (SHA: 026de0abf BUILD: RELEASE)
 artifacts:  bfrt.json, context.json, simple_l2l3_lpm.spec and p4Info.txt
 
 Command to generate artifacts:
