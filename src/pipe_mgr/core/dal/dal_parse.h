@@ -38,4 +38,8 @@ int dal_ctx_json_parse_global_config(int dev_id, int prof_id,
 int dal_post_parse_processing(int dev_id, int prof_id,
 		struct pipe_mgr_p4_pipeline *ctx);
 
+int dal_ctx_json_parse_extern(int dev_id,
+			      int prof_id,
+			      cJSON *root,
+			      struct pipe_mgr_p4_pipeline *ctx);
 #endif
