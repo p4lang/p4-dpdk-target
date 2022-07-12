@@ -237,6 +237,33 @@ struct pipe_mgr_mat {
 	struct pipe_mgr_mat *next;
 };
 
+/* externs attribute types */
+enum externs_attr_type {
+	EXTERNS_ATTR_TYPE_BYTES,
+	EXTERNS_ATTR_TYPE_PACKETS,
+	EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES
+};
+
+enum externs_type {
+	/* externs type counter */
+	EXTERNS_COUNTER = 0
+};
+
+/* externs json information of the table. */
+struct pipe_mgr_externs_ctx {
+	char name[P4_SDE_TABLE_NAME_LEN];
+	char target_name[P4_SDE_TABLE_NAME_LEN];
+	enum externs_type type;
+	enum externs_attr_type attr_type;
+};
+
+struct pipe_mgr_externs {
+    /* Context json information of the table. */
+    struct pipe_mgr_externs_ctx ctx;
+
+    struct pipe_mgr_externs *next;
+};
+
 /* Contains pipeline global configs and hook for target specific
  * global configs.
  */
@@ -270,15 +297,19 @@ enum pipe_mgr_target {
 struct pipe_mgr_p4_pipeline {
 	/* Number of tables as per context json. */
 	int num_mat_tables;
+	/* Number of externs as per context json. */
+	int num_externs_tables;
 
 	/* Array containing Match-Action Tables information for this P4
 	 * pipeline.
 	 */
 	struct pipe_mgr_mat *mat_tables;
+	/* Hash Map containing externs Objects information for this P4
+	 * pipeline.
+	 */
+	bf_hashtable_t *bf_externs_htbl;
 	enum pipe_mgr_target target;
 	char arch_name[P4_SDE_ARCH_NAME_LEN];
-
-
 };
 
 /* P4 Program Pipeline Profile  */

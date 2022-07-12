@@ -862,6 +862,17 @@ static int post_parse_processing
 	return dal_post_parse_processing(dev_id, prof_id,ctx);
 }
 
+static int ctx_json_parse_extern(int dev_id,
+			         int prof_id,
+		                 cJSON *root,
+		                 struct pipe_mgr_p4_pipeline *ctx)
+{
+	return dal_ctx_json_parse_extern(dev_id,
+				         prof_id,
+					 root,
+					 ctx);
+}
+
 static int ctx_json_parse_tables_json
 	   (int dev_id, int prof_id,
 	    cJSON *root,
@@ -937,7 +948,7 @@ mat_tbl_cleanup:
 	} else if (mat_temp) {
 		P4_SDE_FREE(mat_temp);
 	}
-	pipe_mgr_free_pipe_ctx(ctx);
+	pipe_mgr_free_mat_table(ctx);
 	return rc;
 }
 
@@ -1094,6 +1105,10 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 		}
 	}
 
+	rc = ctx_json_parse_extern(dev_id, profile_id, root, pkg_ctx);
+
+	if (rc)
+		goto version_parse_err;
 
 	rc = ctx_json_parse_tables_json(dev_id, profile_id, root, pkg_ctx);
 

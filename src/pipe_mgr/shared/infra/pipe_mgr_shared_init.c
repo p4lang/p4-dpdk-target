@@ -524,7 +524,7 @@ void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state)
 	P4_SDE_FREE(mat_state);
 }
 
-void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx)
+void pipe_mgr_free_mat_table(struct pipe_mgr_p4_pipeline *pipe_ctx)
 {
 	struct pipe_mgr_mat *mat;
 
@@ -535,6 +535,23 @@ void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx)
 	}
 	PIPE_MGR_FREE_LIST(pipe_ctx->mat_tables);
 	pipe_ctx->mat_tables = NULL;
+}
+
+void pipe_mgr_free_externs_htbl(struct pipe_mgr_p4_pipeline *pipe_ctx)
+{
+	if (pipe_ctx->bf_externs_htbl) {
+		bf_hashtbl_delete(pipe_ctx->bf_externs_htbl);
+		P4_SDE_FREE(pipe_ctx->bf_externs_htbl);
+		pipe_ctx->bf_externs_htbl = NULL;
+	}
+}
+
+void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx)
+{
+    /* free mat table */
+    pipe_mgr_free_mat_table(pipe_ctx);
+    /* free externs hash map table*/
+    pipe_mgr_free_externs_htbl(pipe_ctx);
 }
 
 int pipe_mgr_client_init(u32 *sess_hdl)

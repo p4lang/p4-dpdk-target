@@ -312,3 +312,218 @@ bool dal_mat_store_state(struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	return true;
 }
+
+static int pipe_mgr_externs_key_cmp_fn(const void *arg, const void *key1)
+{
+	void *key2 = NULL;
+	struct pipe_mgr_externs_ctx *externs_entry = NULL;
+
+	if (!key1 || !arg)
+		return (-1);
+
+	key2 = bf_hashtbl_get_cmp_data(key1);
+
+	if (!key2)
+		return (-1);
+
+	externs_entry = (struct pipe_mgr_externs_ctx *)key2;
+
+	return strncmp(arg, externs_entry->name, P4_SDE_NAME_LEN);
+}
+
+void pipe_mgr_externs_free_htbl_node(void *node)
+{
+	struct pipe_mgr_externs_ctx *externs_node = node;
+
+	if (!externs_node)
+		return;
+
+	P4_SDE_FREE(externs_node);
+}
+
+/**
+ * Parse each individual externs Object
+ * @param dev_id The Device ID
+ * @param prof_id The profile ID
+ * @param extern_cjson extern cJSON object
+ * @param entry structure to hold extern info
+ * @return Status of the API call
+ */
+static bf_status_t ctx_json_parse_externs_entry (
+		int dev_id,
+		int prof_id,
+		cJSON *extern_cjson,
+		struct pipe_mgr_externs_ctx *entry)
+{
+	bf_status_t rc          = BF_SUCCESS;
+	int  err                = 0;
+	char *target_name       = NULL;
+	char *target_type       = NULL;
+	char *extern_attr_type  = NULL;
+	cJSON *extern_attr_cjson  = NULL;
+	char *name = NULL, *externs_name = NULL;
+
+	err |= bf_cjson_get_string(extern_cjson,
+			CTX_JSON_EXTERN_NAME,
+			&name);
+
+	err |= bf_cjson_get_string(extern_cjson,
+			CTX_JSON_EXTERN_TARGET_NAME,
+			&target_name);
+
+	err |= bf_cjson_get_string(extern_cjson,
+			CTX_JSON_EXTERN_TYPE,
+			&target_type);
+
+	err |= bf_cjson_try_get_object(extern_cjson,
+			CTX_JSON_EXTERN_ATTRIBUTES,
+			&extern_attr_cjson);
+
+	err |= bf_cjson_get_string(extern_attr_cjson,
+			CTX_JSON_EXTERN_ATTRIBUTE_TYPE,
+			&extern_attr_type);
+
+	if (err)
+		return (BF_UNEXPECTED);
+
+	externs_name = trim_classifier_str(name);
+	if (!externs_name) {
+		LOG_ERROR("extern \"%s\" trim_classifier_str failed", name);
+		return BF_UNEXPECTED;
+	}
+	strncpy(entry->name, externs_name, P4_SDE_NAME_LEN - 1);
+	entry->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	if (target_name) {
+		strncpy(entry->target_name, target_name, P4_SDE_NAME_LEN - 1);
+		entry->target_name[P4_SDE_NAME_LEN - 1] = '\0';
+	}
+
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_COUNTER,
+				sizeof(CTX_JSON_EXTERN_TYPE_COUNTER))) {
+		entry->type = EXTERNS_COUNTER;
+	}
+
+	/* verify string for attribute type "bytes" */
+	if (!strncmp(extern_attr_type,
+		     CTX_JSON_EXTERN_ATTR_TYPE_BYTES,
+		     sizeof(CTX_JSON_EXTERN_ATTR_TYPE_BYTES))) {
+		entry->attr_type = EXTERNS_ATTR_TYPE_BYTES;
+	} else if (!strncmp(extern_attr_type,
+			    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS,
+			    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS))) {
+			entry->attr_type = EXTERNS_ATTR_TYPE_PACKETS;
+	} else if (!strncmp(extern_attr_type,
+		    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES,
+		    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES))) {
+				entry->attr_type =
+					EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES;
+	} else {
+		LOG_ERROR("unexpected attribute type for extern %s ", name);
+		return BF_UNEXPECTED;
+	}
+
+	return rc;
+}
+
+/**
+ * Parse externs Object
+ * @param dev_id The Device ID
+ * @param prof_id The profile ID
+ * @param root cJSON object
+ * @param ctx pipe mgr pipline ctx info.
+ * @return Status of the API call
+ */
+int dal_ctx_json_parse_extern(int dev_id,
+			      int prof_id,
+			      cJSON *root,
+			      struct pipe_mgr_p4_pipeline *ctx)
+{
+	bf_status_t rc            = BF_SUCCESS;
+	cJSON *externs_cjson      = NULL;
+	struct pipe_mgr_externs_ctx
+		*externs_entry  = NULL;
+	bf_hashtbl_sts_t htbl_sts = BF_HASHTBL_OK;
+	char key_name[P4_SDE_TABLE_NAME_LEN] = {0};
+
+	/* We return SUCCESS if extern does not exist, because its a
+	 * valid use case, externs is not mandatory.
+	 */
+	bf_cjson_try_get_object(root,
+			CTX_JSON_EXTERN,
+			&externs_cjson);
+
+	if (externs_cjson) {
+		cJSON *extern_cjson = NULL;
+		/* Initialize context for service */
+		ctx->bf_externs_htbl = (bf_hashtable_t *)P4_SDE_CALLOC(1,
+				sizeof(bf_hashtable_t));
+
+		htbl_sts = bf_hashtbl_init(
+				ctx->bf_externs_htbl,
+				pipe_mgr_externs_key_cmp_fn,
+				pipe_mgr_externs_free_htbl_node,
+				P4_SDE_NAME_LEN,
+				sizeof (struct pipe_mgr_externs_ctx),
+				0x98733423);
+
+		if (htbl_sts != BF_HASHTBL_OK) {
+			LOG_ERROR("%s:%d Error in initializing hashtable"
+					"for externs",
+					__func__,
+					__LINE__);
+			rc = BF_UNEXPECTED;
+			goto externs_cleanup;
+		}
+
+		CTX_JSON_FOR_EACH(extern_cjson, externs_cjson) {
+			externs_entry = P4_SDE_CALLOC (1,
+					sizeof(*externs_entry));
+
+			if (!externs_entry) {
+				rc = BF_NO_SYS_RESOURCES;
+				goto externs_cleanup;
+			}
+
+			rc  = ctx_json_parse_externs_entry(
+					dev_id,
+					prof_id,
+					extern_cjson,
+					externs_entry);
+
+			if (rc) {
+				P4_SDE_FREE(externs_entry);
+				goto externs_cleanup;
+			}
+
+			memset(key_name, 0x0, P4_SDE_TABLE_NAME_LEN);
+			strncpy(key_name, externs_entry->name,
+					P4_SDE_TABLE_NAME_LEN-1);
+
+			/* Insert into the string-entry map */
+			htbl_sts = bf_hashtbl_insert(
+					ctx->bf_externs_htbl,
+					externs_entry,
+					key_name);
+
+			if (htbl_sts != BF_HASHTBL_OK) {
+				LOG_ERROR("%s:%d Error in inserting extern"
+					  "object into the key hash tbl"
+					  " for extern %s",
+					   __func__,
+					   __LINE__,
+					   externs_entry->name);
+				rc =  BF_UNEXPECTED;
+				P4_SDE_FREE(externs_entry);
+				goto externs_cleanup;
+			}
+			ctx->num_externs_tables++;
+		}
+	}
+
+	return rc;
+externs_cleanup:
+	pipe_mgr_free_externs_htbl(ctx);
+
+	return rc;
+}

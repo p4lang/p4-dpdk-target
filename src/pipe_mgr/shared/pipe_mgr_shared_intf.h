@@ -55,5 +55,7 @@ bf_status_t pipe_mgr_shared_enable_pipeline(bf_dev_id_t dev_id,
 		enum bf_dev_init_mode_s warm_init_mode);
 void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx);
 void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state);
+void pipe_mgr_free_mat_table(struct pipe_mgr_p4_pipeline *pipe_ctx);
 bool pipe_mgr_mat_store_entries(struct pipe_mgr_mat_ctx *mat_ctx);
+void pipe_mgr_free_externs_htbl(struct pipe_mgr_p4_pipeline *pipe_ctx);
 #endif

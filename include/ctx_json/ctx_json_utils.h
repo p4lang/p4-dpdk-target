@@ -838,6 +838,19 @@
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_MATCH_TABLE_DEFAULT_ACTION_HANDLE "default_action_handle"
+/* externs macros */
+#define CTX_JSON_EXTERN                   "externs"
+#define CTX_JSON_EXTERN_NAME              "name"
+#define CTX_JSON_EXTERN_TARGET_NAME       "target_name"
+#define CTX_JSON_EXTERN_TYPE              "type"
+#define CTX_JSON_EXTERN_ATTRIBUTES        "attributes"
+#define CTX_JSON_EXTERN_ATTRIBUTE_TYPE    CTX_JSON_EXTERN_TYPE
+
+#define CTX_JSON_EXTERN_TYPE_COUNTER      "Counter"
+
+#define CTX_JSON_EXTERN_ATTR_TYPE_BYTES               "bytes"
+#define CTX_JSON_EXTERN_ATTR_TYPE_PACKETS             "packets"
+#define CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES   "packets_and_bytes"
 /*
  * Macro definition that allows iterating over a cJSON array.
  */
