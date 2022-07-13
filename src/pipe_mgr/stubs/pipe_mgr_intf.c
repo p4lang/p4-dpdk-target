@@ -300,12 +300,6 @@ pipe_status_t pipe_mgr_stat_table_reset(pipe_sess_hdl_t sess_hdl, dev_target_t d
     return PIPE_SUCCESS;
 }
 
-pipe_status_t pipe_mgr_stat_ent_set(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_stat_tbl_hdl_t stat_tbl_hdl, pipe_stat_ent_idx_t stat_ent_idx, pipe_stat_data_t* stat_data)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
-}
-
 pipe_status_t pipe_mgr_stat_ent_load(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_stat_tbl_hdl_t stat_tbl_hdl, pipe_stat_ent_idx_t stat_idx, pipe_stat_data_t* stat_data)
 {
     LOG_TRACE("STUB:%s\n",__func__);

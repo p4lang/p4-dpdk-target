@@ -774,6 +774,7 @@ class CounterIndirect : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_NEXT_N,
                  {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_BY_HANDLE,
                  {"dev_id", "pipe_id", "pipe_all"}},
@@ -815,6 +816,12 @@ class CounterIndirect : public tdi::Table {
                              const tdi::Flags &flags, const tdi::TableKey &key,
                              const uint32_t &n, keyDataPairs *key_data_pairs,
                              uint32_t *num_returned) const override;
+
+  tdi_status_t entryMod(const tdi::Session &session,
+		        const tdi::Target &dev_tgt,
+			const tdi::Flags &flags,
+			const tdi::TableKey &key,
+			const tdi::TableData &data) const override;
 
   tdi_status_t clear(const tdi::Session &session, const tdi::Target &dev_tgt,
                      const tdi::Flags &flags) const override;

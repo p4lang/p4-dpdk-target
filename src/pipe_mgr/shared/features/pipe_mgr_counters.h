@@ -73,7 +73,25 @@ pipe_mgr_cnt_read_flow_counter_pair(uint32_t id, void *stats);
  * @return Status of the API call
  */
 bf_status_t
-pipe_mgr_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt, const char *name, int id, void *stats);
+pipe_mgr_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt,
+					 const char *name,
+					 int id,
+					 void *stats);
+
+/*!
+ * Write flow counter pair value for a specific index.
+ *
+ * @param dev_tgt device target
+ * @param table name
+ * @param id counter id to write stats
+ * @param value to be updated
+ * @return Status of the API call
+ */
+bf_status_t
+pipe_mgr_cnt_mod_assignable_counter_set(bf_dev_target_t dev_tgt,
+				        const char *name,
+					int id,
+					uint64_t value);
 
 /*!
  * Clears the flow counter pair (pkts and bytes).
