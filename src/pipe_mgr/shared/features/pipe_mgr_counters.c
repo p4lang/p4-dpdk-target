@@ -94,6 +94,25 @@ pipe_mgr_cnt_read_assignable_counter_set(dev_target_t dev_tgt,
 }
 
 /*!
+ * Write flow counter pair value for a specific index.
+ *
+ * @param dev_tgt device target
+ * @param table name
+ * @param id counter id to write stats
+ * @param value to be updated
+ * @return Status of the API call
+ */
+bf_status_t
+pipe_mgr_cnt_mod_assignable_counter_set(dev_target_t dev_tgt,
+					const char *name,
+					int id,
+					uint64_t value)
+{
+	return dal_cnt_write_assignable_counter_set(dev_tgt, name, id, value);
+}
+
+
+/*!
  * Clears the flow counter pair (pkts and bytes).
  *
  * @param counter_id flow counter id that needs cleared.
@@ -255,6 +274,104 @@ bf_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
 		pipe_mgr_cnt_set_value(stat_data,
 				       EXTERNS_ATTR_TYPE_BYTES,
 				       value);
+		break;
+	  default:
+		status = BF_INTERNAL_ERROR;
+	}
+error:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+/*!
+ * routine to write flow counter index
+ */
+bf_status_t pipe_mgr_stat_ent_set(pipe_sess_hdl_t sess_hdl,
+				  dev_target_t dev_tgt,
+				  const char *table_name,
+				  pipe_stat_ent_idx_t stat_ent_idx,
+				  pipe_stat_data_t *stat_data)
+{
+	const char  *ptr    = NULL;
+	uint64_t     value  = 0;
+	bf_status_t  status = BF_SUCCESS;
+	struct pipe_mgr_p4_pipeline *ctx_obj = NULL;
+	struct pipe_mgr_externs_ctx *externs_entry = NULL;
+	char key_name[P4_SDE_TABLE_NAME_LEN] = {0};
+	char target_name[P4_SDE_TABLE_NAME_LEN + 10]  = {0};
+
+	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	/* retrieve context json object associated with dev_tgt */
+	status = pipe_mgr_get_profile_ctx(dev_tgt, &ctx_obj);
+
+	if (status)
+		goto error;
+
+	/* extract table name which is used as a key in hash map */
+	ptr = strrchr(table_name, '.');
+	ptr = ptr ? (ptr + 1) : table_name;
+	strncpy(key_name, ptr, P4_SDE_TABLE_NAME_LEN - 1);
+
+	externs_entry = bf_hashtbl_search(ctx_obj->bf_externs_htbl, key_name);
+
+	if (!externs_entry) {
+		LOG_ERROR("externs object/entry get for table \"%s\" failed",
+			   table_name);
+		status = BF_OBJECT_NOT_FOUND;
+		goto error;
+	}
+
+	switch (externs_entry->attr_type) {
+	  case EXTERNS_ATTR_TYPE_BYTES:
+	  case EXTERNS_ATTR_TYPE_PACKETS:
+		status = pipe_mgr_cnt_mod_assignable_counter_set(
+				dev_tgt,
+				externs_entry->target_name,
+				stat_ent_idx,
+				value);
+		if (status)
+			goto error;
+		break;
+	  case EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES:
+		/* for packet and bytes, update counter values for
+		 * bytes and packets in saparate calls by appending
+		 * target name with respective attribute type */
+		snprintf(target_name, sizeof(target_name), "%s_%s",
+				externs_entry->target_name, "packets");
+
+		status = pipe_mgr_cnt_mod_assignable_counter_set(
+				dev_tgt,
+				target_name,
+				stat_ent_idx,
+				value);
+
+		if (status)
+			goto error;
+
+		memset(target_name, 0x0, sizeof(target_name));
+		snprintf(target_name, sizeof(target_name), "%s_%s",
+				externs_entry->target_name, "bytes");
+
+		status = pipe_mgr_cnt_mod_assignable_counter_set(
+				dev_tgt,
+				target_name,
+				stat_ent_idx,
+				value);
+
+		if (status)
+			goto error;
+
 		break;
 	  default:
 		status = BF_INTERNAL_ERROR;

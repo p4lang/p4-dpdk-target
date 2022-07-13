@@ -691,11 +691,11 @@ pipe_status_t PipeMgrIntf::pipeMgrStatTableReset(
 
 pipe_status_t PipeMgrIntf::pipeMgrStatEntSet(pipe_sess_hdl_t sess_hdl,
                                              dev_target_t dev_tgt,
-                                             pipe_stat_tbl_hdl_t stat_tbl_hdl,
+					     const char *name,
                                              pipe_stat_ent_idx_t stat_ent_idx,
                                              pipe_stat_data_t *stat_data) {
   return pipe_mgr_stat_ent_set(
-      sess_hdl, dev_tgt, stat_tbl_hdl, stat_ent_idx, stat_data);
+      sess_hdl, dev_tgt, name, stat_ent_idx, stat_data);
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrStatEntLoad(pipe_sess_hdl_t sess_hdl,

@@ -4606,7 +4606,7 @@ bf_status_t BfRtActionTable::tableEntryGet_internal(
 
   pipe_dev_tgt.device_id = dev_tgt.dev_id;
   pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
-  
+
   bf_status_t status =
       pipeMgr->pipeMgrGetActionDataEntry(session.sessHandleGet(), pipe_tbl_hdl,
                                          pipe_dev_tgt,
@@ -5164,11 +5164,11 @@ bf_status_t BfRtSelectorTable::tableEntryGet_internal(
   }
 
   dev_target_t pipe_dev_tgt;
-  
+
   pipe_dev_tgt.device_id = dev_tgt.dev_id;
   pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
 
-  
+
   // Get the selector group hdl from the group id
   bool found = sel_state->grpIdExists(dev_tgt.pipe_id, grp_id, &sel_grp_hdl);
   if (!found) {
@@ -5883,7 +5883,7 @@ bf_status_t BfRtCounterTable::tableEntryAdd(const BfRtSession &session,
   status =
       pipeMgr->pipeMgrStatEntSet(session.sessHandleGet(),
                                  pipe_dev_tgt,
-                                 pipe_tbl_hdl,
+                                 table_name_get().c_str(),
                                  counter_id,
                                  const_cast<pipe_stat_data_t *>(stat_data));
 
@@ -5904,7 +5904,45 @@ bf_status_t BfRtCounterTable::tableEntryMod(const BfRtSession &session,
                                             const uint64_t &flags,
                                             const BfRtTableKey &key,
                                             const BfRtTableData &data) const {
-  return tableEntryAdd(session, dev_tgt, flags, key, data);
+  bf_status_t status = BF_SUCCESS;
+  auto *pipeMgr = PipeMgrIntf::getInstance();
+  const BfRtCounterTableKey &cntr_key =
+      static_cast<const BfRtCounterTableKey &>(key);
+  const BfRtCounterTableData &cntr_data =
+      static_cast<const BfRtCounterTableData &>(data);
+
+  uint32_t counter_id = cntr_key.getCounterId();
+
+  if (!verify_key_for_idx_tbls(session, dev_tgt, *this, counter_id)) {
+    return BF_INVALID_ARG;
+  }
+
+  dev_target_t pipe_dev_tgt;
+  pipe_dev_tgt.device_id = dev_tgt.dev_id;
+  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+
+  const pipe_stat_data_t *stat_data =
+	  cntr_data.getCounterSpecObj().getPipeCounterSpec();
+
+  status = pipeMgr->pipeMgrStatEntSet(
+                  session.sessHandleGet(),
+                  pipe_dev_tgt,
+                  table_name_get().c_str(),
+                  counter_id,
+                  const_cast<pipe_stat_data_t *>(stat_data));
+
+  if (status != BF_SUCCESS) {
+    LOG_TRACE(
+        "%s:%d %s ERROR in writing counter value for counter idx %d, err %d",
+        __func__,
+        __LINE__,
+        table_name_get().c_str(),
+        counter_id,
+        status);
+    return status;
+  }
+
+  return BF_SUCCESS;
 }
 
 bf_status_t BfRtCounterTable::tableEntryGet(const BfRtSession &session,

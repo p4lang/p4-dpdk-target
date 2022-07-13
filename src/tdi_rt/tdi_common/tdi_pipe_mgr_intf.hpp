@@ -445,7 +445,7 @@ class IPipeMgrIntf {
 
   virtual pipe_status_t pipeMgrStatEntSet(pipe_sess_hdl_t sess_hdl,
                                           dev_target_t dev_tgt,
-                                          pipe_stat_tbl_hdl_t stat_tbl_hdl,
+					  const char *name,
                                           pipe_stat_ent_idx_t stat_ent_idx,
                                           pipe_stat_data_t *stat_data) = 0;
 
@@ -1258,7 +1258,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
 
   pipe_status_t pipeMgrStatEntSet(pipe_sess_hdl_t sess_hdl,
                                   dev_target_t dev_tgt,
-                                  pipe_stat_tbl_hdl_t stat_tbl_hdl,
+				  const char *name,
                                   pipe_stat_ent_idx_t stat_ent_idx,
                                   pipe_stat_data_t *stat_data);
 

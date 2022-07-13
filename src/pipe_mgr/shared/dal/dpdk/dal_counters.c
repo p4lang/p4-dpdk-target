@@ -147,6 +147,52 @@ dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt, const char *name, i
 }
 
 /*!
+ * Write flow counter value for a specific index.
+ *
+ * @param dev_tgt device target
+ * @param table name
+ * @param id counter id to write stats
+ * @param value to be updated
+ * @return Status of the API call
+ */
+bf_status_t
+dal_cnt_write_assignable_counter_set(bf_dev_target_t dev_tgt,
+			             const char *name,
+				     int id,
+				     uint64_t value)
+{
+	bf_status_t status;
+	struct pipe_mgr_profile *profile = NULL;
+	struct pipeline *pipe;
+
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+				      dev_tgt.dev_pipe_id, &profile);
+	if (status) {
+		LOG_ERROR("not able find profile with device_id  %d",
+			  dev_tgt.device_id);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	/* get dpdk pipeline, table and action info */
+	pipe = pipeline_find(profile->pipeline_name);
+	if (!pipe) {
+		LOG_ERROR("dpdk pipeline %s get failed",
+			  profile->pipeline_name);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	status = rte_swx_ctl_pipeline_regarray_write (pipe->p, name, id, value);
+
+	if (status) {
+		LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n",
+				__func__, name, id);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	return BF_SUCCESS;
+}
+
+/*!
  * Clears the flow counter pair (pkts and bytes).
  *
  * @param counter_id flow counter id that needs cleared.

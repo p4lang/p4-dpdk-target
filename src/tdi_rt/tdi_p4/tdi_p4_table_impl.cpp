@@ -115,7 +115,7 @@ tdi_status_t entryModInternal(const tdi::Table &table,
     dataFields.assign(match_data.activeFieldsGet().begin(),
                       match_data.activeFieldsGet().end());
   }
-  
+
   pipe_action_spec_t pipe_action_spec = {0};
   match_data.copy_pipe_action_spec(&pipe_action_spec);
   pipe_act_fn_hdl_t act_fn_hdl = match_data.getActFnHdl();
@@ -3672,7 +3672,7 @@ tdi_status_t MatchActionIndirect::entryGet_internal(
             //TDI_ASSERT(status == TDI_SUCCESS);
             // Need to handle in case getGroupIdFromHndl failure (delete sel group)
             if (status != TDI_SUCCESS) {
-              LOG_DBG("%s:%d Entry get for indirect group id sel_grp_id %d not found", 
+              LOG_DBG("%s:%d Entry get for indirect group id sel_grp_id %d not found",
                   __func__,
                   __LINE__,
                   sel_grp_id);
@@ -4335,7 +4335,7 @@ tdi_status_t ActionProfile::entryGet_internal(
   dev_target_t pipe_dev_tgt;
   auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
   dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
- 
+
   pipe_action_spec_t *action_spec = action_tbl_data->mutable_pipe_action_spec();
   bool read_from_hw = false;
   flags.getValue(static_cast<tdi_flags_e>(TDI_RT_FLAGS_FROM_HW),
@@ -5381,6 +5381,70 @@ tdi_status_t Selector::tableAttributesGet(
 #endif
 
 // COUNTER TABLE APIS
+tdi_status_t CounterIndirect::entryMod(const tdi::Session &session,
+				       const tdi::Target &dev_tgt,
+				       const tdi::Flags &flags,
+				       const tdi::TableKey &key,
+				       const tdi::TableData &data) const {
+  tdi_status_t status = TDI_SUCCESS;
+
+  /* dummy handle passed to pipe_mgr intf, not used for counters */
+  pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
+
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+  const CounterIndirectTableKey &cntr_key =
+      static_cast<const CounterIndirectTableKey &>(key);
+  const CounterIndirectTableData &cntr_data =
+      static_cast<const CounterIndirectTableData &>(data);
+
+  uint32_t counter_id = cntr_key.getCounterId();
+
+  if (!verify_key_for_idx_tbls(session, dev_tgt, *this, counter_id)) {
+    return TDI_INVALID_ARG;
+  }
+
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+  bool read_from_hw = false;
+  flags.getValue(static_cast<tdi_flags_e>(TDI_RT_FLAGS_FROM_HW), &read_from_hw);
+  if (read_from_hw) {
+    status = pipeMgr->pipeMgrStatEntDatabaseSync(
+        session.handleGet(
+            static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+        pipe_dev_tgt, pipe_tbl_hdl, counter_id);
+    if (status != TDI_SUCCESS) {
+      LOG_TRACE(
+          "%s:%d %s ERROR in writing counter value from hardware for counter "
+          "idx %d, err %d",
+          __func__, __LINE__, tableInfoGet()->nameGet().c_str(), counter_id,
+          status);
+      return status;
+    }
+  }
+
+  const pipe_stat_data_t *stat_data =
+	  cntr_data.getCounterSpecObj().getPipeCounterSpec();
+
+  status = pipeMgr->pipeMgrStatEntSet(
+  	session.handleGet(
+		static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+	pipe_dev_tgt,
+	tableInfoGet()->nameGet().c_str(),
+	counter_id,
+	const_cast<pipe_stat_data_t *>(stat_data));
+
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE(
+        "%s:%d %s ERROR in writing counter value for counter idx %d, err %d",
+        __func__, __LINE__, tableInfoGet()->nameGet().c_str(), counter_id,
+        status);
+    return status;
+  }
+
+  return status;
+}
 
 tdi_status_t CounterIndirect::entryGet(const tdi::Session &session,
                                        const tdi::Target &dev_tgt,
