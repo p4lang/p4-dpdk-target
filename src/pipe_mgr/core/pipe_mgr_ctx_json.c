@@ -41,15 +41,10 @@
 
 char *trim_classifier_str(char *str) {
 	char *temp_p = NULL;
-	if (!strncmp(str, NOACTION_STR, strlen(NOACTION_STR))) {
-		temp_p = str;
-		return temp_p;
-	}
-	while (*++str) {
-		if (*str == '.') {
-			temp_p = str + 1;
-		}
-	}
+
+	temp_p = strrchr(str, '.');
+	temp_p = temp_p? (temp_p + 1) : str;
+
 	return temp_p;
 }
 

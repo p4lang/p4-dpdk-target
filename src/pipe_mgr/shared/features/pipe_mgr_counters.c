@@ -24,6 +24,7 @@
 #include "pipe_mgr_counters.h"
 #include "../dal/dal_counters.h"
 #include "../../shared/pipe_mgr_shared_intf.h"
+#include "../../core/pipe_mgr_ctx_json.h"
 
 /*!
  * fetch counter id from global counter pool.
@@ -210,8 +211,7 @@ bf_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
 		goto error;
 
 	/* extract table name which is used as a key in hash map */
-	ptr = strrchr(table_name, '.');
-	ptr = ptr ? (ptr + 1) : table_name;
+	ptr = trim_classifier_str((char*)table_name);
 	strncpy(key_name, ptr, P4_SDE_TABLE_NAME_LEN-1);
 
 	externs_entry = bf_hashtbl_search(ctx_obj->bf_externs_htbl, key_name);
@@ -319,8 +319,7 @@ bf_status_t pipe_mgr_stat_ent_set(pipe_sess_hdl_t sess_hdl,
 		goto error;
 
 	/* extract table name which is used as a key in hash map */
-	ptr = strrchr(table_name, '.');
-	ptr = ptr ? (ptr + 1) : table_name;
+	ptr = trim_classifier_str((char*)table_name);
 	strncpy(key_name, ptr, P4_SDE_TABLE_NAME_LEN - 1);
 
 	externs_entry = bf_hashtbl_search(ctx_obj->bf_externs_htbl, key_name);
