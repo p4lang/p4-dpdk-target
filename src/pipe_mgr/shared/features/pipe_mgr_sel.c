@@ -442,7 +442,7 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 	 */
         cleanup_map = false;
 cleanup_map_add:
-	if (cleanup_map == true ) {
+	if (entry && cleanup_map == true ) {
 		P4_SDE_FREE(entry->mbrs);
 		entry->mbrs = NULL;
 	}

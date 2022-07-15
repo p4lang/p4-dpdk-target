@@ -5199,7 +5199,7 @@ tdi_status_t Selector::keyReset(TableKey *key) const {
 
 tdi_status_t Selector::dataAllocate(
     std::unique_ptr<tdi::TableData> *data_ret) const {
-  const std::vector<tdi_id_t> fields{};
+  const std::vector<tdi_id_t> fields;
   *data_ret =
       std::unique_ptr<tdi::TableData>(new SelectorTableData(this, fields));
   if (*data_ret == nullptr) {
