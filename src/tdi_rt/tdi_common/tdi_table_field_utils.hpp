@@ -40,7 +40,7 @@ class TableFieldUtils {
       const tdi::KeyFieldValue *field_value,
       const tdi::Table *table) {
     *key_field = table->tableInfoGet()->keyFieldGet(field_id);
-    if (!key_field) {
+    if (!(*key_field)) {
       LOG_ERROR("%s:%d %s Unable to find key for key field_id %d, ",
                 __func__,
                 __LINE__,
