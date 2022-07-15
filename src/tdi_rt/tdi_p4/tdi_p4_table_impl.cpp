@@ -4666,6 +4666,7 @@ tdi_status_t Selector::entryDel(const tdi::Session &session,
               __LINE__,
               tableInfoGet()->nameGet().c_str(),
               status);
+    return status;
   }
   status = pipeMgr->pipeMgrSelGrpDel(
       session.handleGet(
@@ -4756,6 +4757,7 @@ tdi_status_t Selector::entryGet_internal(
               __LINE__,
               tableInfoGet()->nameGet().c_str(),
               status);
+    return status;
   }
 
   // Get the max size configured for the group
