@@ -173,6 +173,7 @@ typedef uint32_t bf_dev_flags_t;
 #define P4_SDE_MAX_SESSIONS 16
 #define P4_SDE_NAME_SUFFIX 16
 #define P4_SDE_ARCH_NAME_LEN 4
+#define P4_SDE_COUNTER_TARGET_LEN (P4_SDE_TABLE_NAME_LEN + 8)
 
 #define MAC_FORMAT "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx"
 #define MAC_FORMAT_VALUE(var) \
