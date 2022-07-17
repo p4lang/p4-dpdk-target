@@ -89,9 +89,9 @@ pipe_mgr_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt,
  */
 bf_status_t
 pipe_mgr_cnt_mod_assignable_counter_set(bf_dev_target_t dev_tgt,
-				        const char *name,
-					int id,
-					uint64_t value);
+                                        const char *name,
+                                        int id,
+                                        void *stats);
 
 /*!
  * Clears the flow counter pair (pkts and bytes).
