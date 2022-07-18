@@ -22,14 +22,30 @@
 #include "../../core/pipe_mgr_log.h"
 #include "../pipe_mgr_shared_intf.h"
 
-/* TODO: Update this function to return object of all
- * table type as opaque void * pointer.
+#define GET_TABLE(cur_tbl, tbl) \
+	do { \
+		while (cur_tbl) { \
+			if (cur_tbl->ctx.handle == tbl_hdl) { \
+				*tbl = cur_tbl; \
+				return BF_SUCCESS; \
+			} \
+			cur_tbl = cur_tbl->next; \
+		} \
+	} while (0); \
+
+/* API to get all the table pointers.
+ * @param dev_tgt device target
+ * @param tbl_hdl table handle
+ * @param tbl_type type of table for which pointer to be filled
+ * @param tbl is the pointer to be filled for table
+ * return API return status
  */
-int pipe_mgr_ctx_get_tbl(struct bf_dev_target_t dev_tgt,
-			 u32 tbl_hdl,
-			 struct pipe_mgr_mat **tbl)
+int
+pipe_mgr_ctx_get_table(struct bf_dev_target_t dev_tgt,
+		       u32 tbl_hdl,
+		       enum pipe_mgr_table_type tbl_type,
+		       void **tbl)
 {
-	struct pipe_mgr_mat *cur_tbl;
 	struct pipe_mgr_p4_pipeline *ctx_obj;
 	int status;
 
@@ -37,13 +53,25 @@ int pipe_mgr_ctx_get_tbl(struct bf_dev_target_t dev_tgt,
 	if (status)
 		return status;
 
-	cur_tbl = ctx_obj->mat_tables;
-	while (cur_tbl) {
-		if (cur_tbl->ctx.handle == tbl_hdl) {
-			*tbl = cur_tbl;
-			return BF_SUCCESS;
-		}
-		cur_tbl = cur_tbl->next;
+	switch (tbl_type) {
+	/* intentional fallthrough */
+	case PIPE_MGR_TABLE_TYPE_MAT:
+	case PIPE_MGR_TABLE_TYPE_ADT:
+	case PIPE_MGR_TABLE_TYPE_SEL:
+	{
+		struct pipe_mgr_mat *cur_tbl = ctx_obj->mat_tables;
+		GET_TABLE(cur_tbl, tbl);
+		break;
+	}
+	case PIPE_MGR_TABLE_TYPE_VALUE_LOOKUP:
+	{
+		struct pipe_mgr_value_lookup *cur_tbl = ctx_obj->value_lookup_tables;
+		GET_TABLE(cur_tbl, tbl);
+		break;
+	}
+	default:
+		LOG_ERROR("Invalid table type, table type %d does not exist.", tbl_type);
+		return BF_INVALID_ARG;
 	}
 	return BF_OBJECT_NOT_FOUND;
 }

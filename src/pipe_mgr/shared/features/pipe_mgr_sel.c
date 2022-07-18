@@ -20,6 +20,7 @@
 #include "../../core/pipe_mgr_log.h"
 #include "../infra/pipe_mgr_ctx_util.h"
 #include "../infra/pipe_mgr_tbl.h"
+#include "../infra/pipe_mgr_int.h"
 
 static int pipe_mgr_sel_delete_entry_data(struct pipe_mgr_sel_entry_info *
 		entry)
@@ -97,7 +98,8 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 		return BF_INVALID_ARG;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, sel_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, sel_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  sel_tbl_hdl);
@@ -264,7 +266,8 @@ int pipe_mgr_sel_grp_add(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, sel_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, sel_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  sel_tbl_hdl);
@@ -360,7 +363,8 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, sel_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, sel_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  sel_tbl_hdl);
@@ -368,8 +372,8 @@ int pipe_mgr_sel_grp_mbrs_set(u32 sess_hdl,
 	}
 
 	/* get the ADT table handle*/
-	status = pipe_mgr_ctx_get_tbl(dev_tgt,
-			tbl->ctx.adt_handle, &adt_tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl->ctx.adt_handle,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&adt_tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  sel_tbl_hdl);
@@ -486,7 +490,8 @@ int pipe_mgr_get_first_group_member(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl_hdl);
@@ -566,7 +571,8 @@ int pipe_mgr_get_sel_grp_mbr_count(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl_hdl);
@@ -648,7 +654,8 @@ int pipe_mgr_sel_grp_mbrs_get(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl_hdl);
@@ -734,7 +741,8 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_SEL, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl_hdl);
@@ -742,8 +750,8 @@ int pipe_mgr_sel_grp_del(u32 sess_hdl,
 	}
 
 	/* get the ADT table handle*/
-	status = pipe_mgr_ctx_get_tbl(dev_tgt,
-			tbl->ctx.adt_handle, &adt_tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl->ctx.adt_handle,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&adt_tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl->ctx.adt_handle);

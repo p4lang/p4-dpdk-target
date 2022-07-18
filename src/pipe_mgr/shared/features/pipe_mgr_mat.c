@@ -20,6 +20,7 @@
 #include "../../core/pipe_mgr_log.h"
 #include "../infra/pipe_mgr_ctx_util.h"
 #include "../infra/pipe_mgr_tbl.h"
+#include "../infra/pipe_mgr_int.h"
 #include "pipe_mgr_counters.h"
 
 void pipe_mgr_delete_act_data_spec(struct pipe_action_spec *ads)
@@ -247,7 +248,8 @@ int pipe_mgr_match_spec_to_ent_hdl
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_TRACE("Exiting %s", __func__);
 		goto epilogue;
@@ -259,11 +261,11 @@ int pipe_mgr_match_spec_to_ent_hdl
 		goto epilogue;
 	}
 
-	status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
-					     dev_tgt.dev_pipe_id,
-					     &exists, ent_hdl_p, NULL);
+	status = pipe_mgr_table_key_exists((void *)tbl, PIPE_MGR_TABLE_TYPE_MAT,
+					   match_spec, dev_tgt.dev_pipe_id,
+					   &exists, ent_hdl_p, NULL);
 	if (status) {
-		LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
+		LOG_ERROR("pipe_mgr_table_key_exists failed");
 		goto epilogue;
 	}
 
@@ -308,7 +310,8 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  mat_tbl_hdl);
@@ -321,13 +324,14 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 		goto cleanup;
 	}
 
-	status = pipe_mgr_mat_tbl_get(tbl, dev_tgt.dev_pipe_id, entry_hdl,
-				      &entry);
+	status = pipe_mgr_table_get(tbl, PIPE_MGR_TABLE_TYPE_MAT,
+				    dev_tgt.dev_pipe_id, entry_hdl,
+				    (void **)&entry);
 	if (status) {
 		LOG_ERROR("Failed to retrieve entry for hdl: %d", entry_hdl);
 		goto cleanup;
-
 	}
+
 	status = pipe_mgr_mat_unpack_entry_data(dev_tgt, match_spec,
 			act_fn_hdl, act_data_spec,
 			entry_hdl, tbl, entry);
@@ -373,7 +377,8 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  mat_tbl_hdl);
@@ -381,18 +386,17 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
-						     dev_tgt.dev_pipe_id,
-						     &exists, ent_hdl_p,
-						     NULL);
+		status = pipe_mgr_table_key_exists((void *)tbl, PIPE_MGR_TABLE_TYPE_MAT,
+						   match_spec, dev_tgt.dev_pipe_id,
+						   &exists, ent_hdl_p,
+						   NULL);
 		if (status) {
-			LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
+			LOG_ERROR("pipe_mgr_table_key_exists failed");
 			goto cleanup;
 		}
 
 		if (exists) {
-			LOG_ERROR("duplicate entry found in table = %s",
-					tbl->ctx.name);
+			LOG_ERROR("duplicate entry found in table = %s", tbl->ctx.name);
 			status = BF_UNEXPECTED;
 			goto cleanup;
 		}
@@ -417,10 +421,9 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_key_insert(dev_tgt,
-				tbl,
-				entry,
-				ent_hdl_p);
+		status = pipe_mgr_table_key_insert(dev_tgt, (void *)tbl,
+						   PIPE_MGR_TABLE_TYPE_MAT,
+						   (void *)entry, ent_hdl_p);
 		if (status) {
 			LOG_ERROR("Error in inserting entry in table");
 			goto cleanup_entry;
@@ -469,7 +472,8 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  mat_tbl_hdl);
@@ -477,12 +481,12 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_key_exists(tbl, match_spec,
-						     dev_tgt.dev_pipe_id,
-						     &exists, &mat_ent_hdl,
-						     &entry);
+		status = pipe_mgr_table_key_exists((void *)tbl, PIPE_MGR_TABLE_TYPE_MAT,
+						   match_spec, dev_tgt.dev_pipe_id,
+						   &exists, &mat_ent_hdl,
+						   (void **)&entry);
 		if (status) {
-			LOG_ERROR("pipe_mgr_mat_tbl_key_exists failed");
+			LOG_ERROR("pipe_mgr_table_key_exists failed");
 			goto cleanup;
 		}
 
@@ -504,9 +508,10 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_key_delete(dev_tgt,
-						     tbl,
-						     match_spec);
+		status = pipe_mgr_table_key_delete(dev_tgt,
+						   (void *)tbl,
+						   PIPE_MGR_TABLE_TYPE_MAT,
+						   match_spec);
 		if (status) {
 			LOG_ERROR("table entry del failed");
 			goto cleanup;
@@ -545,7 +550,8 @@ int pipe_mgr_get_first_entry_handle(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  mat_tbl_hdl);
@@ -553,8 +559,9 @@ int pipe_mgr_get_first_entry_handle(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_get_first(tbl, dev_tgt.dev_pipe_id,
-						    entry_handle);
+		status = pipe_mgr_table_get_first((void *)tbl, PIPE_MGR_TABLE_TYPE_MAT,
+						  dev_tgt.dev_pipe_id,
+						  entry_handle);
 	} else {
 		LOG_ERROR("Not supported. Entries are not stored in SDE");
 		status = BF_NOT_SUPPORTED;
@@ -592,7 +599,8 @@ int pipe_mgr_get_next_entry_handles(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  mat_tbl_hdl);
@@ -600,9 +608,10 @@ int pipe_mgr_get_next_entry_handles(u32 sess_hdl,
 	}
 
 	if (tbl->ctx.store_entries) {
-		status = pipe_mgr_mat_tbl_get_next_n(tbl, dev_tgt.dev_pipe_id,
-						     entry_handle, n,
-						     next_entry_handles);
+		status = pipe_mgr_table_get_next_n((void *)tbl, PIPE_MGR_TABLE_TYPE_MAT,
+						   dev_tgt.dev_pipe_id,
+						   entry_handle, n,
+						   next_entry_handles);
 	} else {
 		LOG_ERROR("Not supported. Entries are not stored in SDE");
 		next_entry_handles[0] = -1;
@@ -636,7 +645,8 @@ int pipe_mgr_store_entries(u32 sess_hdl,  u32 mat_tbl_hdl,
                 return false;
         }
 
-        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
         if (status) {
                 LOG_ERROR("Retrieving context json object for table %d failed",
                           mat_tbl_hdl);
@@ -677,7 +687,8 @@ int pipe_mgr_get_first_entry(u32 sess_hdl,
                 return status;
         }
 
-        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
         if (status) {
                 LOG_ERROR("Retrieving context json object for table %d failed",
                           mat_tbl_hdl);
@@ -726,7 +737,8 @@ int pipe_mgr_get_next_n_by_key(u32 sess_hdl,
                 return status;
         }
 
-        status = pipe_mgr_ctx_get_tbl(dev_tgt, mat_tbl_hdl, &tbl);
+        status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
         if (status) {
                 LOG_ERROR("Retrieving context json object for table %d failed",
                           mat_tbl_hdl);

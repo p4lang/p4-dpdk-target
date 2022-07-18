@@ -20,10 +20,10 @@
 #include "../dal_mat.h"
 #include "../../../core/pipe_mgr_log.h"
 #include <lld_dpdk_lib.h>
-#include <infra/dpdk_infra.h>
 #include "../../infra/pipe_mgr_dbg.h"
 #include "pipe_mgr_dpdk_int.h"
 #include "pipe_mgr_dpdk_ctx_util.h"
+#include "dal_tbl.h"
 
 int dal_table_adt_ent_add(u32 sess_hdl,
 		struct bf_dev_target_t dev_tgt,
@@ -73,9 +73,10 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 			return BF_NO_SPACE;
 		}
 		mat_ctx->stage_table = stage_table;
-		status = dal_dpdk_table_metadata_get(mat_ctx,
-				profile->pipeline_name,
-				mat_ctx->target_table_name, 1);
+		status = dal_dpdk_table_metadata_get((void *)mat_ctx,
+						     PIPE_MGR_TABLE_TYPE_ADT,
+						     profile->pipeline_name,
+						     mat_ctx->target_table_name);
 		if (status) {
 			LOG_ERROR("not able get table metadata for table %s",
 					mat_ctx->name);
@@ -101,8 +102,8 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 		return BF_OBJECT_NOT_FOUND;
 	}
 
-	status = table_entry_alloc(&entry, stage_table->table_meta,
-			(int) PIPE_MGR_MATCH_TYPE_EXACT);
+	status = dal_dpdk_table_entry_alloc(&entry, stage_table->table_meta,
+					    (int) PIPE_MGR_MATCH_TYPE_EXACT);
 	if (status) {
 		LOG_ERROR("dpdk table entry alloc failed");
 		return BF_NO_SPACE;
@@ -181,8 +182,8 @@ int dal_table_adt_ent_del
 		return BF_OBJECT_NOT_FOUND;
 	}
 
-	status = table_entry_alloc(&entry, stage_table->table_meta,
-			(int) PIPE_MGR_MATCH_TYPE_EXACT);
+	status = dal_dpdk_table_entry_alloc(&entry, stage_table->table_meta,
+					    (int) PIPE_MGR_MATCH_TYPE_EXACT);
 	if (status) {
 		LOG_ERROR("dpdk table entry alloc failed");
 		return BF_NO_SPACE;

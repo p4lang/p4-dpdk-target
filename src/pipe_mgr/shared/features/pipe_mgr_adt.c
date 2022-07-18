@@ -20,6 +20,7 @@
 #include "../../core/pipe_mgr_log.h"
 #include "../infra/pipe_mgr_ctx_util.h"
 #include "../infra/pipe_mgr_tbl.h"
+#include "../infra/pipe_mgr_int.h"
 
 static void pipe_mgr_adt_delete_entry_data(
 		struct pipe_mgr_adt_entry_info *entry)
@@ -88,7 +89,8 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
 		return BF_INVALID_ARG;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, adt_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  adt_tbl_hdl);
@@ -307,7 +309,8 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, adt_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  adt_tbl_hdl);
@@ -441,7 +444,8 @@ int pipe_mgr_adt_member_reference_add_delete(struct bf_dev_target_t dev_tgt,
 
 	LOG_TRACE("Entering %s", __func__);
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, adt_tbl_hdl, &adt_tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&adt_tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  adt_tbl_hdl);
@@ -496,7 +500,8 @@ int pipe_mgr_get_action_data_entry(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  tbl_hdl);
@@ -580,7 +585,8 @@ int pipe_mgr_adt_ent_del(u32 sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_ctx_get_tbl(dev_tgt, adt_tbl_hdl, &tbl);
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
 	if (status) {
 		LOG_ERROR("Retrieving context json object for table %d failed",
 			  adt_tbl_hdl);
