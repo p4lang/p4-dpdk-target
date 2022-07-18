@@ -31,6 +31,11 @@
 
 #define PIPE_MGR_DPDK_STR_SIZE 1024
 
+enum pipe_mgr_dpdk_resource_id {
+	PIPE_MGR_DPDK_RES_MIR_SESSION = 0,
+	PIPE_MGR_DPDK_RES_INVALID
+};
+
 struct pipe_mgr_dpdk_immediate_fields {
 	char    param_name[P4_SDE_NAME_LEN];
 	char    param_type[P4_SDE_NAME_LEN];
@@ -42,6 +47,7 @@ struct pipe_mgr_dpdk_immediate_fields {
 
 struct  pipe_mgr_dpdk_action_format {
 	char    action_name[P4_SDE_NAME_LEN];
+	char    target_action_name[P4_SDE_NAME_LEN];
 	uint32_t    action_handle;
 	int     immediate_fields_count;
 	struct pipe_mgr_dpdk_immediate_fields *immediate_field;
@@ -65,19 +71,21 @@ struct dal_dpdk_table_metadata {
 	uint32_t action_data_size;
 };
 
+struct dal_dpdk_value_lookup_metadata {
+	struct pipeline *pipe;
+};
+
 struct pipe_mgr_dpdk_stage_table {
 	int     action_format_count;
 	struct  pipe_mgr_dpdk_action_format *act_fmt;
+	char resource[P4_SDE_NAME_LEN];
+	enum pipe_mgr_dpdk_resource_id resource_id;
+	int     immediate_fields_count;
+	struct pipe_mgr_dpdk_immediate_fields *immediate_field;
 	/* dpdk table metadata to store table info */
 	struct dal_dpdk_table_metadata *table_meta;
+	struct dal_dpdk_value_lookup_metadata *val_lookup_meta;
 	struct pipe_mgr_dpdk_stage_table *next;
 };
 
-
-int dal_dpdk_table_metadata_get(struct pipe_mgr_mat_ctx *mat_ctx,
-		char *pipeline_name, char *table_name, bool adt_table);
-
-int table_entry_alloc(struct rte_swx_table_entry **ent,
-		struct dal_dpdk_table_metadata *meta,
-		int match_type);
 #endif

@@ -1442,11 +1442,12 @@ std::unique_ptr<BfRtTableObj> BfRtInfoImpl::parseTable(
                                table_name,
                                table_size,
                                table_hdl);
-  bfrtTable->setIsTernaryTable(dev_id);
-
   if (bfrtTable == nullptr) {
     return nullptr;
   }
+
+  bfrtTable->setIsTernaryTable(dev_id);
+
   // Add refs of the table
   for (const auto &refname : indirect_refname_list) {
     // get json object *_table_refs from the table

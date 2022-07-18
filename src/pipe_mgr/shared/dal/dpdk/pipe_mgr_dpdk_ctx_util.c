@@ -298,3 +298,37 @@ int pipe_mgr_ctx_dpdk_get_act_fmt(
 	}
 	return BF_OBJECT_NOT_FOUND;
 }
+
+int pipe_mgr_dpdk_encode_param_from_data_spec(struct pipe_mgr_dpdk_immediate_fields *immediate_field,
+					      struct pipe_data_spec *data_spec,
+					      u8 **param_ptr,
+					      u16 *num_bytes)
+{
+	uint32_t dest_start = immediate_field->dest_start;
+
+	*num_bytes = (immediate_field->dest_width >> 3) +
+		(immediate_field->dest_width % 8 > 0);
+	if (data_spec->num_data_bytes < *num_bytes)
+		return BF_INVALID_ARG;
+
+	*param_ptr = (u8 *) P4_SDE_CALLOC(1, *num_bytes);
+	if (!*param_ptr)
+		return BF_NO_SYS_RESOURCES;
+	memcpy(*param_ptr, &(data_spec->data_bytes[dest_start]), *num_bytes);
+	return BF_SUCCESS;
+}
+
+int pipe_mgr_dpdk_encode_key_from_match_spec(struct pipe_tbl_match_spec *match_spec,
+					     u8 **param_ptr,
+					     u16 *num_bytes)
+{
+	*num_bytes = match_spec->num_valid_match_bits / 8;
+	if (match_spec->num_match_bytes > *num_bytes)
+		return BF_INVALID_ARG;
+
+	*param_ptr = (u8 *) P4_SDE_CALLOC(1, *num_bytes);
+	if (!*param_ptr)
+		return BF_NO_SYS_RESOURCES;
+	memcpy(*param_ptr, match_spec->match_value_bits, *num_bytes);
+	return BF_SUCCESS;
+}

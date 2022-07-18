@@ -154,6 +154,7 @@ int pipe_mgr_set_profile(int dev_id,
 			p4_pipeline->cfg_file,
 			PIPE_MGR_CFG_FILE_LEN - 1);
 		profile->core_id = p4_pipeline->core_id;
+		profile->fast_clone = p4_pipeline->mir_cfg.fast_clone;
 	}
 	if (parsed_pipe_ctx)
 		profile->pipe_ctx = *parsed_pipe_ctx;

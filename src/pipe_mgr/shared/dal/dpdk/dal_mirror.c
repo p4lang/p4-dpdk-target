@@ -26,7 +26,7 @@
 
 #include <rte_swx_ctl.h>
 
-/*!
+/*
  * Set the config params for mirror session.
  *
  * @param id session id for which config to be done.
@@ -59,7 +59,22 @@ dal_mirror_session_set(uint32_t id,
 	return rc;
 }
 
-/*!
+/*
+ * Clear the config params for mirror session.
+ *
+ * @param id session id for which config to be done.
+ * @param p pointer to pipeline info.
+ * @return Status of the API call
+ */
+bf_status_t
+dal_mirror_session_clear(uint32_t id,
+			 void *p)
+{
+	// TODO Currently we do not have any API to reset mirror session.
+	return BF_SUCCESS;
+}
+
+/*
  * Set the config params for mirror profile.
  *
  * @param id profile id for which config to be done.
@@ -71,6 +86,21 @@ bf_status_t
 dal_mirror_profile_set(uint32_t id,
 		       void *params,
 		       int dev_id)
+{
+	LOG_TRACE("STUB:%s\n", __func__);
+	return BF_SUCCESS;
+}
+
+/*
+ * Clear the config params for mirror profile.
+ *
+ * @param id profile id for which config to be done.
+ * @param dev_id device id
+ * @return Status of the API call
+ */
+bf_status_t
+dal_mirror_profile_clear(uint32_t id,
+			 int dev_id)
 {
 	LOG_TRACE("STUB:%s\n", __func__);
 	return BF_SUCCESS;

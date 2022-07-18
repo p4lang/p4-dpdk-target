@@ -284,6 +284,120 @@ cleanup:
 	return rc;
 }
 
+int ctx_json_parse_value_lookup_mat_attr_stage_tables(int dev_id, int prof_id,
+		cJSON *stage_table_list_cjson, void **stage_table,
+		int *stage_table_count, struct pipe_mgr_value_lookup_ctx *val_lookup_ctx)
+{
+	struct pipe_mgr_dpdk_immediate_fields *immediate_field_temp;
+	struct pipe_mgr_dpdk_stage_table *stage_tbl_temp = NULL;
+	cJSON *stage_table_cjson = NULL;
+	int rc = BF_SUCCESS;
+	int resource_id;
+	char *resource;
+	int err = 0;
+
+	CTX_JSON_FOR_EACH(stage_table_cjson,
+			  stage_table_list_cjson) {
+
+		stage_tbl_temp = P4_SDE_CALLOC(1, sizeof(*stage_tbl_temp));
+		if (!stage_tbl_temp) {
+			rc =  BF_NO_SYS_RESOURCES;
+			goto cleanup_stage_table;
+		}
+
+		if (stage_tbl_head)
+			stage_tbl_temp->next = stage_tbl_head;
+		stage_tbl_head = stage_tbl_temp;
+		(*stage_table_count)++;
+
+		err |= bf_cjson_get_string(stage_table_cjson,
+				CTX_JSON_RESOURCE_NAME,
+				&resource);
+
+		err |= bf_cjson_get_int(stage_table_cjson,
+				CTX_JSON_RESOURCE_ID,
+				&resource_id);
+
+		cJSON *immediate_fields_list_cjson = NULL;
+
+		err |= bf_cjson_try_get_object(stage_table_cjson,
+					       CTX_JSON_STAGE_TABLE_IMMEDIATE_FIELDS,
+					       &immediate_fields_list_cjson);
+		if (err) {
+			rc = BF_UNEXPECTED;
+			goto cleanup_stage_table;
+		}
+
+		if (immediate_fields_list_cjson) {
+			cJSON *immediate_field_cjson = NULL;
+
+			CTX_JSON_FOR_EACH(immediate_field_cjson,
+					  immediate_fields_list_cjson) {
+				immediate_field_temp = P4_SDE_CALLOC(1, sizeof(*immediate_field_temp));
+				if (!immediate_field_temp) {
+					rc = BF_NO_SYS_RESOURCES;
+					goto cleanup_immediate_field;
+				}
+
+				rc |= ctx_json_parse_immediate_field_dpdk_json(dev_id, prof_id,
+						immediate_field_cjson,
+						immediate_field_temp);
+				if (rc) {
+					rc = BF_UNEXPECTED;
+					P4_SDE_FREE(immediate_field_temp);
+					goto cleanup_immediate_field;
+				}
+
+				if (stage_tbl_temp->immediate_field)
+					immediate_field_temp->next = stage_tbl_temp->immediate_field;
+				stage_tbl_temp->immediate_field = immediate_field_temp;
+				stage_tbl_temp->immediate_fields_count++;
+			}
+		}
+
+		strncpy(stage_tbl_temp->resource, resource, P4_SDE_NAME_LEN - 1);
+		switch (resource_id) {
+			case PIPE_MGR_DPDK_RES_MIR_SESSION:
+				stage_tbl_temp->resource_id = PIPE_MGR_DPDK_RES_MIR_SESSION;
+				break;
+			default:
+				LOG_ERROR("Unexpected resource_id : %d in ctx json", resource_id);
+				rc = BF_UNEXPECTED;
+				goto cleanup_immediate_field;
+		}
+
+		/* Indirect tables don't have stage tables in context json,
+		 * allocate one stage table structure.
+		 * This stage table will be used for storing dpdk table metadata
+		 */
+		if(*stage_table_count == 0) {
+			stage_tbl_head = P4_SDE_CALLOC(1, sizeof(*stage_tbl_temp));
+			if (!stage_tbl_temp) {
+				rc =  BF_NO_SYS_RESOURCES;
+				goto cleanup_immediate_field;
+			}
+			(*stage_table_count)++;
+		}
+
+		*stage_table = stage_tbl_head;
+		return rc;
+	}
+
+cleanup_immediate_field:
+	stage_tbl_temp = stage_tbl_head;
+	while (stage_tbl_temp) {
+		FREE_LIST(stage_tbl_temp->immediate_field);
+		stage_tbl_temp->immediate_field = NULL;
+		stage_tbl_temp = stage_tbl_temp->next;
+	}
+cleanup_stage_table:
+	FREE_LIST(stage_tbl_head);
+	stage_tbl_head = NULL;
+	(*stage_table_count) = 0;
+
+	return rc;
+}
+
 int dal_ctx_json_parse_global_config(int dev_id, int prof_id,
 		cJSON *root, void **dal_global_config)
 {
@@ -306,6 +420,18 @@ int dal_parse_ctx_json_parse_stage_tables(int dev_id, int prof_id,
 	return ctx_json_parse_mat_mat_attr_stage_tables
 		(dev_id, prof_id, stage_table_list_cjson,
 		 stage_table, stage_table_count, mat_ctx);
+}
+
+int dal_parse_ctx_json_parse_value_lookup_stage_tables
+	(int dev_id, int prof_id,
+	 cJSON *stage_table_list_cjson,
+	 void **stage_table,
+	 int *stage_table_count,
+	 struct pipe_mgr_value_lookup_ctx *val_lookup_ctx)
+{
+	return ctx_json_parse_value_lookup_mat_attr_stage_tables
+		(dev_id, prof_id, stage_table_list_cjson,
+		 stage_table, stage_table_count, val_lookup_ctx);
 }
 
 bool dal_mat_store_state(struct pipe_mgr_mat_ctx *mat_ctx)

@@ -847,6 +847,146 @@ static int alloc_mat_state(int dev_id, struct pipe_mgr_mat_state *mat_state)
 	return BF_SUCCESS;
 }
 
+static int
+ctx_json_parse_value_lookup_match_attribute_json(int dev_id, int prof_id,
+						 cJSON *match_attribute_cjson,
+						 struct pipe_mgr_value_lookup_ctx *val_lookup_ctx)
+{
+	struct pipe_mgr_match_attribute *match_attr;
+	bf_status_t rc = BF_SUCCESS;
+	char *match_type = NULL;
+	int err = 0;
+
+	match_attr = &val_lookup_ctx->match_attr;
+
+	err |= bf_cjson_try_get_string(match_attribute_cjson,
+				       CTX_JSON_MATCH_ATTRIBUTES_MATCH_TYPE,
+				       &match_type);
+	if (err)
+		return BF_UNEXPECTED;
+	if (match_type)
+		match_attr->match_type = get_match_type_enum(match_type);
+
+	cJSON *stage_table_cjson = NULL;
+
+	err |= bf_cjson_get_object(match_attribute_cjson,
+				   CTX_JSON_MATCH_ATTRIBUTES_STAGE_TABLES,
+				   &stage_table_cjson);
+	if (err)
+		return BF_UNEXPECTED;
+
+	rc |= dal_parse_ctx_json_parse_value_lookup_stage_tables
+		(dev_id, prof_id, stage_table_cjson,
+		 &match_attr->stage_table,
+		 &match_attr->stage_table_count,
+		 val_lookup_ctx);
+	if (rc)
+		return BF_UNEXPECTED;
+
+	return rc;
+}
+
+static int ctx_json_parse_value_lookup_table_json(int dev_id, int prof_id,
+						  cJSON *table_cjson,
+						  struct pipe_mgr_value_lookup_ctx *val_lookup_ctx)
+{
+	struct pipe_mgr_match_key_fields *key_fields_temp;
+	cJSON *match_attribute_cjson = NULL;
+	cJSON *key_fields_cjson = NULL;
+	cJSON *key_field_cjson = NULL;
+	bf_status_t rc = BF_SUCCESS;
+	char *tgt_tbl_name = NULL;
+	char *tbl_name = NULL;
+	char *name = NULL;
+	int handle = 0;
+	int size = 0;
+	int err = 0;
+
+	err |= bf_cjson_get_handle(dev_id, prof_id,
+				   table_cjson, CTX_JSON_TABLE_HANDLE, &handle);
+	err |= bf_cjson_get_string(table_cjson, CTX_JSON_TABLE_NAME, &name);
+	err |= bf_cjson_try_get_string(table_cjson, CTX_JSON_TARGET_TABLE_NAME,
+				       &tgt_tbl_name);
+	err |= bf_cjson_try_get_int(table_cjson, CTX_JSON_TABLE_SIZE, &size);
+	if (!size)
+		size = PIPE_MGR_TABLE_SIZE_DEFAULT;
+
+	if (err)
+		return BF_UNEXPECTED;
+
+	tbl_name = trim_classifier_str(name);
+	if (!tbl_name) {
+		LOG_ERROR("table %s trim_classifier_str failed", name);
+		return BF_UNEXPECTED;
+	}
+	strncpy(val_lookup_ctx->name, tbl_name, P4_SDE_NAME_LEN - 1);
+	val_lookup_ctx->name[P4_SDE_NAME_LEN - 1] = '\0';
+
+	if (tgt_tbl_name) {
+		tbl_name = trim_classifier_str(tgt_tbl_name);
+		if (!tbl_name) {
+			LOG_ERROR("target_table_name %s trim_str failed", tgt_tbl_name);
+			return BF_UNEXPECTED;
+		}
+		strncpy(val_lookup_ctx->target_table_name, tbl_name, P4_SDE_NAME_LEN - 1);
+		val_lookup_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
+	}
+
+	val_lookup_ctx->handle = handle;
+	val_lookup_ctx->size = size;
+
+	err |= bf_cjson_try_get_object
+		(table_cjson, CTX_JSON_MATCH_TABLE_MATCH_KEY_FIELDS,
+		&key_fields_cjson);
+
+	CTX_JSON_FOR_EACH(key_field_cjson, key_fields_cjson) {
+		key_fields_temp = P4_SDE_CALLOC(1, sizeof(*key_fields_temp));
+		if (!key_fields_temp) {
+			rc = BF_NO_SYS_RESOURCES;
+			goto cleanup_key_fields;
+		}
+
+		rc |= ctx_json_parse_mat_key_fields_json(dev_id, prof_id,
+							 key_field_cjson,
+							 key_fields_temp);
+		if (rc) {
+			rc = BF_UNEXPECTED;
+			P4_SDE_FREE(key_fields_temp);
+			goto cleanup_key_fields;
+		}
+
+		if (val_lookup_ctx->key_fields)
+			key_fields_temp->next = val_lookup_ctx->key_fields;
+		val_lookup_ctx->key_fields = key_fields_temp;
+		val_lookup_ctx->key_fields_count++;
+	}
+
+	err |= bf_cjson_try_get_object(table_cjson,
+				       CTX_JSON_MATCH_TABLE_MATCH_ATTRIBUTES,
+				       &match_attribute_cjson);
+
+	if (err) {
+		rc = BF_UNEXPECTED;
+		goto cleanup_key_fields;
+	}
+
+	if (match_attribute_cjson) {
+		rc = ctx_json_parse_value_lookup_match_attribute_json(dev_id, prof_id,
+								      match_attribute_cjson,
+								      val_lookup_ctx);
+		if (rc) {
+			rc = BF_UNEXPECTED;
+			goto cleanup_key_fields;
+		}
+	}
+	val_lookup_ctx->duplicate_entry_check = 1;
+
+cleanup_key_fields:
+	PIPE_MGR_FREE_LIST(val_lookup_ctx->key_fields);
+	val_lookup_ctx->key_fields = NULL;
+	return rc;
+}
+
 /* This funtion can be used to establish the inter table relations.
  */
 static int post_parse_processing
@@ -873,7 +1013,8 @@ static int ctx_json_parse_tables_json
 	    cJSON *root,
 	    struct pipe_mgr_p4_pipeline *ctx)
 {
-	struct pipe_mgr_mat *mat_temp;
+	struct pipe_mgr_value_lookup *value_lookup_temp = NULL;
+	struct pipe_mgr_mat *mat_temp = NULL;
 	int rc = BF_SUCCESS;
 	int err = 0;
 
@@ -931,10 +1072,50 @@ static int ctx_json_parse_tables_json
 				mat_temp->next = ctx->mat_tables;
 			ctx->mat_tables = mat_temp;
 			ctx->num_mat_tables++;
+		} else if (!strcmp(table_type, CTX_JSON_TABLE_TYPE_VALUE_LOOKUP)) {
+			value_lookup_temp = P4_SDE_CALLOC(1, sizeof(*value_lookup_temp));
+			if (!value_lookup_temp) {
+				rc = BF_NO_SYS_RESOURCES;
+				goto value_lookup_tbl_cleanup;
+			}
+
+			rc |= ctx_json_parse_value_lookup_table_json(dev_id, prof_id,
+								     table_cjson,
+								     &value_lookup_temp->ctx);
+			if (rc) {
+				rc = BF_UNEXPECTED;
+				goto value_lookup_tbl_cleanup;
+			}
+
+			value_lookup_temp->ctx.store_entries = true;
+			if (value_lookup_temp->ctx.store_entries) {
+				value_lookup_temp->state =
+					P4_SDE_CALLOC(1, sizeof(*value_lookup_temp->state));
+				if (!value_lookup_temp->state) {
+					rc = BF_NO_SYS_RESOURCES;
+					goto value_lookup_tbl_cleanup;
+				}
+				rc = alloc_mat_state(dev_id, value_lookup_temp->state);
+				if (rc)
+					goto value_lookup_tbl_cleanup;
+			}
+
+			if (ctx->value_lookup_tables)
+				value_lookup_temp->next = ctx->value_lookup_tables;
+			ctx->value_lookup_tables = value_lookup_temp;
+			ctx->num_value_lookup_tables++;
 		}
 	}
 	return rc;
 
+value_lookup_tbl_cleanup:
+	/* Free the node that is not in the list. */
+	if (value_lookup_temp && value_lookup_temp->state) {
+		pipe_mgr_free_mat_state(value_lookup_temp->state);
+		P4_SDE_FREE(value_lookup_temp);
+	} else if (value_lookup_temp) {
+		P4_SDE_FREE(value_lookup_temp);
+	}
 mat_tbl_cleanup:
 	/* Free the node that is not in the list. */
 	if (mat_temp && mat_temp->state) {

@@ -32,6 +32,7 @@
 #include <bf_types/bf_types.h>
 #include <pipe_mgr/pipe_mgr_err.h>
 #include <pipe_mgr/shared/pipe_mgr_mat.h>
+#include <pipe_mgr/shared/pipe_mgr_value_lookup.h>
 
 /* Allow the use in C++ code.  */
 #ifdef __cplusplus
@@ -121,6 +122,8 @@ typedef union pipe_mgr_tbl_prop_args {
 
 #define PIPE_DIR_MAX 2
 
+typedef uint32_t pipe_val_lookup_tbl_hdl_t;
+typedef uint32_t pipe_val_lookup_ent_hdl_t;
 
 typedef void (*pipe_mgr_stat_ent_sync_cback_fn)(bf_dev_id_t device_id,
                                                 void *cookie);
@@ -306,6 +309,11 @@ typedef struct pipe_res_get_data_t {
  * Generalized action specification that encodes all types of action data refs
  */
 typedef struct pipe_action_spec pipe_action_spec_t;
+
+/*!
+ * Generalized data specification that encodes all types of data refs
+ */
+typedef struct pipe_data_spec pipe_data_spec_t;
 
 #define IS_ACTION_SPEC_ACT_DATA(act_spec) \
   ((act_spec)->pipe_action_datatype_bmap & PIPE_ACTION_DATA_TYPE)

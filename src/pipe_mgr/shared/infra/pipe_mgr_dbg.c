@@ -49,3 +49,15 @@ void pipe_mgr_print_action_spec(struct pipe_action_spec *action_spec)
 		printf("%02x", action_spec->act_data.action_data_bits[i]);
 	printf("\n");
 }
+
+void pipe_mgr_print_data_spec(struct pipe_data_spec *data_spec)
+{
+	int i;
+	
+	printf("DataSpec:\n");
+	printf("num_data_bytes:%d\n", data_spec->num_data_bytes);
+	printf("data_bytes: 0x");
+	for (i = 0; i < data_spec->num_data_bytes; i++)
+		printf("%02x", data_spec->data_bytes[i]);
+	printf("\n");
+}

@@ -55,6 +55,13 @@ enum pipe_mgr_match_type {
 	PIPE_MGR_MATCH_TYPE_INVALID
 };
 
+enum pipe_mgr_table_type {
+	PIPE_MGR_TABLE_TYPE_MAT = 0,
+	PIPE_MGR_TABLE_TYPE_ADT,
+	PIPE_MGR_TABLE_TYPE_SEL,
+	PIPE_MGR_TABLE_TYPE_VALUE_LOOKUP,
+};
+
 struct pipe_mgr_sess_ctx {
 	/* To serialize operations within a session and
 	 * protect this structure.
@@ -171,6 +178,12 @@ struct pipe_mgr_sel_entry_info {
 	u32 *mbrs;
 };
 
+struct pipe_mgr_value_lookup_entry_info {
+	u32 mat_ent_hdl;
+	struct pipe_tbl_match_spec *match_spec;
+	struct pipe_data_spec *data_spec;
+};
+
 struct pipe_mgr_mat_ctx {
 	char direction[P4_SDE_NAME_LEN];
 	uint32_t handle;
@@ -264,6 +277,29 @@ struct pipe_mgr_externs {
     struct pipe_mgr_externs *next;
 };
 
+struct pipe_mgr_value_lookup_ctx {
+	uint32_t handle;
+	uint32_t size;
+	char name[P4_SDE_TABLE_NAME_LEN];
+	char target_table_name[P4_SDE_TABLE_NAME_LEN];
+	bool store_entries;
+	bool duplicate_entry_check;
+	struct pipe_mgr_match_key_fields *key_fields;
+	uint32_t key_fields_count;
+	struct pipe_mgr_match_attribute match_attr;
+};
+
+struct pipe_mgr_value_lookup {
+	/* Context json information of the table. */
+	struct pipe_mgr_value_lookup_ctx ctx;
+	/* Run-time table state. State is maintained if
+	 * ctx.store_state is true in the context json.
+	 */
+	struct pipe_mgr_mat_state *state;
+	/* Pointer to the next value lookup table info */
+	struct pipe_mgr_value_lookup *next;
+};
+
 /* Contains pipeline global configs and hook for target specific
  * global configs.
  */
@@ -273,16 +309,13 @@ struct pipe_mgr_global_config {
 	void *dal_global_config;
 };
 
-
 /* This is the mirror profile configuration, parameters for
  * mirror profile configuration are taken from P4runtime.
  */
 struct pipe_mgr_mir_prof {
-#ifndef IS_MEV_ENABLED
 	uint32_t port_id;                /* out port id */
 	uint32_t truncate_length;        /* truncate_length */
 	int fast_clone;                  /* flag to decide fast or slow mirroring. */
-#endif
 };
 
 /* Contains information about P4 pipeline. Stores information from
@@ -308,6 +341,12 @@ struct pipe_mgr_p4_pipeline {
 	 * pipeline.
 	 */
 	bf_hashtable_t *bf_externs_htbl;
+	/* Number of value lookup tables per context json. */
+	int num_value_lookup_tables;
+	/* Array contaning value lookup tables information for this P4
+	 * pipeline.
+	 */
+        struct pipe_mgr_value_lookup *value_lookup_tables;
 	enum pipe_mgr_target target;
 	char arch_name[P4_SDE_ARCH_NAME_LEN];
 };
@@ -319,6 +358,7 @@ struct pipe_mgr_profile {
 
 	int profile_id;
 	int core_id;
+	int fast_clone; /* Mirror Fast/Slow Clone, taken from config file per pipeline */
 
 	char prog_name[P4_SDE_PROG_NAME_LEN];
 	char pipeline_name[P4_SDE_PROG_NAME_LEN];

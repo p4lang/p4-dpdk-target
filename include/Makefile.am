@@ -4,6 +4,7 @@ nobase_libdrivers_include_HEADERS += pipe_mgr/pipe_mgr_err.h
 nobase_libdrivers_include_HEADERS += pipe_mgr/core/pipe_mgr_init.h
 nobase_libdrivers_include_HEADERS += pipe_mgr/shared/pipe_mgr_infra.h
 nobase_libdrivers_include_HEADERS += pipe_mgr/shared/pipe_mgr_mat.h
+nobase_libdrivers_include_HEADERS += pipe_mgr/shared/pipe_mgr_value_lookup.h
 nobase_libdrivers_include_HEADERS += bf_types/bf_types.h
 nobase_libdrivers_include_HEADERS += dvm/bf_drv_intf.h dvm/bf_drv_profile.h dvm/dvm_intf.h
 nobase_libdrivers_include_HEADERS += lld/lld_err.h lld/bf_dev_if.h lld/bf_lld_if.h lld/python_shell_mutex.h
