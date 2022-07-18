@@ -30,6 +30,9 @@ class BfRtMatchActionKey : public BfRtTableKeyObj {
     priority = 0;
   }
 
+  BfRtMatchActionKey(BfRtMatchActionKey const &) = delete;
+  BfRtMatchActionKey &operator=(const BfRtMatchActionKey&) = delete;
+
   ~BfRtMatchActionKey() {
     if (key_array) {
       delete[] key_array;
