@@ -56,6 +56,9 @@ class MatchActionKey : public tdi::TableKey {
     priority = 0;
   }
 
+  MatchActionKey(MatchActionKey const &) = delete;
+  MatchActionKey &operator=(const MatchActionKey&) = delete;
+
   ~MatchActionKey() {
     if (key_array) {
       delete[] key_array;
