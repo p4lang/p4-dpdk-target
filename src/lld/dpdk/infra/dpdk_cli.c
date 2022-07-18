@@ -66,8 +66,9 @@ parser_read_uint64(uint64_t *value, const char *p)
 	if (!isdigit(*p))
 		return -EINVAL;
 
+	errno = 0;
 	val = strtoul(p, &next, 0);
-	if (p == next)
+	if ((p == next) || errno)
 		return -EINVAL;
 
 	p = next;
@@ -3328,6 +3329,9 @@ cli_script_process(const char *file_name,
 	/* Read file */
 	for ( ; ; ) {
 		if (fgets(msg_in, msg_in_len_max + 1, f) == NULL)
+			break;
+
+		if (!msg_in[0])
 			break;
 
 		printf("%s", msg_in);
