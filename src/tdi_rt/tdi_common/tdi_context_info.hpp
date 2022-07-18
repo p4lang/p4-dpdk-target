@@ -349,7 +349,11 @@ class RtTableContextInfo : public TableContextInfo {
 
 class MatchActionTableContextInfo : public RtTableContextInfo {
  public:
-  MatchActionTableContextInfo() : RtTableContextInfo(){};
+  MatchActionTableContextInfo() : RtTableContextInfo() ,
+                                  actProfTbl_(nullptr),
+                                  selectorTbl_(nullptr),
+                                  act_prof_id_(),
+                                  selector_tbl_id_(){};
   pipe_tbl_hdl_t resourceHdlGet(const DataFieldType &field_type) const {
     tdi_table_ref_info_t tbl_ref;
     bf_status_t status = resourceInternalGet(field_type, &tbl_ref);
@@ -438,7 +442,9 @@ class MatchActionIndirectTableContextInfo : public MatchActionTableContextInfo {
 
 class SelectorTableContextInfo : public RtTableContextInfo {
  public:
-  SelectorTableContextInfo() : RtTableContextInfo(){};
+  SelectorTableContextInfo() : RtTableContextInfo(),
+                               actProfTbl_(nullptr),
+                               act_prof_id_(){};
 
  private:
   mutable tdi::Table *actProfTbl_;

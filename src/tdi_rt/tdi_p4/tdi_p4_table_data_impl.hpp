@@ -241,7 +241,10 @@ class PipeActionSpec {
  public:
   PipeActionSpec(const size_t &data_sz,
                  const size_t &data_sz_bits,
-                 const uint8_t &pipe_action_datatype_bmap) {
+                 const uint8_t &pipe_action_datatype_bmap):
+                 counter_spec(),
+                 meter_spec(),
+                 register_spec(){
     std::memset(&action_spec, 0, sizeof(action_spec));
     std::memset(&action_spec.act_data, 0, sizeof(action_spec.act_data));
     if (data_sz) {
