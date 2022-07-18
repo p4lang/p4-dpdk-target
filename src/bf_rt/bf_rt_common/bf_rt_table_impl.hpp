@@ -102,7 +102,8 @@ class BfRtTableObj : public BfRtTable {
         selector_tbl_id(),
         object_name(name),
         object_type(type),
-        table_apis_(table_apis) {}
+        table_apis_(table_apis),
+        bfrt_info_(nullptr){}
 
   static std::unique_ptr<BfRtTableObj> make_table(
       const std::string &prog_name,
