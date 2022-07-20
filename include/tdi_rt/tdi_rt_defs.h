@@ -206,38 +206,42 @@ enum tdi_rt_target_e {
 enum tdi_rt_attributes_type_e {
   /** Pipe scope of all entries. Applicable to all Match Action
        Tables(MAT) */
-  ENTRY_SCOPE = TDI_ATTRIBUTES_FIELD_BEGIN,
+  TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = TDI_ATTRIBUTES_FIELD_BEGIN,
   /** Dynamic key mask on MATs if applicable*/
-  DYNAMIC_KEY_MASK,
+  TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK,
   /** Idle table on MATs if applicable*/
-  IDLE_TABLE_RUNTIME,
+  TDI_RT_ATTRIBUTES_TYPE_IDLE_TABLE_RUNTIME,
+#if 0
   /** Dynamic hash table attribute to set seed. To be deprecated soon */
   DYNAMIC_HASH_ALG_SEED,
+#endif
   /** Meter byte count asjust. Applicable to meter
                                tables and MATs if they have direct meters*/
-  METER_BYTE_COUNT_ADJ,
+  TDI_RT_ATTRIBUTES_TYPE_METER_BYTE_COUNT_ADJ,
   /** Port status change cb set attribute. Applicable to Port table */
-  PORT_STATUS_NOTIF,
+  TDI_RT_ATTRIBUTES_TYPE_PORT_STATUS_NOTIF,
   /** Port stat poll interval set. Applicable to port stats table*/
-  PORT_STAT_POLL_INTVL_MS,
+  TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS,
   /** PRE device config. Applicable to PRE tables*/
-  PRE_DEVICE_CONFIG,
+  TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG,
   /** Selector update CB*/
-  SELECTOR_UPDATE_CALLBACK
+  TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK
 };
+//typedef tdi_rt_attributes_type_e tdi_rt_attributes_type_e;
 
-enum class tdi_rt_operations_type_e {
+enum tdi_rt_operations_type_e {
   /** Update sw value of all counters with the value in hw.
      Applicable on Counters or MATs with direct counters */
-  COUNTER_SYNC = TDI_OPERATIONS_TYPE_DEVICE,
+  TDI_RT_OPERATIONS_TYPE_COUNTER_SYNC = TDI_OPERATIONS_TYPE_DEVICE,
   /** Update sw value of all registers with the value in hw.
      Applicable on Registers or MATs with direct registers */
-  REGISTER_SYNC = 1,
+  TDI_RT_OPERATIONS_TYPE_REGISTER_SYNC = 1,
   /** Update sw value of all hit state o entries with the actual
      hw status. Applicable MATs with idletimeout POLL mode*/
-  HIT_STATUS_UPDATE = 2,
+  TDI_RT_OPERATIONS_TYPE_HIT_STATUS_UPDATE = 2,
   INVALID = 3
 };
+//typedef tdi_rt_operations_type_e tdi_rt_operations_type_e
 
 #ifdef __cplusplus
 }
