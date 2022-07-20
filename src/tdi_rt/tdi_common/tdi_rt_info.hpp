@@ -50,6 +50,27 @@ namespace rt {}  // namespace rt
 }  // namespace tdi_json
 
 namespace {
+const std::map<std::string, tdi_rt_attributes_type_e> rt_attributes_type_map =
+    {
+        {"EntryScope", TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE},
+        {"DynamicKeyMask", TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK},
+        {"IdleTimeout", TDI_RT_ATTRIBUTES_TYPE_IDLE_TABLE_RUNTIME},
+        {"MeterByteCountAdjust", TDI_RT_ATTRIBUTES_TYPE_METER_BYTE_COUNT_ADJ},
+        {"port_status_notif_cb", TDI_RT_ATTRIBUTES_TYPE_PORT_STATUS_NOTIF},
+        {"poll_intvl_ms", TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS},
+        {"pre_device_config", TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG},
+        {"SelectorUpdateCb", TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK},
+};
+const std::map<std::string, tdi_rt_operations_type_e> rt_operations_type_map =
+    {
+      {"SyncCounters", TDI_RT_OPERATIONS_TYPE_COUNTER_SYNC},
+      {"SyncRegisters", TDI_RT_OPERATIONS_TYPE_REGISTER_SYNC},
+      {"UpdateHitState", TDI_RT_OPERATIONS_TYPE_HIT_STATUS_UPDATE},
+#if 0
+      {"Sync", TDI_RT_OPERATIONS_TYPE_SYNC},
+#endif
+};
+
 const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"MatchAction_Direct", TDI_RT_TABLE_TYPE_MATCH_DIRECT},
     {"MatchAction_Indirect", TDI_RT_TABLE_TYPE_MATCH_INDIRECT},
@@ -76,6 +97,14 @@ class TdiInfoMapper : public tdi::pna::TdiInfoMapper {
     // table types
     for (const auto &kv: rt_table_type_map) {
       tableEnumMapAdd(kv.first, static_cast<tdi_table_type_e>(kv.second));
+    }
+    for (const auto &kv : rt_attributes_type_map) {
+      attributesEnumMapAdd(kv.first,
+                           static_cast<tdi_attributes_type_e>(kv.second));
+    }
+    for (const auto &kv : rt_operations_type_map) {
+      operationsEnumMapAdd(kv.first,
+                           static_cast<tdi_operations_type_e>(kv.second));
     }
   }
 };

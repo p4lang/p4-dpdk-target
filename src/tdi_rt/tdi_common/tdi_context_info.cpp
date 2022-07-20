@@ -1083,7 +1083,7 @@ tdi_status_t ContextInfoParser::setGhostTableHandles(Cjson &table_context,
       // Currently we support only entry scope table attribute to be set on
       // resource tables
       // Set the entry scope supported flag
-      res_table_context_info->attributes_type_set_.insert(ENTRY_SCOPE);
+      res_table_context_info->attributes_type_set_.insert(TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE);
     }
   }
   return BF_SUCCESS;
