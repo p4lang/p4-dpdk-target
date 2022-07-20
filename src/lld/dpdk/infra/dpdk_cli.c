@@ -71,6 +71,9 @@ parser_read_uint64(uint64_t *value, const char *p)
 	if ((p == next) || errno)
 		return -EINVAL;
 
+	if (val > UINT64_MAX)
+		return -ERANGE;
+
 	p = next;
 	switch (*p) {
 	case 'T':
