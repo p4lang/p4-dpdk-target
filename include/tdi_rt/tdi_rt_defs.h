@@ -239,7 +239,9 @@ enum tdi_rt_operations_type_e {
   /** Update sw value of all hit state o entries with the actual
      hw status. Applicable MATs with idletimeout POLL mode*/
   TDI_RT_OPERATIONS_TYPE_HIT_STATUS_UPDATE = 2,
-  INVALID = 3
+  /** Update sw value of all resources with the value in hw.
+     Applicable on Counters or Registers */
+  TDI_RT_OPERATIONS_TYPE_SYNC = 3
 };
 //typedef tdi_rt_operations_type_e tdi_rt_operations_type_e
 
