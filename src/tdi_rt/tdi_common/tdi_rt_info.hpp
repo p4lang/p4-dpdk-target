@@ -66,9 +66,7 @@ const std::map<std::string, tdi_rt_operations_type_e> rt_operations_type_map =
       {"SyncCounters", TDI_RT_OPERATIONS_TYPE_COUNTER_SYNC},
       {"SyncRegisters", TDI_RT_OPERATIONS_TYPE_REGISTER_SYNC},
       {"UpdateHitState", TDI_RT_OPERATIONS_TYPE_HIT_STATUS_UPDATE},
-#if 0
       {"Sync", TDI_RT_OPERATIONS_TYPE_SYNC},
-#endif
 };
 
 const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
