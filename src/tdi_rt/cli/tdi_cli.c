@@ -49,7 +49,7 @@ static int tdi_start_cli(int in_fd,
 
   PyConfig_InitPythonConfig(&config);
 
-  swprintf(cfg_home_path, 255, L"%s", install_dir);
+  swprintf(cfg_home_path, 255, L"%0.255s", install_dir);
 
   config.home = cfg_home_path;
 
