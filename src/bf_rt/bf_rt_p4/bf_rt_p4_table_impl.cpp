@@ -6910,6 +6910,8 @@ bf_status_t BfRtPhase0Table::keyReset(BfRtTableKey *key) const {
 bf_status_t BfRtPhase0Table::dataAllocate(
     std::unique_ptr<BfRtTableData> *data_ret) const {
   const auto item = action_info_list.begin();
+  if (item == action_info_list.end())
+	return BF_UNEXPECTED;
   const auto action_id = item->first;
   *data_ret =
       std::unique_ptr<BfRtTableData>(new BfRtPhase0TableData(this, action_id));
@@ -7410,6 +7412,9 @@ bf_status_t BfRtPhase0Table::dataReset(BfRtTableData *data) const {
     return BF_INVALID_ARG;
   }
   const auto item = action_info_list.begin();
+  if (item == action_info_list.end())
+	return BF_UNEXPECTED;
+
   const auto action_id = item->first;
   return data_obj->reset(action_id);
 }
