@@ -26,6 +26,7 @@
 #include "../pipe_mgr_shared_intf.h"
 #include "pipe_mgr_session.h"
 #include "../dal/dal_mat.h"
+#include "../dal/dal_counters.h"
 
 /* Pointer to global pipe_mgr context */
 static struct pipe_mgr_ctx *pipe_mgr_ctx_obj;
@@ -539,11 +540,7 @@ void pipe_mgr_free_mat_table(struct pipe_mgr_p4_pipeline *pipe_ctx)
 
 void pipe_mgr_free_externs_htbl(struct pipe_mgr_p4_pipeline *pipe_ctx)
 {
-	if (pipe_ctx->bf_externs_htbl) {
-		bf_hashtbl_delete(pipe_ctx->bf_externs_htbl);
-		P4_SDE_FREE(pipe_ctx->bf_externs_htbl);
-		pipe_ctx->bf_externs_htbl = NULL;
-	}
+	dal_cnt_free_externs(pipe_ctx);
 }
 
 void pipe_mgr_free_pipe_ctx(struct pipe_mgr_p4_pipeline *pipe_ctx)

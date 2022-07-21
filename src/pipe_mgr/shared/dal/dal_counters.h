@@ -158,4 +158,12 @@ dal_cnt_display_flow_counter_pair(void *stats);
 bf_status_t
 dal_cnt_display_assignable_counter_set(void *stats);
 
+/*!
+ * Free extern objects hash map
+ *
+ * @param pipe_ctx pipe mgr pipline ctx info.
+ * @return Status of the API call
+ */
+bf_status_t
+dal_cnt_free_externs(struct pipe_mgr_p4_pipeline *pipe_ctx);
 #endif /* __DAL_COUNTERS_H__ */

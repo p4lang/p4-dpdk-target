@@ -422,3 +422,20 @@ dal_cnt_display_assignable_counter_set(void *stats)
 	LOG_TRACE("STUB:%s\n", __func__);
 	return BF_SUCCESS;
 }
+
+/*!
+ * Free extern objects hash map
+ *
+ * @param pipe_ctx pipe mgr pipline ctx info.
+ * @return Status of the API call
+ */
+bf_status_t
+dal_cnt_free_externs(struct pipe_mgr_p4_pipeline *pipe_ctx)
+{
+        if (pipe_ctx->bf_externs_htbl) {
+                bf_hashtbl_delete(pipe_ctx->bf_externs_htbl);
+                P4_SDE_FREE(pipe_ctx->bf_externs_htbl);
+                pipe_ctx->bf_externs_htbl = NULL;
+        }
+        return BF_SUCCESS;
+}
