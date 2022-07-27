@@ -2,19 +2,19 @@ This document describes simple test scenario and provides sample commands to run
 
 Versioning              : commit-id
 ==================================================================================================================================================
-p4sde                   : c9dc2f256e5ab3ae0d49adb1faa815abb046a557
-p4c                     : 026de0abf21ad576ab4e290faa94bfda46d51fce
+p4sde                   : 9c532ecb50cb32a49ccfd72cb1cb8ab4f73c69db
+p4c                     : bad00d940a7913d6df671dc4947409982d5f7a84
 ==================================================================================================================================================
 
 artifacts generation steps:
 ============================
 simple_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
 
-p4c-dpdk :  version - 1.2.2.2 (SHA: 026de0abf BUILD: RELEASE)
-artifacts:  bfrt.json, context.json, sample_lpm.spec.spec and p4Info.txt
+p4c-dpdk :  version - 1.2.2.3 (SHA: bad00d940 BUILD: RELEASE)
+artifacts:  tdi.json, context.json, sample_lpm.spec.spec and p4Info.txt
 
 Command to generate artifacts:
-/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/sample_lpm.spec --arch pna --bf-rt-schema ./bf-rt.json --context ./pipe/context.json sample_lpm.p4
+/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/sample_lpm.spec --arch pna --bf-rt-schema ./bf-rt.json --context ./pipe/context.json --tdi tdi.json sample_lpm.p4
 
 Test scenario  :
 ================
@@ -24,9 +24,9 @@ Test scenario  :
 
 BF_RT commands:
 ===============
-bfrt_python
-bfrt.sample_lpm.enable
-pipe = bfrt.sample_lpm.pipe.MainControlImpl
+tdi_python
+tdi.sample_lpm.enable
+pipe = tdi.sample_lpm.pipe.MainControlImpl
 from netaddr import IPAddress
 pipe.ipv4_da_lpm.add_with_next_hop(dstAddr=IPAddress('192.168.2.0'), dstAddr_p_length=24,vport=2)
 pipe.ipv4_da_lpm.get(dstAddr=IPAddress('192.168.2.0'),dstAddr_p_length=24)
