@@ -2,19 +2,19 @@ This document describes simple test scenario and provides sample commands to run
 
 Versioning              : commit-id
 ==================================================================================================================================================
-p4sde                   : c9dc2f256e5ab3ae0d49adb1faa815abb046a557
-p4c                     : 026de0abf21ad576ab4e290faa94bfda46d51fce
+p4sde                   : 9c532ecb50cb32a49ccfd72cb1cb8ab4f73c69db
+p4c                     : bad00d940a7913d6df671dc4947409982d5f7a84
 ==================================================================================================================================================
 
 artifacts generation steps:
 ============================
 simple_l2l3_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
 
-p4c-dpdk :  version - 1.2.2.2 (SHA: 026de0abf BUILD: RELEASE)
-artifacts:  bfrt.json, context.json, simple_l2l3_lpm.spec and p4Info.txt
+p4c-dpdk :  version - 1.2.2.3 (SHA: bad00d940 BUILD: RELEASE)
+artifacts:  tdi.json, context.json, simple_l2l3_lpm.spec and p4Info.txt
 
 Command to generate artifacts:
-/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/simple_l2l3_lpm.spec --arch psa --bf-rt-schema ./bf-rt.json --context ./pipe/context.json simple_l2l3_lpm.p4
+/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/simple_l2l3_lpm.spec --arch psa --bf-rt-schema ./bf-rt.json --context ./pipe/context.json --tdi tdi.json simple_l2l3_lpm.p4
 
 Test scenario  :
 ================
@@ -38,9 +38,9 @@ cd $SDE_INSTALL/bin
 
 BF_RT commands:
 ===============
-bfrt_python
-bfrt.simple_l2l3_lpm.enable
-pipe = bfrt.simple_l2l3_lpm.ip.ingress
+tdi_python
+tdi.simple_l2l3_lpm.enable
+pipe = tdi.simple_l2l3_lpm.ip.ingress
 from netaddr import IPAddress
 pipe.ipv4_lpm.add_with_send(dst_addr=IPAddress('192.168.2.0'),dst_addr_p_length=24, port=1)
 pipe.ipv4_lpm.get(dst_addr=IPAddress('192.168.2.0'),dst_addr_p_length=24)
