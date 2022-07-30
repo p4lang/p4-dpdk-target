@@ -244,6 +244,14 @@ class MatchActionDirect : public tdi::Table {
                                  pipe_tbl_match_spec_t *pipe_match_spec,
                                  tdi::TableData *data) const;
 
+  tdi_status_t entryGetNextNByKey(const tdi::Session &session,
+                                  const tdi::Target &dev_tgt,
+                                  const tdi::Flags &flags,
+				  pipe_tbl_match_spec_t *pipe_match_spec,
+				  uint32_t n,
+				  keyDataPairs *key_data_pairs,
+				  uint32_t *num_returned) const;
+
   // Store information about direct resources applicable per action
   std::map<tdi_id_t, bool> act_uses_dir_meter;
   std::map<tdi_id_t, bool> act_uses_dir_cntr;

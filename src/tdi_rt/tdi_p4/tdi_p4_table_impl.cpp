@@ -1466,9 +1466,12 @@ tdi_status_t MatchActionDirect::entryGetFirst(const tdi::Session &session,
                                               tdi::TableData *data) const {
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
 
+  bool store_entries  = 0;
+  tdi_status_t status = TDI_SUCCESS;
   const Table *table_from_data;
   data->getParent(&table_from_data);
   auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
+  pipe_tbl_match_spec_t pipe_match_spec;
 
   if (table_id_from_data != this->tableInfoGet()->idGet()) {
     LOG_TRACE(
@@ -1490,51 +1493,102 @@ tdi_status_t MatchActionDirect::entryGetFirst(const tdi::Session &session,
   auto table_context_info = static_cast<const RtTableContextInfo *>(
       this->tableInfoGet()->tableContextInfoGet());
 
-  // Get the first entry handle present in pipe-mgr
-  uint32_t first_entry_handle;
-  tdi_status_t status = pipeMgr->pipeMgrGetFirstEntryHandle(
-      session.handleGet(
-          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-      table_context_info->tableHdlGet(),
-      pipe_dev_tgt,
-      &first_entry_handle);
+  status = pipeMgr->pipeMgrStoreEntries(
+		  session.handleGet(
+                  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		  table_context_info->tableHdlGet(),
+		  pipe_dev_tgt,
+		  &store_entries);
 
-  if (status == TDI_OBJECT_NOT_FOUND) {
-    return status;
-  } else if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              status);
+  if (status) {
+	  LOG_ERROR("Checking if entries are stored in SDE failed.");
+	  return status;
   }
 
-  pipe_tbl_match_spec_t pipe_match_spec;
-  std::memset(&pipe_match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+  if (store_entries) {
+     // Get the first entry handle present in pipe-mgr
+     uint32_t first_entry_handle;
+     status = pipeMgr->pipeMgrGetFirstEntryHandle(
+		     session.handleGet(
+                     static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		     table_context_info->tableHdlGet(),
+		     pipe_dev_tgt,
+		     &first_entry_handle);
 
-  match_key->populate_match_spec(&pipe_match_spec);
+     if (status == TDI_OBJECT_NOT_FOUND) {
+	     return status;
+     } else if (status != TDI_SUCCESS) {
+	     LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+			     __func__,
+			     __LINE__,
+			     tableInfoGet()->nameGet().c_str(),
+			     status);
+     }
 
-  status = entryGet_internal(
-      session, dev_tgt, flags, first_entry_handle, &pipe_match_spec, data);
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR in getting first entry, err %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              status);
-  }
-  match_key->populate_key_from_match_spec(pipe_match_spec);
-  // Store ref point for GetNext_n to follow.
-  const tdi::Device *device;
-  status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              pipe_dev_tgt.device_id,
-              status);
-    return TDI_OBJECT_NOT_FOUND;
+     std::memset(&pipe_match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+
+     match_key->populate_match_spec(&pipe_match_spec);
+
+     status = entryGet_internal(
+		     session, dev_tgt, flags, first_entry_handle, &pipe_match_spec, data);
+     if (status != TDI_SUCCESS) {
+	     LOG_TRACE("%s:%d %s ERROR in getting first entry, err %d",
+			     __func__,
+			     __LINE__,
+			     tableInfoGet()->nameGet().c_str(),
+			     status);
+     }
+     match_key->populate_key_from_match_spec(pipe_match_spec);
+     // Store ref point for GetNext_n to follow.
+     const tdi::Device *device;
+     status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
+     if (status != TDI_SUCCESS) {
+	     LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
+			     __func__,
+			     __LINE__,
+			     tableInfoGet()->nameGet().c_str(),
+			     pipe_dev_tgt.device_id,
+			     status);
+	     return TDI_OBJECT_NOT_FOUND;
+     }
+  } else {
+     pipe_act_fn_hdl_t pipe_act_fn_hdl = 0;
+     pipe_action_spec_t *pipe_action_spec = nullptr;
+     MatchActionTableData *match_data =
+	     static_cast<MatchActionTableData *>(data);
+
+     std::memset(&pipe_match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+
+     match_key->populate_match_spec(&pipe_match_spec);
+
+     match_data->resetDerived();
+     pipe_action_spec = match_data->get_pipe_action_spec();
+
+     status = pipeMgr->pipeMgrGetFirstEntry(
+		     session.handleGet(
+                     static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		     table_context_info->tableHdlGet(),
+		     pipe_dev_tgt,
+		     &pipe_match_spec,
+                     pipe_action_spec,
+                     &pipe_act_fn_hdl);
+
+     if (status == TDI_OBJECT_NOT_FOUND) {
+	     return status;
+     } else if (status != TDI_SUCCESS) {
+	     LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+			     __func__,
+			     __LINE__,
+			     tableInfoGet()->nameGet().c_str(),
+			     status);
+     }
+     match_key->populate_key_from_match_spec(pipe_match_spec);
+
+     std::vector<tdi_id_t> dataFields;
+     auto actionInfo = tableInfoGet()->actionGet(std::string("NoAction"));
+     tdi_id_t action_id = actionInfo->idGet();
+     match_data->activeFieldsSet(dataFields);
+     match_data->actionIdSet(action_id);
   }
 
   return status;
@@ -1552,6 +1606,8 @@ tdi_status_t MatchActionDirect::entryGetNextN(
 
   const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
 
+  tdi_status_t status = TDI_SUCCESS;
+  bool store_entries  = 0;
   dev_target_t pipe_dev_tgt;
   auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
   dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
@@ -1564,122 +1620,161 @@ tdi_status_t MatchActionDirect::entryGetNextN(
   pipe_mat_ent_hdl_t pipe_entry_hdl;
   pipe_tbl_match_spec_t pipe_match_spec = {0};
   match_key.populate_match_spec(&pipe_match_spec);
-  tdi_status_t status = pipeMgr->pipeMgrMatchSpecToEntHdl(
-      session.handleGet(
-          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-      pipe_dev_tgt,
-      table_context_info->tableHdlGet(),
-      &pipe_match_spec,
-      &pipe_entry_hdl);
-  // If key is not found and this is subsequent call, API should continue
-  // from previous call.
-  if (status == TDI_OBJECT_NOT_FOUND) {
-    // Warn the user that currently used key no longer exist.
-    LOG_WARN("%s:%d %s Provided key does not exist, trying previous handle",
+
+
+  status = pipeMgr->pipeMgrStoreEntries(
+		  session.handleGet(
+                  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		  table_context_info->tableHdlGet(),
+		  pipe_dev_tgt,
+		  &store_entries);
+  if (status) {
+	  LOG_ERROR("Checking if entries are stored in SDE failed.");
+	  return status;
+  }
+
+  if (store_entries) {
+     	status = pipeMgr->pipeMgrMatchSpecToEntHdl(
+		     session.handleGet(
+		     static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		     pipe_dev_tgt,
+		     table_context_info->tableHdlGet(),
+		     &pipe_match_spec,
+		     &pipe_entry_hdl);
+     // If key is not found and this is subsequent call, API should continue
+     // from previous call.
+     if (status == TDI_OBJECT_NOT_FOUND) {
+	 // Warn the user that currently used key no longer exist.
+        LOG_WARN("%s:%d %s Provided key does not exist, trying previous handle",
              __func__,
              __LINE__,
              tableInfoGet()->nameGet().c_str());
 
-    const tdi::Device *device;
-    status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
-    if (status != TDI_SUCCESS) {
-      LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
-                __func__,
-                __LINE__,
-                tableInfoGet()->nameGet().c_str(),
-                pipe_dev_tgt.device_id,
-                status);
-      return TDI_OBJECT_NOT_FOUND;
-    }
+	const tdi::Device *device;
+	status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
+	if (status != TDI_SUCCESS) {
+		LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
+				__func__,
+				__LINE__,
+				tableInfoGet()->nameGet().c_str(),
+				pipe_dev_tgt.device_id,
+				status);
+		return TDI_OBJECT_NOT_FOUND;
+	}
+     }
 
-  }
+     if (status != TDI_SUCCESS) {
+	     LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
+			     __func__,
+			     __LINE__,
+			     tableInfoGet()->nameGet().c_str());
+	     return status;
+     }
+     std::vector<int> next_entry_handles(n, 0);
 
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str());
-    return status;
-  }
-  std::vector<int> next_entry_handles(n, 0);
+     status = pipeMgr->pipeMgrGetNextEntryHandles(
+		     session.handleGet(
+                     static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		     table_context_info->tableHdlGet(),
+		     pipe_dev_tgt,
+		     pipe_entry_hdl,
+		     n,
+		     reinterpret_cast<uint32_t *>(next_entry_handles.data()));
+     if (status == TDI_OBJECT_NOT_FOUND) {
+	     if (num_returned) {
+		     *num_returned = 0;
+	     }
+	     return TDI_SUCCESS;
+     }
+     if (status != TDI_SUCCESS) {
+	 LOG_TRACE(
+	  "%s:%d %s ERROR in getting next entry handles from pipe-mgr, err %d",
+	  __func__,
+	  __LINE__,
+	  tableInfoGet()->nameGet().c_str(),
+	  status);
+	 return status;
+     }
+     pipe_tbl_match_spec_t match_spec;
+     unsigned i = 0;
+     for (i = 0; i < n; i++) {
+	std::memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+	auto this_key = static_cast<MatchActionKey *>((*key_data_pairs)[i].first);
+	auto this_data = (*key_data_pairs)[i].second;
+	const Table *table_from_data;
+	this_data->getParent(&table_from_data);
+	auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
 
-  status = pipeMgr->pipeMgrGetNextEntryHandles(
-      session.handleGet(
-          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-      table_context_info->tableHdlGet(),
-      pipe_dev_tgt,
-      pipe_entry_hdl,
-      n,
-      reinterpret_cast<uint32_t *>(next_entry_handles.data()));
-  if (status == TDI_OBJECT_NOT_FOUND) {
-    if (num_returned) {
-      *num_returned = 0;
-    }
-    return TDI_SUCCESS;
-  }
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE(
-        "%s:%d %s ERROR in getting next entry handles from pipe-mgr, err %d",
-        __func__,
-        __LINE__,
-        tableInfoGet()->nameGet().c_str(),
-        status);
-    return status;
-  }
-  pipe_tbl_match_spec_t match_spec;
-  unsigned i = 0;
-  for (i = 0; i < n; i++) {
-    std::memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
-    auto this_key = static_cast<MatchActionKey *>((*key_data_pairs)[i].first);
-    auto this_data = (*key_data_pairs)[i].second;
-    const Table *table_from_data;
-    this_data->getParent(&table_from_data);
-    auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
+	if (table_id_from_data != this->tableInfoGet()->idGet()) {
+	   LOG_TRACE(
+	     "%s:%d %s ERROR : Table Data object with object id %d  does not "
+             "match "
+	     "the table",
+	     __func__,
+	     __LINE__,
+	     tableInfoGet()->nameGet().c_str(),
+	     table_id_from_data);
+	   return TDI_INVALID_ARG;
+	}
+	if (next_entry_handles[i] == -1) {
+		break;
+	}
+	this_key->populate_match_spec(&match_spec);
+	status = entryGet_internal(
+			session,
+			dev_tgt,
+			flags,
+			next_entry_handles[i],
+			&match_spec,
+			this_data);
+	if (status != TDI_SUCCESS) {
+	   LOG_TRACE(
+		"%s:%d %s ERROR in getting %dth entry from pipe-mgr, err %d",
+		__func__,
+		__LINE__,
+		tableInfoGet()->nameGet().c_str(),
+		i + 1,
+		status);
+	   // Make the data object null if error
+	   (*key_data_pairs)[i].second = nullptr;
+	}
+	this_key->setPriority(match_spec.priority);
+	this_key->setPartitionIndex(match_spec.partition_index);
+     }
+     const tdi::Device *device;
+     status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
+     if (status != TDI_SUCCESS) {
+	LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
+		__func__,
+		__LINE__,
+		tableInfoGet()->nameGet().c_str(),
+		pipe_dev_tgt.device_id,
+		status);
+	return TDI_OBJECT_NOT_FOUND;
+     }
 
-    if (table_id_from_data != this->tableInfoGet()->idGet()) {
-      LOG_TRACE(
-          "%s:%d %s ERROR : Table Data object with object id %d  does not "
-          "match "
-          "the table",
-          __func__,
-          __LINE__,
-          tableInfoGet()->nameGet().c_str(),
-          table_id_from_data);
-      return TDI_INVALID_ARG;
-    }
-    if (next_entry_handles[i] == -1) {
-      break;
-    }
-    this_key->populate_match_spec(&match_spec);
-    status = entryGet_internal(
-        session, dev_tgt, flags, next_entry_handles[i], &match_spec, this_data);
-    if (status != TDI_SUCCESS) {
-      LOG_TRACE("%s:%d %s ERROR in getting %dth entry from pipe-mgr, err %d",
-                __func__,
-                __LINE__,
-                tableInfoGet()->nameGet().c_str(),
-                i + 1,
-                status);
-      // Make the data object null if error
-      (*key_data_pairs)[i].second = nullptr;
-    }
-    this_key->setPriority(match_spec.priority);
-    this_key->setPartitionIndex(match_spec.partition_index);
-  }
-  const tdi::Device *device;
-  status = DevMgr::getInstance().deviceGet(pipe_dev_tgt.device_id, &device);
-  if (status != TDI_SUCCESS) {
-    LOG_TRACE("%s:%d %s ERROR in getting Device for ID %d, err %d",
-              __func__,
-              __LINE__,
-              tableInfoGet()->nameGet().c_str(),
-              pipe_dev_tgt.device_id,
-              status);
-    return TDI_OBJECT_NOT_FOUND;
-  }
-
-  if (num_returned) {
-    *num_returned = i;
+     if (num_returned) {
+	     *num_returned = i;
+     }
+  } else {
+     uint32_t num = 0;
+     status = entryGetNextNByKey(session,
+                                 dev_tgt,
+  		                 flags,
+ 		                 &pipe_match_spec,
+     		                 n,
+ 		                 key_data_pairs,
+		                 &num);
+     if (status != TDI_SUCCESS) {
+	  LOG_TRACE("%s:%d %s ERROR in getting entries from pipe-mgr, err %d",
+			  __func__,
+			  __LINE__,
+			  tableInfoGet()->nameGet().c_str(),
+			  status);
+     }
+     if (num_returned) {
+	     *num_returned = num;
+     }
   }
   return TDI_SUCCESS;
 }
@@ -2303,6 +2398,83 @@ tdi_status_t MatchActionDirect::entryGet_internal(
   }
   return TDI_SUCCESS;
 }
+
+tdi_status_t MatchActionDirect::entryGetNextNByKey(
+		const tdi::Session &session,
+		const tdi::Target &dev_tgt,
+		const tdi::Flags &flags,
+		pipe_tbl_match_spec_t *pipe_match_spec,
+		uint32_t n,
+		keyDataPairs *key_data_pairs,
+		uint32_t *num_returned) const {
+    tdi_status_t status = TDI_SUCCESS;
+    auto table_context_info = static_cast<const RtTableContextInfo *>(
+		    tableInfoGet()->tableContextInfoGet());
+    auto *pipeMgr    = PipeMgrIntf::getInstance(session);
+    auto match_specs = std::unique_ptr<pipe_tbl_match_spec_t[]>
+    	{ new pipe_tbl_match_spec_t[n] };
+    auto action_specs = std::unique_ptr<struct pipe_action_spec*[]>
+    	{ new struct pipe_action_spec*[n] };
+    auto act_fn_hdls = std::unique_ptr<uint32_t[]>{ new uint32_t[n]};
+    tdi_id_t action_id;
+    unsigned i = 0;
+    dev_target_t pipe_dev_tgt;
+
+    for (i = 0; i < n; i++) {
+	auto this_key =
+		static_cast<MatchActionKey *>((*key_data_pairs)[i].first);
+	auto this_data = (*key_data_pairs)[i].second;
+	this_key->populate_match_spec(&match_specs.get()[i]);
+	MatchActionTableData *match_data =
+		static_cast<MatchActionTableData *>(this_data);
+	match_data->resetDerived();
+	action_specs.get()[i] = match_data->get_pipe_action_spec();
+    }
+
+    auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+    dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+    status = pipeMgr->pipeMgrGetNextNByKey(
+		    session.handleGet(
+		    static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		    table_context_info->tableHdlGet(),
+		    pipe_dev_tgt,
+		    pipe_match_spec,
+		    n,
+		    match_specs.get(),
+		    action_specs.get(),
+		    act_fn_hdls.get(),
+		    num_returned);
+
+    if (status == TDI_OBJECT_NOT_FOUND) {
+	    return status;
+    } else if (status != TDI_SUCCESS) {
+	    LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
+			    __func__,
+			    __LINE__,
+			    tableInfoGet()->nameGet().c_str(),
+			    status);
+	    return status;
+    }
+
+    if (num_returned) {
+	for (i = 0; i < *num_returned; i++) {
+		auto this_data = (*key_data_pairs)[i].second;
+		MatchActionTableData *match_data =
+			static_cast<MatchActionTableData *>(this_data);
+		std::vector<tdi_id_t> dataFields;
+		auto actionInfo =
+			tableInfoGet()->actionGet(std::string("NoAction"));
+		action_id = actionInfo->idGet();
+		match_data->activeFieldsSet(dataFields);
+		match_data->actionIdSet(action_id);
+	}
+	*num_returned = i;
+    }
+
+    return TDI_SUCCESS;
+}
+
 
 // MatchActionIndirect **************
 namespace {
