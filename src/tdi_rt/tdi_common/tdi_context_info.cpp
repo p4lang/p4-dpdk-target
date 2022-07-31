@@ -748,8 +748,13 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
       common_data_field->dataFieldContextInfoSet(
           std::move(data_field_context_info));
     }
-    table_context_info->maxDataSz_ = offset;
-    table_context_info->maxDataSzbits_ = bitsize;
+    // Check for maxDataSz
+    if (table_context_info->maxDataSz_ < offset) {
+	table_context_info->maxDataSz_ = offset;
+    }
+    if (table_context_info->maxDataSzbits_ < bitsize) {
+	table_context_info->maxDataSzbits_ = bitsize;
+    }
   }
 
   // populate_depends_on_refs(bfrtTable.get(), table_bfrt);
