@@ -11,10 +11,10 @@ artifacts generation steps:
 simple_lpm.p4 is compiled using p4c-dpdk compiler and below are p4c-dpdk compiler version and artifacts generated.
 
 p4c-dpdk :  version - 1.2.2.3 (SHA: bad00d940 BUILD: RELEASE)
-artifacts:  tdi.json, context.json, sample_lpm.spec.spec and p4Info.txt
+artifacts:  tdi.json, context.json, simple_lpm.spec and p4Info.txt
 
 Command to generate artifacts:
-/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/sample_lpm.spec --arch pna --bf-rt-schema ./bf-rt.json --context ./pipe/context.json --tdi tdi.json sample_lpm.p4
+/root/p4c/p4c/build/p4c-dpdk -I /root/p4c/p4c/build/p4include --p4v=16 --p4runtime-files ./p4Info.txt -I /root/p4c/p4c/build/p4include/dpdk -o ./pipe/simple_lpm.spec --arch pna --bf-rt-schema ./bf-rt.json --context ./pipe/context.json --tdi tdi.json simple_lpm.p4
 
 Test scenario  :
 ================
@@ -25,8 +25,8 @@ Test scenario  :
 BF_RT commands:
 ===============
 tdi_python
-tdi.sample_lpm.enable
-pipe = tdi.sample_lpm.pipe.MainControlImpl
+tdi.simple_lpm.enable
+pipe = tdi.simple_lpm.pipe.MainControlImpl
 from netaddr import IPAddress
 pipe.ipv4_da_lpm.add_with_next_hop(dstAddr=IPAddress('192.168.2.0'), dstAddr_p_length=24,vport=2)
 pipe.ipv4_da_lpm.get(dstAddr=IPAddress('192.168.2.0'),dstAddr_p_length=24)
