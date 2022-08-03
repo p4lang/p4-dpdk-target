@@ -257,8 +257,8 @@ bit<32> test_version = __p4c_version__;
 
 /************ F I N A L   P A C K A G E ******************************/
 
-IngressPipeline(Ingress_Parser(), ingress(), Ingress_Deparser()) ip;
+IngressPipeline(Ingress_Parser(), ingress(), Ingress_Deparser()) pipe;
 
 EgressPipeline(Egress_Parser(), egress(), Egress_Deparser()) ep;
 
-PSA_Switch(ip, PacketReplicationEngine(), ep, BufferingQueueingEngine()) main;
+PSA_Switch(pipe, PacketReplicationEngine(), ep, BufferingQueueingEngine()) main;
