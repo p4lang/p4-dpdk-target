@@ -1,0 +1,135 @@
+pkg_info {
+  arch: "pna"
+}
+tables {
+  preamble {
+    id: 44499340
+    name: "my_control.fwd"
+    alias: "fwd"
+  }
+  match_fields {
+    id: 1
+    name: "hdrs.ethernet.dstAddr"
+    bitwidth: 48
+    match_type: EXACT
+  }
+  match_fields {
+    id: 2
+    name: "hdrs.ethernet.srcAddr"
+    bitwidth: 48
+    match_type: EXACT
+  }
+  action_refs {
+    id: 23557830
+  }
+  action_refs {
+    id: 18440128
+  }
+  action_refs {
+    id: 21948257
+  }
+  action_refs {
+    id: 21257015
+    annotations: "@defaultonly"
+    scope: DEFAULT_ONLY
+  }
+  size: 1024
+}
+actions {
+  preamble {
+    id: 21257015
+    name: "NoAction"
+    alias: "NoAction"
+    annotations: "@noWarn(\"unused\")"
+  }
+}
+actions {
+  preamble {
+    id: 23557830
+    name: "my_control.drop"
+    alias: "drop"
+  }
+}
+actions {
+  preamble {
+    id: 18440128
+    name: "my_control.send"
+    alias: "send"
+  }
+  params {
+    id: 1
+    name: "port"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+}
+actions {
+  preamble {
+    id: 21948257
+    name: "my_control.mirror_and_send"
+    alias: "mirror_and_send"
+  }
+  params {
+    id: 1
+    name: "port"
+    bitwidth: 32
+    type_name {
+      name: "PortId_t"
+    }
+  }
+  params {
+    id: 2
+    name: "mirror_session_id"
+    bitwidth: 16
+    type_name {
+      name: "MirrorSessionId_t"
+    }
+  }
+}
+emvlts {
+  preamble {
+    id: 412541179
+    name: "my_control.mir_prof"
+    alias: "mir_prof"
+    annotations: "@mvlt_type(\"mirror_profile\")"
+  }
+  match_fields {
+    id: 1
+    name: "mir_prof_key"
+    bitwidth: 8
+    match_type: EXACT
+  }
+  params {
+    id: 1
+    name: "trunc_size"
+    bitwidth: 32
+  }
+  params {
+    id: 2
+    name: "store_port"
+    bitwidth: 32
+  }
+  size: 256
+}
+type_info {
+  new_types {
+    key: "MirrorSessionId_t"
+    value {
+      translated_type {
+        uri: "p4.org/pna/v1/MirrorSessionId_t"
+        sdn_bitwidth: 16
+      }
+    }
+  }
+  new_types {
+    key: "PortId_t"
+    value {
+      translated_type {
+        uri: "p4.org/pna/v1/PortId_t"
+        sdn_bitwidth: 32
+      }
+    }
+  }
+}
