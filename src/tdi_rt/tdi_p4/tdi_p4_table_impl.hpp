@@ -283,7 +283,7 @@ class MatchActionIndirect : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   }
   tdi_status_t getActionState(const tdi::Session &session,
                               const tdi::Target &dev_tgt,
@@ -483,7 +483,7 @@ class ActionProfile : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   };
 
   virtual tdi_status_t entryAdd(const tdi::Session &session,
@@ -619,7 +619,7 @@ class Selector : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   };
 
   virtual tdi_status_t entryAdd(const tdi::Session &session,
@@ -783,7 +783,7 @@ class CounterIndirect : public tdi::Table {
                 {TDI_TABLE_API_TYPE_KEY_GET, {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   }
 
   tdi_status_t entryGet(const tdi::Session &session, const tdi::Target &dev_tgt,
@@ -839,7 +839,7 @@ class MeterIndirect : public tdi::Table {
  public:
   MeterIndirect(const tdi::TdiInfo *tdi_info, const tdi::TableInfo *table_info)
       : tdi::Table(tdi_info, table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   };
 };
 
@@ -1492,7 +1492,7 @@ class MatchValueLookupTable : public tdi::Table {
                  {"dev_id", "pipe_id", "pipe_all"}},
             }),
             table_info) {
-    LOG_ERROR("Creating table for %s", table_info->nameGet().c_str());
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
   }
 
   virtual tdi_status_t entryAdd(const tdi::Session &session,

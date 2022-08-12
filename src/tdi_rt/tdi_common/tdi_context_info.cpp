@@ -179,7 +179,7 @@ tdi_status_t ContextInfoParser::parseContextJson(
         static_cast<const SelectorTableContextInfo *>(
             tdi_table_info->tableContextInfoGet());
     if (context_tbl == nullptr) {
-      LOG_ERROR("%s:%d context Table object not found for \"%s\"",
+      LOG_DBG("%s:%d context Table object not found for \"%s\"",
                 __func__,
                 __LINE__,
                 table_name.c_str());
