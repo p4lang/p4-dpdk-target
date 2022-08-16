@@ -505,10 +505,6 @@ static bf_status_t ctx_json_parse_externs_entry (
 			CTX_JSON_EXTERN_ATTRIBUTES,
 			&extern_attr_cjson);
 
-	err |= bf_cjson_get_string(extern_attr_cjson,
-			CTX_JSON_EXTERN_ATTRIBUTE_TYPE,
-			&extern_attr_type);
-
 	if (err)
 		return (BF_UNEXPECTED);
 
@@ -530,23 +526,31 @@ static bf_status_t ctx_json_parse_externs_entry (
 		entry->type = EXTERNS_COUNTER;
 	}
 
-	/* verify string for attribute type "bytes" */
-	if (!strncmp(extern_attr_type,
-		     CTX_JSON_EXTERN_ATTR_TYPE_BYTES,
-		     sizeof(CTX_JSON_EXTERN_ATTR_TYPE_BYTES))) {
-		entry->attr_type = EXTERNS_ATTR_TYPE_BYTES;
-	} else if (!strncmp(extern_attr_type,
-			    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS,
-			    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS))) {
-			entry->attr_type = EXTERNS_ATTR_TYPE_PACKETS;
-	} else if (!strncmp(extern_attr_type,
-		    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES,
-		    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES))) {
-				entry->attr_type =
-					EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES;
-	} else {
-		LOG_ERROR("unexpected attribute type for extern %s ", name);
-		return BF_UNEXPECTED;
+	if (entry->type == EXTERNS_COUNTER) {
+		err |= bf_cjson_get_string(extern_attr_cjson,
+				CTX_JSON_EXTERN_ATTRIBUTE_TYPE,
+				&extern_attr_type);
+		if (err)
+			return BF_UNEXPECTED;
+
+		/* verify string for attribute type "bytes" */
+		if (!strncmp(extern_attr_type,
+			     CTX_JSON_EXTERN_ATTR_TYPE_BYTES,
+			     sizeof(CTX_JSON_EXTERN_ATTR_TYPE_BYTES))) {
+			entry->attr_type = EXTERNS_ATTR_TYPE_BYTES;
+		} else if (!strncmp(extern_attr_type,
+				    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS,
+				    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS))) {
+				entry->attr_type = EXTERNS_ATTR_TYPE_PACKETS;
+		} else if (!strncmp(extern_attr_type,
+			    CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES,
+			    sizeof(CTX_JSON_EXTERN_ATTR_TYPE_PACKETS_AND_BYTES))) {
+					entry->attr_type =
+						EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES;
+		} else {
+			LOG_ERROR("unexpected attribute type for extern %s ", name);
+			return BF_UNEXPECTED;
+		}
 	}
 
 	return rc;
