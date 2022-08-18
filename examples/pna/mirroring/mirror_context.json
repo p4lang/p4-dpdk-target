@@ -1,8 +1,8 @@
 {
-  "program_name" : "mirror_valuelookup",
-  "build_date" : "Wed Jul 27 17:32:21 2022",
-  "compile_command" : "./p4c-dpdk mirror_valuelookup/mirror_valuelookup.p4 -o mirror_valuelookup/mirror_valuelookup.spec --p4runtime-files mirror_valuelookup/mirror_valuelookup_p4info.txt --context mirror_valuelookup/mirror_valuelookup_context.json --bf-rt-schema mirror_valuelookup/mirror_valuelookup_bfrt.json --arch pna",
-  "compiler_version" : "0.1 (SHA: 62c2b7396 BUILD: RELEASE)",
+  "program_name" : "mirror",
+  "build_date" : "Thu Aug 18 17:50:48 2022",
+  "compile_command" : "./p4c-dpdk mirror/mirror.p4 -o mirror/mirror.spec --p4runtime-files mirror/mirror_p4info.txt --context mirror/mirror_context.json --bf-rt-schema mirror/mirror_bfrt.json --arch pna",
+  "compiler_version" : "0.1 (SHA: 8523529e2 BUILD: RELEASE)",
   "schema_version" : "0.1",
   "target" : "DPDK",
   "tables" : [

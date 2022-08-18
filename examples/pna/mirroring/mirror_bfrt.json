@@ -129,7 +129,7 @@
           "name" : "mir_prof_key",
           "repeated" : false,
           "annotations" : [],
-          "mandatory" : false,
+          "mandatory" : true,
           "match_type" : "Exact",
           "type" : {
             "type" : "bytes",
@@ -147,7 +147,7 @@
             "type" : "bytes",
             "width" : 32
           },
-          "mandatory" : false,
+          "mandatory" : true,
           "read_only" : false
         },
         {
@@ -159,7 +159,7 @@
             "type" : "bytes",
             "width" : 32
           },
-          "mandatory" : false,
+          "mandatory" : true,
           "read_only" : false
         }
       ]
