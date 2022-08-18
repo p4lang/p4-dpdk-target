@@ -82,13 +82,17 @@ struct dpdk_mirror_profile_cfg_t {
 	bit<32> store_port;
 }
 
+struct mir_prof_key_t {
+	bit<8> mir_prof_key;
+}
+
 control my_control(inout headers_t hdrs,
 		inout user_metadata_t user_meta,
 		in pna_main_input_metadata_t istd,
 		inout pna_main_output_metadata_t ostd)
 {
         @mvlt_type("mirror_profile")
-	MatchValueLookupTable<bit<8>, dpdk_mirror_profile_cfg_t, _>(
+	MatchValueLookupTable<mir_prof_key_t, dpdk_mirror_profile_cfg_t, _>(
 		size = 256,
         const_entries = { {1, {2,3}},
                           {2, {3,4}}},
