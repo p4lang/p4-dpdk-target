@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/** @file bf_pal_port_intf.h
+ *
+ *  @brief One-stop C header file for BF PAL APIs
+ */
 #ifndef _BF_PAL_PORT_INTF_H
 #define _BF_PAL_PORT_INTF_H
 
