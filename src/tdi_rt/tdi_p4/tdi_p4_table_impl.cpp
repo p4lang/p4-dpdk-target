@@ -1573,7 +1573,7 @@ tdi_status_t MatchActionDirect::entryGetFirst(const tdi::Session &session,
                      pipe_action_spec,
                      &pipe_act_fn_hdl);
 
-     if (status == TDI_OBJECT_NOT_FOUND) {
+     if (status == TDI_OBJECT_NOT_FOUND || status == TDI_NOT_SUPPORTED) {
 	     return status;
      } else if (status != TDI_SUCCESS) {
 	     LOG_TRACE("%s:%d %s ERROR : cannot get first, status %d",
@@ -1586,6 +1586,8 @@ tdi_status_t MatchActionDirect::entryGetFirst(const tdi::Session &session,
 
      std::vector<tdi_id_t> dataFields;
      auto actionInfo = tableInfoGet()->actionGet(std::string("NoAction"));
+     if (actionInfo == nullptr)
+	     return TDI_OBJECT_NOT_FOUND;
      tdi_id_t action_id = actionInfo->idGet();
      match_data->activeFieldsSet(dataFields);
      match_data->actionIdSet(action_id);

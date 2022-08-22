@@ -698,9 +698,11 @@ int pipe_mgr_get_first_entry(u32 sess_hdl,
         status = dal_mat_get_first_entry(sess_hdl, dev_tgt, mat_tbl_hdl,
                                          match_spec, act_data_spec, act_fn_hdl,
                                          &tbl->ctx);
-        if (status != BF_SUCCESS && status != BF_OBJECT_NOT_FOUND)
-                LOG_ERROR("Getting first entry failed for table %d",
-                          mat_tbl_hdl);
+	if (status != BF_SUCCESS &&
+	    status != BF_OBJECT_NOT_FOUND &&
+	    status != BF_NOT_SUPPORTED)
+		LOG_ERROR("Getting first entry failed for table %d",
+				mat_tbl_hdl);
 
 cleanup:
         pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
