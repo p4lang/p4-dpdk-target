@@ -12,7 +12,10 @@ dist_bfruntime_grpc_protocol_DATA = bf_rt/proto/bfruntime.proto
 
 if IS_BFRT_ENABLED
 bfrt_pythondir = $(libdir)/python3.8
-bfrt_python_DATA = $(bfrt_python_python_sources) $(tdi_python_python_sources)
+bfrt_python_DATA = $(bfrt_python_python_sources) \
+$(tdi_python_python_sources) \
+$(tdi_rt_python_python_sources)
+
 bfrt_python_python_sources = \
 bf_rt/bf_rt_python/bfrtInfo.py \
 bf_rt/bf_rt_python/bfrtTable.py \
@@ -23,7 +26,13 @@ tdi_python_python_sources = \
 ../third-party/tdi/tdi_python/tdicli.py \
 ../third-party/tdi/tdi_python/tdiTable.py \
 ../third-party/tdi/tdi_python/tdiTableEntry.py \
-../third-party/tdi/tdi_python/tdiInfo.py
+../third-party/tdi/tdi_python/tdiInfo.py \
+../third-party/tdi/tdi_python/tdiDefs.py
+
+tdi_rt_python_python_sources = \
+tdi_rt/tdi_python/tdiRtCli.py \
+tdi_rt/tdi_python/tdiRtDefs.py \
+tdi_rt/tdi_python/tdiRtTable.py
 
 endif # end IS_BFRT_ENABLED
 

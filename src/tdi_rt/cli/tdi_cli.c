@@ -48,7 +48,7 @@ static int tdi_start_cli(int in_fd,
   wchar_t cfg_home_path[256];
 
   PyConfig_InitPythonConfig(&config);
-
+  // Setting tdi_python home path dynamically based on exec path of p4-sde
   swprintf(cfg_home_path, 255, L"%0.255s", install_dir);
 
   config.home = cfg_home_path;
@@ -70,9 +70,9 @@ static int tdi_start_cli(int in_fd,
   if (tdipModule == NULL) {
     Py_Initialize();
     PyObject *pName;
-    /* Load the tdicli python program. Py_Initialize loads its libraries from
+    /* Load the tdiRtcli python program. Py_Initialize loads its libraries from
     the install dir we installed Python into. */
-    pName = PyUnicode_DecodeFSDefault("tdicli");
+    pName = PyUnicode_DecodeFSDefault("tdiRtCli");
     /* Error checking of pName left out */
     tdipModule = PyImport_Import(pName);
     Py_DECREF(pName);
@@ -84,8 +84,8 @@ static int tdi_start_cli(int in_fd,
   }
 
   if (tdipModule != NULL) {
-    // Create a call to the start_tdi function in tdicli.py
-    pFunc = PyObject_GetAttrString(tdipModule, "start_tdi");
+    // Create a call to the start_rt_tdi function in tdiRtCli.py
+    pFunc = PyObject_GetAttrString(tdipModule, "start_tdi_rt");
     /* pFunc is a new reference */
 
     if (pFunc && PyCallable_Check(pFunc)) {
@@ -154,7 +154,7 @@ static int tdi_start_cli(int in_fd,
       }
     } else {
       if (PyErr_Occurred()) PyErr_Print();
-      fprintf(stderr, "Cannot find start_tdi function.\n");
+      fprintf(stderr, "Cannot find start_tdi_rt function.\n");
     }
     Py_XDECREF(pFunc);
   } else {
@@ -207,10 +207,10 @@ CLISH_PLUGIN_SYM(tdi_cli_cmd) {
 
   tinyrl_t *bftinyrl = clish_shell__get_tinyrl(bfshell);
   sts = tdi_start_cli(fileno(tinyrl__get_istream(bftinyrl)),
-                        fileno(tinyrl__get_ostream(bftinyrl)),
-                        clish_context__get_install_dir(clish_context),
-                        udf,
-                        interactive);
+                      fileno(tinyrl__get_ostream(bftinyrl)),
+                      clish_context__get_install_dir(clish_context),
+                      udf,
+                      interactive);
   if (sts != TDI_SUCCESS) {
     bfshell_printf(clish_context,
                    "%s:%d could not initialize tdi for the cli. err: %d\n",
