@@ -30,6 +30,7 @@
  * @{
  */
 #define MAX_MEMPOOL_OBJS 2
+#define MAX_FIXED_FUNCTIONS 2
 #define MAX_P4_PIPELINES 4
 #define PROG_NAME_LEN 256
 #define MAX_PROGRAMS_PER_DEVICE MAX_P4_PIPELINES
@@ -87,12 +88,20 @@ struct bf_mempool_obj_s {
 	int numa_node;     // mempool created on this numa socket
 };
 
+struct bf_fixed_function_s {
+	char name[P4_SDE_NAME_LEN];     		// name of the fixed_function
+	char *tdi_json;		// tdi json file
+	char *ctx_json;		// ctx json file
+};
+
 typedef struct bf_device_profile {
   bool debug_cli_enable;
   uint8_t num_p4_programs;
   bf_p4_program_t p4_programs[MAX_PROGRAMS_PER_DEVICE];
   uint8_t num_mempool_objs;
   struct bf_mempool_obj_s mempool_objs[MAX_MEMPOOL_OBJS];
+  uint8_t num_fixed_functions;
+  struct bf_fixed_function_s fixed_functions[MAX_FIXED_FUNCTIONS];
   asic_fw_profile_t asic_prof;
   char *bfrt_non_p4_json_dir_path;  // bfrt fixed feature info json files path
   char eal_args[MAX_EAL_LEN]; // eal-args required for dpdk model

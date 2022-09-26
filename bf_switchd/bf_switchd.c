@@ -50,6 +50,7 @@
 #include <lld/bf_dev_if.h>
 #include <lld/lld_err.h>
 #include <port_mgr/bf_port_if.h>
+#include <fixed_function/fixed_function_init.h>
 #include <bf_rt/bf_rt_init.h>
 #include <tdi_rt/c_frontend/tdi_rt_init.h>
 #include <bf_pal/dev_intf.h>
@@ -388,6 +389,21 @@ static bf_status_t bf_switchd_init_device_profile(
 		  dev_profile_mempool->cache_size  = mempool_obj->cache_size;
 		  dev_profile_mempool->numa_node   = mempool_obj->numa_node;
 	  }
+  }
+
+  dev_profile_p->num_fixed_functions = p4_device->num_fixed_functions;
+  for (j = 0; j < p4_device->num_fixed_functions; j++) {
+	  struct fixed_function_s *fixed_function =
+		  &(p4_device->fixed_functions[j]);
+	  struct bf_fixed_function_s *dev_profile_fixed =
+		  &(dev_profile_p->fixed_functions[j]);
+
+	  snprintf(dev_profile_fixed->name, sizeof(dev_profile_fixed->name),
+			  "%s", fixed_function->name);
+	  dev_profile_fixed->tdi_json = strndup(fixed_function->tdi_json,
+			  BF_SWITCHD_MAX_FILE_NAME);
+	  dev_profile_fixed->ctx_json = strndup(fixed_function->ctx_json,
+			  BF_SWITCHD_MAX_FILE_NAME);
   }
 
 #ifdef BFRT_ENABLED
@@ -1420,6 +1436,13 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
    * All the mgrs can be skipped using --skip-hld. No need
    * to stub out
    */
+  /* Initialize the Fixed Function Manager (ff_mgr) */
+  ret = fixed_function_init();
+  if (ret != 0) {
+    printf("ERROR: fixed function init failed : %d\n", ret);
+    return ret;
+  }
+
   /* Initialize the Port Mgmt Driver (port_mgr) */
   if (!switchd_ctx->skip_hld.port_mgr) {
     ret = bf_port_mgr_init();
