@@ -25,6 +25,7 @@ extern "C" {
 #include <bf_types/bf_types.h>
 #include <osdep/p4_sde_osdep.h>
 #include <port_mgr/bf_port_if.h>
+#include "fixed_function/fixed_function_int.h"
 
 /**
  * Add a New Port
@@ -67,6 +68,17 @@ bf_status_t port_mgr_get_port_id_from_mac(bf_dev_id_t dev_id, char *mac,
  */
 bf_status_t port_mgr_get_port_id_from_name(bf_dev_id_t dev_id, char *port_name,
 					      u32 *port_id);
+
+/**
+ * Add Entry to Port Config Table
+ * @param dev_id Device ID
+ * @param key Fixed Function Key Spec
+ * @param data Fixed Function Data Spec
+ * @return status of the function call
+ */
+bf_status_t port_cfg_table_add(bf_dev_id_t dev_id,
+                               struct fixed_function_key_spec *key,
+                               struct fixed_function_data_spec *data);
 
 #ifdef __cplusplus
 }

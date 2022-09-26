@@ -1,0 +1,246 @@
+{
+  "tables" : [
+    {
+      "name" : "port.$PORT",
+      "id" : 4278255617,
+      "table_type" : "FixedFunctionConfig",
+      "size" : 256,
+      "key" : [
+        {
+          "id" : 1,
+          "name" : "$DEV_PORT",
+          "repeated" : false,
+          "annotations" : [],
+          "mandatory" : true,
+          "match_type" : "Exact",
+          "type" : {
+            "type" : "uint32",
+	    "width" : 32
+          }
+        }
+      ],
+      "data" : [
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 1,
+            "name" : "$PORT_NAME",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 2,
+            "name" : "$PORT_TYPE",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80,
+              "choices" : ["tap",
+                           "link",
+                           "source",
+                           "sink",
+			   "ring"]
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 3,
+            "name" : "$PORT_DIR",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80,
+              "choices" : ["default",
+                           "in",
+                           "out"]
+            }
+          }
+        },
+	{
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 4,
+            "name" : "$MTU",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+	      "width" : 32
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 5,
+            "name" : "$PIPE_IN",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 6,
+            "name" : "$PIPE_OUT",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 7,
+            "name" : "$PORT_IN_ID",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+	      "width" : 32
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 8,
+            "name" : "$PORT_OUT_ID",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+	      "width" : 32
+            }
+          }
+        },
+	{
+          "mandatory" : true,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 9,
+            "name" : "$MEMPOOL",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 10,
+            "name" : "$PCIE_BDF",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 160
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 11,
+            "name" : "$FILE_NAME",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 12,
+            "name" : "$DEV_ARGS",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "string",
+	      "width" : 80
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 13,
+            "name" : "$DEV_HOTPLUG_ENABLED",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+	      "width" : 32
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 14,
+            "name" : "$SIZE",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint32",
+	      "width" : 32
+            }
+          }
+        },
+        {
+          "mandatory" : false,
+          "read_only" : false,
+          "singleton" : {
+            "id" : 15,
+            "name" : "$NET_PORT",
+            "repeated" : false,
+            "annotations" : [],
+            "type" : {
+              "type" : "uint8",
+	      "width" : 8
+            }
+          }
+        }
+      ],
+      "supported_operations" : [],
+      "attributes" : ["port_status_notif_cb"]
+    }
+  ]
+}

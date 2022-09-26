@@ -48,6 +48,7 @@ liblld_la_CFLAGS = $(libdriver_la_CFLAGS) -fPIC -DPIC
 liblld_la_LIBADD = -ldpdk_infra
 libpipe_mgr_la_CFLAGS = $(libdriver_la_CFLAGS) -DPIPE_MGR_DEBUG
 libport_mgr_la_CFLAGS = $(libdriver_la_CFLAGS)
+libfixed_function_la_CFLAGS = $(libdriver_la_CFLAGS)
 libbf_pm_la_CFLAGS = $(libdriver_la_CFLAGS)
 libutils_la_CFLAGS = $(libdriver_la_CFLAGS)
 
@@ -140,13 +141,22 @@ lld/dpdk/lld_dpdk_port.c
 port_mgr_sources = \
 port_mgr/bf_port_if.c \
 port_mgr/port_mgr.c \
-port_mgr/port_mgr_dev.c
+port_mgr/port_mgr_dev.c \
+port_mgr/port_mgr_fixed_function.c
 
 port_mgr_sources += \
-port_mgr/dpdk/port_mgr_dpdk_port.c \
-port_mgr/dpdk/port_mgr_dpdk_config_json.c \
-port_mgr/dpdk/port_mgr_dpdk.c \
-port_mgr/dpdk/port_mgr_dpdk_hotplug.c
+port_mgr/dal/dpdk/port_mgr_dpdk_port.c \
+port_mgr/dal/dpdk/port_mgr_dpdk_config_json.c \
+port_mgr/dal/dpdk/port_mgr_dpdk.c \
+port_mgr/dal/dpdk/port_mgr_dpdk_hotplug.c \
+port_mgr/dal/dpdk/dal_port_mgr.c
+
+fixed_function_sources = \
+fixed_function/fixed_function_init.h \
+fixed_function/fixed_function_init.c \
+fixed_function/fixed_function_ctx.h \
+fixed_function/fixed_function_ctx.c \
+fixed_function/fixed_function_int.h
 
 bf_pm_sources = \
 bf_pal/dev_intf.c \
@@ -233,6 +243,7 @@ libdvm_la_SOURCES = $(dvm_sources)
 liblld_la_SOURCES = $(lld_sources)
 libpipe_mgr_la_SOURCES = $(pipe_mgr_sources)
 libport_mgr_la_SOURCES = $(port_mgr_sources)
+libfixed_function_la_SOURCES = $(fixed_function_sources)
 libbf_pm_la_SOURCES = $(bf_pm_sources)
 libutils_la_SOURCES = $(bf_types_sources)
 
@@ -303,6 +314,7 @@ libdvm.la \
 liblld.la \
 libpipe_mgr.la \
 libport_mgr.la \
+libfixed_function.la \
 libbf_pm.la \
 libutils.la
 
@@ -321,6 +333,7 @@ liblld.la \
 libpipe_mgr.la \
 libbf_pm.la \
 libport_mgr.la \
+libfixed_function.la \
 libutils.la
 
 if IS_BFRT_ENABLED

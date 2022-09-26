@@ -106,7 +106,7 @@ static struct port_mgr_port_dir_map port_dir_map[] = {
  * @param port_type Port Type String
  * @return Port Type Enum
  */
-static enum dpdk_port_type_t get_port_type_enum(char *port_type)
+enum dpdk_port_type_t get_port_type_enum(char *port_type)
 {
 	int num_port_type;
 	int i;
@@ -130,7 +130,7 @@ static enum dpdk_port_type_t get_port_type_enum(char *port_type)
  * @param port_dir Port Direction String
  * @return Port Direction Enum
  */
-static bf_pm_port_dir_e get_port_dir_enum(char *port_dir)
+bf_pm_port_dir_e get_port_dir_enum(char *port_dir)
 {
 	int num_port_dir;
 	int i;
