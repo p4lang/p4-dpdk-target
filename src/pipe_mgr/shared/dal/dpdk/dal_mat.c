@@ -268,7 +268,7 @@ exit:
 
 /* currently no DPDK dal data struct for table entries,
    if we have in future then this function should be written */
-int dal_unpack_dal_data(void *dal_data)
+int dal_unpack_dal_data(void *dal_data, void *res_data)
 {
 	return BF_SUCCESS;
 }

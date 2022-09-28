@@ -22,7 +22,7 @@
 // global LLD context
 struct lld_context_t g_ctx;
 struct lld_context_t *lld_ctx = &g_ctx;
-
+bool skip_dev_init = false;
 /** \brief Initialize LLD module
  *
  * \param is_master, LLD instance is "master" and will perform

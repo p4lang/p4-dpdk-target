@@ -231,7 +231,7 @@ AC_SUBST([BF_DRIVERS_CXXFLAGS], ["$DRV_CFLAGS $DRV_CXXFLAGS"])
 
 AC_SUBST([AM_CFLAGS], ["$AM_CFLAGS $COVERAGE_FLAGS"])
 AC_SUBST([AM_CPPFLAGS], ["-I\$(top_srcdir)/include \
-                          -I$bf_sysroot\$(prefix)/include/python3.8 \
+                          -I$bf_sysroot\$(prefix)/include/python3.10 \
                           -I$bf_sysroot\$(prefix)/include"])
 AC_SUBST([AM_LDFLAGS], ["-rdynamic $COVERAGE_FLAGS -L$bf_sysroot\$(libdir)"])
 

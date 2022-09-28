@@ -26,7 +26,6 @@
 #include <bf_types/bf_types.h>
 #include "../../core/pipe_mgr_log.h"
 #include "../infra/pipe_mgr_int.h"
-
 /*
  * up to 6 general independent count actions per packet (two per SEM, WCM, LEM)
  */
@@ -88,24 +87,26 @@ dal_cnt_read_counter_pair(int abs_id, void *stats);
  * Reads DDR to get the flow counter pair value.
  *
  * @param id flow counter id to be read for stats
- * @param stats buffer to fill stats
+ * @param address of stats buffer to fill stats
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_flow_counter_pair(uint32_t id, void *stats);
+dal_cnt_read_flow_counter_pair(uint32_t id, void **stats);
 
 /*!
- * Reads DDR to get the flow counter pair value.
+ * Reads DDR to get the flow indirect counter pair value.
  *
- * @param id assignable counter id to be read for stats
+ * @param dev_tgt device target
+ * @param table_name table name
+ * @param id indirect counter id to be read for stats
  * @param stats buffer to fill stats
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt,
-				    const char *name,
-				    int id,
-				    void *stats);
+dal_cnt_read_flow_indirect_counter_set(bf_dev_target_t dev_tgt,
+				       const char *table_name,
+				       int id,
+				       void *stats);
 
 /*!
  * Write flow counter pair value for a specific index.

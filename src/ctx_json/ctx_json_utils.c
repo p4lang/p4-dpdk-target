@@ -1059,13 +1059,6 @@ int ctx_json_parse_match_key_field(cJSON *match_key_field,
   err = bf_cjson_get_string(
       match_key_field, CTX_JSON_MATCH_KEY_FIELDS_MATCH_TYPE, &match_type_str);
   CHECK_ERR(err, cleanup);
-  err = bf_cjson_get_int(match_key_field,
-                         CTX_JSON_MATCH_KEY_FIELDS_BIT_WIDTH_FULL,
-                         bit_width_full);
-  CHECK_ERR(err, cleanup);
-  err = bf_cjson_get_int(
-      match_key_field, CTX_JSON_MATCH_KEY_FIELDS_START_BIT, start_bit);
-  CHECK_ERR(err, cleanup);
   err = bf_cjson_get_int(
       match_key_field, CTX_JSON_MATCH_KEY_FIELDS_BIT_WIDTH, bit_width);
   CHECK_ERR(err, cleanup);

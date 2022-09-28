@@ -38,6 +38,7 @@ namespace bfrt {
 
 #define STAGE_TABLE_STR "stage_tables"
 
+#define BIT_WIDTH "bit_width_full"
 // The following handles parsed from bf-rt/context jsons are modified with the
 // mask got from pipe mgr so as to ensure that all the handles are unique
 // across all the programs on the device
@@ -2182,11 +2183,24 @@ BfRtInfoImpl::BfRtInfoImpl(const bf_dev_id_t &dev_id,
       }
     }
     if (kv.second.first && kv.second.second) {
-      // p4 dependent tables
-      bfrtTable = parseTable(dev_id,
-                             program_config_.prog_name_,
-                             *(kv.second.first),
-                             *(kv.second.second));
+	// p4 dependent tables
+	auto bfrtTableType = getTableType((*kv.second.first)["table_type"]);
+
+	switch (bfrtTableType) {
+          case BfRtTable::TableType::COUNTER:
+	  case BfRtTable::TableType::METER: {
+	    bfrtTable = parseFixedTable(program_config_.prog_name_, 
+					    	*(kv.second.first));
+	    break;
+	  }
+	  default: {
+	    bfrtTable = parseTable(dev_id,
+		                   program_config_.prog_name_,
+				   *(kv.second.first),
+ 				   *(kv.second.second));
+	    break;
+	  }
+	}
     }
 
     // Insert table object in the 2 maps
@@ -2570,7 +2584,7 @@ size_t BfRtInfoImpl::getStartBit(const Cjson *context_json_key_field,
       if (static_cast<const std::string>((*match_field)["name"]) != key_name) {
         continue;
       } else {
-        return static_cast<size_t>((*match_field)["start_bit"]);
+      return static_cast<size_t>((*match_field)["start_bit"]);
       }
     }
     // This indicates that we weren't able to find the context json node of the
@@ -2668,13 +2682,15 @@ void BfRtInfoImpl::parseKeyHelper(
           (*match_field)["position"];
       // Initialize the offset map so that we can later calculate the offsets
       // of all the fields in the match spec byte array
+      // TODO In future we will remove the platform specific
+      // dependency for bit_width
       (*match_key_field_position_to_offset_map)[(*match_field)["position"]] =
-          (static_cast<size_t>((*match_field)["bit_width_full"]) + 7) / 8;
+          (static_cast<size_t>((*match_field)[BIT_WIDTH]) + 7) / 8;
       (*match_key_field_name_to_parent_field_byte_size_map)[(
           *match_field)["name"]] =
-          (static_cast<size_t>((*match_field)["bit_width_full"]) + 7) / 8;
+          (static_cast<size_t>((*match_field)[BIT_WIDTH]) + 7) / 8;
       match_key_field_name_to_bit_size_map[(*match_field)["name"]] =
-          static_cast<size_t>((*match_field)["bit_width_full"]);
+          static_cast<size_t>((*match_field)[BIT_WIDTH]);
     }
   } else {
     // This means use the bfrt json key node

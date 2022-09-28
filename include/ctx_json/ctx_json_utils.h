@@ -27,6 +27,7 @@
 #include <bf_types/bf_types.h>
 #include <cjson/cJSON.h>
 
+#define BIT_WIDTH       "bit_width_full"
 #define STAGE_TABLE_STR "stage_tables"
 /*
  * Macro definitions for the Context JSON fields.
@@ -294,6 +295,8 @@
 #define CTX_JSON_P4_PARAMETER_NAME "name"
 #define CTX_JSON_HW_ACTIONS_MOD_FIELDS_NAME "name"
 #define CTX_JSON_ACTION_FORMAT_HW_ACTION_PARAM_NAME "param_name"
+#define CTX_JSON_RESOURCE_NAME "resource"
+#define CTX_JSON_RESOURCE_ID "resource_id"
 #define CTX_JSON_HARDWARE_BLOCK_NAME "name"
 #define CTX_JSON_TERN_ENTRY_FORMAT_FIELD_NAME "field_name"
 #define CTX_JSON_STATIC_ENTRY_MATCH_KEY_FIELD_NAME "field_name"
@@ -355,8 +358,6 @@
 #define CTX_JSON_P4_PARAMETER_NAME "name"
 #define CTX_JSON_HW_ACTIONS_MOD_FIELDS_NAME "name"
 #define CTX_JSON_ACTION_FORMAT_HW_ACTION_PARAM_NAME "param_name"
-#define CTX_JSON_RESOURCE_NAME "resource"
-#define CTX_JSON_RESOURCE_ID "resource_id"
 #define CTX_JSON_HARDWARE_BLOCK_NAME "name"
 #define CTX_JSON_TERN_ENTRY_FORMAT_FIELD_NAME "field_name"
 #define CTX_JSON_STATIC_ENTRY_MATCH_KEY_FIELD_NAME "field_name"
@@ -384,6 +385,7 @@
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_METER_TABLE_PRE_COLOR_FIELD_NAME "pre_color_field_name"
 #define CTX_JSON_ACTION_NAME "name"
+#define CTX_JSON_TARGET_ACTION_NAME "target_name"
 #define CTX_JSON_DIRECT_RESOURCE_RESOURCE_NAME "resource_name"
 #define CTX_JSON_INDIRECT_RESOURCE_RESOURCE_NAME "resource_name"
 #define CTX_JSON_INDIRECT_RESOURCE_PARAMETER_NAME "parameter_name"
@@ -477,7 +479,6 @@
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_METER_TABLE_PRE_COLOR_FIELD_NAME "pre_color_field_name"
 #define CTX_JSON_ACTION_NAME "name"
-#define CTX_JSON_TARGET_ACTION_NAME "target_name"
 #define CTX_JSON_DIRECT_RESOURCE_RESOURCE_NAME "resource_name"
 #define CTX_JSON_INDIRECT_RESOURCE_RESOURCE_NAME "resource_name"
 #define CTX_JSON_INDIRECT_RESOURCE_PARAMETER_NAME "parameter_name"
@@ -841,6 +842,14 @@
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_ACTION_P4_PARAMETERS "p4_parameters"
 #define CTX_JSON_MATCH_TABLE_DEFAULT_ACTION_HANDLE "default_action_handle"
+#define CTX_JSON_MATCH_TABLE_MATCH_KEY_FORMAT "match_key_format"
+#define CTX_JSON_MATCH_KEY_FORMAT_KEY_HANDLE "match_key_handle"
+#define CTX_JSON_MATCH_KEY_FORMAT_BYTE_ORDER_NETWORK "NETWORK"
+#define CTX_JSON_MATCH_KEY_FORMAT_BYTE_ORDER_HOST "HOST"
+#define CTX_JSON_MATCH_KEY_FORMAT_BYTE_ARRAY_INDEX "byte_array_index"
+#define CTX_JSON_MATCH_KEY_FORMAT_START_BIT_OFFSET "start_bit_offset"
+#define CTX_JSON_MATCH_KEY_FORMAT_BIT_WIDTH "bit_width"
+#define CTX_JSON_MATCH_KEY_FORMAT_BYTE_ORDER "byte_order"
 /* externs macros */
 #define CTX_JSON_EXTERN                   "externs"
 #define CTX_JSON_EXTERN_NAME              "name"

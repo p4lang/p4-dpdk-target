@@ -38,6 +38,7 @@
 
 #include <tdi/common/tdi_json_parser/tdi_cjson.hpp>
 #include <tdi/common/tdi_utils.hpp>
+#include <ctx_json/ctx_json_utils.h>
 
 #include "tdi_context_info.hpp"
 #include "tdi_rt_info.hpp"
@@ -433,10 +434,10 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
 
     if (table_context["match_attributes"].exists() &&
         table_context["match_attributes"]["match_type"].exists() &&
-        table_context["match_attributes"]["stage_tables"].exists()) {
+        table_context["match_attributes"][STAGE_TABLE_STR].exists()) {
       std::string match_type_ = table_context["match_attributes"]["match_type"];
       if (match_type_ == "match_with_no_key") {
-        Cjson s_tbl_cjson_ = table_context["match_attributes"]["stage_tables"];
+        Cjson s_tbl_cjson_ = table_context["match_attributes"][STAGE_TABLE_STR];
       }
     }  // if table_context["match_attributes"] ..
   }
@@ -983,12 +984,12 @@ void ContextInfoParser::parseKeyHelper(
       // Initialize the offset map so that we can later calculate the offsets
       // of all the fields in the match spec byte array
       (*match_key_field_position_to_offset_map)[(*match_field)["position"]] =
-          (static_cast<size_t>((*match_field)["bit_width_full"]) + 7) / 8;
+          (static_cast<size_t>((*match_field)[BIT_WIDTH]) + 7) / 8;
       (*match_key_field_name_to_parent_field_byte_size_map)[(
           *match_field)["name"]] =
-          (static_cast<size_t>((*match_field)["bit_width_full"]) + 7) / 8;
+          (static_cast<size_t>((*match_field)[BIT_WIDTH]) + 7) / 8;
       match_key_field_name_to_bit_size_map[(*match_field)["name"]] =
-          static_cast<size_t>((*match_field)["bit_width_full"]);
+          static_cast<size_t>((*match_field)[BIT_WIDTH]);
     }
   } else {
     // This means use the tdi json key node
@@ -1284,7 +1285,7 @@ bool ContextInfoParser::isActionParam(Cjson action_table_cjson,
   use_p4_params_node = 1;
   if (!use_p4_params_node) {
     for (const auto &pack_format :
-         action_table_cjson["stage_tables"][0]["pack_format"]
+         action_table_cjson[STAGE_TABLE_STR][0]["pack_format"]
              .getCjsonChildVec()) {
       auto json_action_handle =
           static_cast<unsigned int>((*pack_format)["action_handle"]);
@@ -1366,8 +1367,8 @@ bool ContextInfoParser::isActionParam_matchTbl(
 
   Cjson match_table_cjson =
       *(tableInfo_contextJson_map.at(tdi_table_info->nameGet()).second);
-  Cjson stage_table = match_table_cjson["match_attributes"]["stage_tables"];
-  stage_table = match_table_cjson["match_attributes"]["stage_tables"][0];
+  Cjson stage_table = match_table_cjson["match_attributes"][STAGE_TABLE_STR];
+  stage_table = match_table_cjson["match_attributes"][STAGE_TABLE_STR][0];
 
   Cjson action_formats = stage_table["action_format"];
 

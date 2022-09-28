@@ -146,15 +146,53 @@ static int ctx_json_parse_target(cJSON *root,
 	return BF_UNEXPECTED;
 }
 
+/*!
+ * structure for pipe_mgr_byte_order_map
+ */
+struct pipe_mgr_byte_order_map {
+	char byte_order_name[P4_SDE_NAME_LEN];
+	enum pipe_mgr_byte_order byte_order;
+};
+
+/*!
+ * structure for pipe_mgr_byte_order_map for Network and Host
+ */
+static struct pipe_mgr_byte_order_map byte_order_map[] = {
+	{"NETWORK", PIPE_MGR_BYTE_ORDER_NETWORK},
+	{"HOST", PIPE_MGR_BYTE_ORDER_HOST}
+};
+
+/**
+ * Get byte order enum from byte order char pointer API.
+ *
+ * @param  byte_order        byte order in string format.
+ * @return                   byte order in enum format
+ */
+static enum pipe_mgr_byte_order get_byte_order_enum(char *byte_order)
+{
+	int num_byte_order;
+	int i;
+
+	num_byte_order = sizeof(byte_order_map)/
+			  sizeof(struct pipe_mgr_byte_order_map);
+
+	for (i = 0; i < num_byte_order; i++) {
+		if (strncmp(byte_order, byte_order_map[i].byte_order_name,
+		    P4_SDE_NAME_LEN) == 0)
+			return byte_order_map[i].byte_order;
+	}
+
+	LOG_ERROR("Invalid byte order:%s", byte_order);
+	return PIPE_MGR_BYTE_ORDER_INVALID;
+}
+
 static int ctx_json_parse_mat_key_fields_json
 	   (int dev_id, int prof_id,
 	    cJSON *mat_key_fields_cjson,
 	    struct pipe_mgr_match_key_fields *mat_key_fields)
 {
 	char *instance_name;
-	int start_bit;
 	int bit_width;
-	int bit_width_full;
 	int position;
 	char *match_type;
 	char *field_name;
@@ -169,18 +207,8 @@ static int ctx_json_parse_mat_key_fields_json
 
 	err |= bf_cjson_get_int
 		(mat_key_fields_cjson,
-		 CTX_JSON_MATCH_KEY_FIELDS_START_BIT,
-		 &start_bit);
-
-	err |= bf_cjson_get_int
-		(mat_key_fields_cjson,
 		 CTX_JSON_MATCH_KEY_FIELDS_BIT_WIDTH,
 		 &bit_width);
-
-	err |= bf_cjson_get_int
-		(mat_key_fields_cjson,
-		 CTX_JSON_MATCH_KEY_FIELDS_BIT_WIDTH_FULL,
-		 &bit_width_full);
 
 	err |= bf_cjson_try_get_int
 		(mat_key_fields_cjson,
@@ -213,9 +241,7 @@ static int ctx_json_parse_mat_key_fields_json
 	strncpy(mat_key_fields->name, name, P4_SDE_NAME_LEN - 1);
 	mat_key_fields->name[P4_SDE_NAME_LEN - 1] = '\0';
 
-	mat_key_fields->start_bit = start_bit;
 	mat_key_fields->bit_width = bit_width;
-	mat_key_fields->bit_width_full = bit_width_full;
 	mat_key_fields->position = position;
 	mat_key_fields->match_type = get_match_type_enum(match_type);
 	mat_key_fields->is_valid = is_valid;
@@ -225,7 +251,80 @@ static int ctx_json_parse_mat_key_fields_json
 	mat_key_fields->instance_name[P4_SDE_NAME_LEN - 1] = '\0';
 	strncpy(mat_key_fields->field_name, field_name, P4_SDE_NAME_LEN - 1);
 	mat_key_fields->field_name[P4_SDE_NAME_LEN - 1] = '\0';
+	return BF_SUCCESS;
+}
 
+/**
+ * Match Key Format parsing API.
+ *
+ * @param  dev_id                Device ID.
+ * @param  prof_id               Profile ID.
+ * @param  mat_key_format_cjson  Pointer to Match key format context.
+ * @param  mat_key_fields		 Pointer to match key fields.
+ * @param  mat_key_fields_count	 Match key field count.
+ * @param  mat_key_format		 Pointer to match key format to be returned.
+ * @return                       Status of the API call
+ */
+static int ctx_json_parse_mat_key_format_json
+	   (int dev_id, int prof_id,
+	    cJSON *mat_key_format_cjson,
+	    struct pipe_mgr_match_key_fields *mat_key_fields,
+	    int mat_key_fields_count,
+	    struct pipe_mgr_match_key_format *mat_key_format)
+{
+	struct pipe_mgr_match_key_fields * pipe_mgr_match_key_fields_temp;
+	int pipe_mgr_match_key_traverse_count = 0;
+	int match_key_handle;
+	int byte_array_index;
+	int start_bit_offset;
+	char *byte_order;
+	int bit_width;
+	int err = 0;
+	int i = 0;
+
+	err |= bf_cjson_get_int
+		(mat_key_format_cjson,
+		 CTX_JSON_MATCH_KEY_FORMAT_KEY_HANDLE,
+		 &match_key_handle);
+
+	err |= bf_cjson_get_string
+		(mat_key_format_cjson,
+		 CTX_JSON_MATCH_KEY_FORMAT_BYTE_ORDER,
+		 &byte_order);
+
+	err |= bf_cjson_try_get_int
+		(mat_key_format_cjson,
+		 CTX_JSON_MATCH_KEY_FORMAT_BYTE_ARRAY_INDEX,
+		 &byte_array_index);
+
+	err |= bf_cjson_get_int
+		(mat_key_format_cjson,
+		 CTX_JSON_MATCH_KEY_FORMAT_START_BIT_OFFSET,
+		 &start_bit_offset);
+
+	err |= bf_cjson_get_int
+		(mat_key_format_cjson,
+		 CTX_JSON_MATCH_KEY_FORMAT_BIT_WIDTH,
+		 &bit_width);
+
+	if (err)
+		return BF_UNEXPECTED;
+    mat_key_format->match_key_handle = match_key_handle;
+    pipe_mgr_match_key_traverse_count = mat_key_fields_count - match_key_handle;
+    pipe_mgr_match_key_fields_temp = mat_key_fields;
+
+ for (i = 0; i < pipe_mgr_match_key_traverse_count - 1; i++) {
+ 	pipe_mgr_match_key_fields_temp =
+		pipe_mgr_match_key_fields_temp->next;
+	}
+	mat_key_format->match_key_field_ref = pipe_mgr_match_key_fields_temp;
+	err = get_byte_order_enum(byte_order);
+ if (err == PIPE_MGR_BYTE_ORDER_INVALID)
+	 return BF_UNEXPECTED;
+  mat_key_format->byte_order = err;
+	mat_key_format->byte_array_index = byte_array_index;
+	mat_key_format->start_bit_offset = start_bit_offset;
+	mat_key_format->bit_width = bit_width;
 	return BF_SUCCESS;
 }
 
@@ -547,15 +646,19 @@ static int ctx_json_parse_match_table_json
 	    cJSON *table_cjson,
 	    struct pipe_mgr_mat_ctx *mat_ctx)
 {
-	struct pipe_mgr_match_key_fields *mat_key_fields_temp;
+	struct pipe_mgr_match_key_fields *mat_key_fields_temp = NULL;
+	struct pipe_mgr_match_key_format *mat_key_format_temp = NULL;
 	struct pipe_mgr_actions_list *actions_temp;
 	struct action_data_table_refs *adt_temp;
 	struct selection_table_refs *sel_temp;
 	bool idle_timeout_auto_delete = false;
+	cJSON *match_key_formats_cjson = NULL;
+	cJSON *match_key_format_cjson = NULL;
 	cJSON *match_key_fields_cjson = NULL;
 	cJSON *match_key_field_cjson = NULL;
 	cJSON *match_attribute_cjson = NULL;
 	cJSON *actions_list_cjson = NULL;
+	char *target_table_name = NULL;
 	bool is_resource_controllable;
 	cJSON *adt_list_cjson = NULL;
 	cJSON *sel_list_cjson = NULL;
@@ -568,41 +671,37 @@ static int ctx_json_parse_match_table_json
 	char *table_name = NULL;
 	char *direction = NULL;
 	int adt_handle = 0;
-	char *name = NULL, *target_table_name = NULL;
+	char *name = NULL;
 	bool uses_range;
 	int handle = 0;
 	int size = 0;
 	int err = 0;
+	int i = 0;
 
 	err |= bf_cjson_get_string
-			(table_cjson, CTX_JSON_TABLE_NAME, &name);
+		(table_cjson, CTX_JSON_TABLE_NAME, &name);
 	err |= bf_cjson_try_get_string
-			(table_cjson, CTX_JSON_TARGET_TABLE_NAME,
-			 &target_table_name);
+		(table_cjson, CTX_JSON_TARGET_TABLE_NAME,
+		 &target_table_name);
 	err |= bf_cjson_try_get_string(table_cjson,
-				  CTX_JSON_TABLE_DIRECTION, &direction);
+			CTX_JSON_TABLE_DIRECTION, &direction);
 	err |= bf_cjson_get_handle
-			(dev_id, prof_id,
-			table_cjson, CTX_JSON_TABLE_HANDLE, &handle);
-
+		(dev_id, prof_id,
+		 table_cjson, CTX_JSON_TABLE_HANDLE, &handle);
 	err |= bf_cjson_try_get_handle
-			(dev_id, prof_id,
-			table_cjson,
-		CTX_JSON_SELECTION_TABLE_BOUND_TO_ACTION_DATA_TABLE_HANDLE,
-		&adt_handle);
-
+		(dev_id, prof_id,
+		 table_cjson,
+		 CTX_JSON_SELECTION_TABLE_BOUND_TO_ACTION_DATA_TABLE_HANDLE,
+		 &adt_handle);
 	err |= bf_cjson_try_get_int(table_cjson, CTX_JSON_TABLE_SIZE, &size);
 	if (!size)
 		size = PIPE_MGR_TABLE_SIZE_DEFAULT;
-
 	err |= bf_cjson_try_get_bool
 		(table_cjson, CTX_JSON_TABLE_ADD_ON_MISS,
 		 &add_on_miss);
-
 	err |= bf_cjson_try_get_bool
 		(table_cjson, CTX_JSON_TABLE_IDLE_TIMEOUT_AUTO_DELETE,
 		 &idle_timeout_auto_delete);
-
 	err |= bf_cjson_try_get_handle(dev_id,
 			prof_id,
 			table_cjson,
@@ -610,10 +709,10 @@ static int ctx_json_parse_match_table_json
 			&default_action_handle);
 	err |= bf_cjson_try_get_bool
 		(table_cjson, CTX_JSON_MATCH_TABLE_IS_RESOURCE_CONTROLLABLE,
-			&is_resource_controllable);
+		 &is_resource_controllable);
 	err |= bf_cjson_try_get_bool
-			(table_cjson,
-			CTX_JSON_MATCH_TABLE_USES_RANGE, &uses_range);
+		(table_cjson,
+		 CTX_JSON_MATCH_TABLE_USES_RANGE, &uses_range);
 
 	if (err)
 		return BF_UNEXPECTED;
@@ -634,7 +733,7 @@ static int ctx_json_parse_match_table_json
 			return BF_UNEXPECTED;
 		}
 		strncpy(mat_ctx->target_table_name, table_name,
-			P4_SDE_NAME_LEN - 1);
+				P4_SDE_NAME_LEN - 1);
 		mat_ctx->target_table_name[P4_SDE_NAME_LEN - 1] = '\0';
 	}
 
@@ -651,7 +750,7 @@ static int ctx_json_parse_match_table_json
 
 	err |= bf_cjson_try_get_object
 		(table_cjson, CTX_JSON_MATCH_TABLE_MATCH_KEY_FIELDS,
-		&match_key_fields_cjson);
+		 &match_key_fields_cjson);
 
 	if (!match_key_fields_cjson)
 		goto skip_match_tbl_attribute;
@@ -659,16 +758,16 @@ static int ctx_json_parse_match_table_json
 	CTX_JSON_FOR_EACH(match_key_field_cjson, match_key_fields_cjson) {
 		mat_key_fields_temp =
 			P4_SDE_CALLOC
-				(1, sizeof(*mat_key_fields_temp));
+			(1, sizeof(*mat_key_fields_temp));
 		if (!mat_key_fields_temp) {
 			rc = BF_NO_SYS_RESOURCES;
 			goto cleanup_mat_key_fields;
 		}
 
 		rc |= ctx_json_parse_mat_key_fields_json
-				(dev_id, prof_id,
-				match_key_field_cjson,
-				mat_key_fields_temp);
+			(dev_id, prof_id,
+			 match_key_field_cjson,
+			 mat_key_fields_temp);
 		if (rc) {
 			rc = BF_UNEXPECTED;
 			P4_SDE_FREE(mat_key_fields_temp);
@@ -683,13 +782,74 @@ static int ctx_json_parse_match_table_json
 	}
 
 	err |= bf_cjson_try_get_object
+		(table_cjson, CTX_JSON_MATCH_TABLE_MATCH_KEY_FORMAT,
+		 &match_key_formats_cjson);
+
+	if (!match_key_formats_cjson)
+		goto skip_match_key_format;
+
+	mat_ctx->mat_key_format_count =
+		cJSON_GetArraySize(match_key_formats_cjson);
+
+	mat_key_format_temp =
+		P4_SDE_CALLOC(mat_ctx->mat_key_format_count,
+				sizeof(*mat_key_format_temp));
+	if (!mat_key_format_temp) {
+		rc = BF_NO_SYS_RESOURCES;
+		goto cleanup_mat_key_format;
+	}
+
+	mat_ctx->mat_key_num_bytes = 0;
+	CTX_JSON_FOR_EACH(match_key_format_cjson,
+			match_key_formats_cjson) {
+		rc |= ctx_json_parse_mat_key_format_json
+			(dev_id, prof_id,
+			 match_key_format_cjson,
+			 mat_ctx->mat_key_fields,
+			 mat_ctx->mat_key_fields_count,
+			 &mat_key_format_temp[i]);
+		if (rc) {
+			rc = BF_UNEXPECTED;
+			goto cleanup_mat_key_format_failure;
+		}
+		i++;
+	}
+
+	/* buffer length is last elemets byte_array_index +
+	   bit_width */
+	mat_ctx->mat_key_num_bytes =
+		mat_key_format_temp[i - 1].byte_array_index +
+		(mat_key_format_temp[i - 1].bit_width >> 3) +
+		(mat_key_format_temp[i - 1].bit_width % 8 ? 1 : 0);
+
+
+	mat_ctx->mat_key_format = mat_key_format_temp;
+
+	mat_ctx->match_key_buffer =
+		P4_SDE_CALLOC(1, mat_ctx->mat_key_num_bytes);
+	if(!mat_ctx->match_key_buffer) {
+		LOG_ERROR("Match Key Buffer allocation error");
+		rc = BF_NO_SYS_RESOURCES;
+		goto cleanup_mat_key_format_failure;
+	}
+
+	mat_ctx->match_key_mask_buffer =
+		P4_SDE_CALLOC(1, mat_ctx->mat_key_num_bytes);
+	if(!mat_ctx->match_key_mask_buffer) {
+		LOG_ERROR("Match Key Buffer allocation error");
+		rc = BF_NO_SYS_RESOURCES;
+		goto cleanup_mat_key_mask_buffer;
+	}
+
+skip_match_key_format:
+	err |= bf_cjson_try_get_object
 		(table_cjson,
-		CTX_JSON_MATCH_TABLE_MATCH_ATTRIBUTES,
-		&match_attribute_cjson);
+		 CTX_JSON_MATCH_TABLE_MATCH_ATTRIBUTES,
+		 &match_attribute_cjson);
 
 	if (err) {
 		rc = BF_UNEXPECTED;
-		goto cleanup_mat_key_fields;
+		goto cleanup_mat_key_mask_buffer;
 	}
 
 	if (match_attribute_cjson) {
@@ -699,14 +859,14 @@ static int ctx_json_parse_match_table_json
 			 mat_ctx);
 		if (rc) {
 			rc = BF_UNEXPECTED;
-			goto cleanup_mat_key_fields;
+			goto cleanup_mat_key_mask_buffer;
 		}
 	}
 
 	err |= bf_cjson_try_get_object
 		(table_cjson,
-		CTX_JSON_MATCH_TABLE_ACTION_DATA_TABLE_REFS,
-		&adt_list_cjson);
+		 CTX_JSON_MATCH_TABLE_ACTION_DATA_TABLE_REFS,
+		 &adt_list_cjson);
 
 	if (adt_list_cjson) {
 		CTX_JSON_FOR_EACH(adt_cjson, adt_list_cjson) {
@@ -734,8 +894,8 @@ static int ctx_json_parse_match_table_json
 
 	err |= bf_cjson_try_get_object
 		(table_cjson,
-		CTX_JSON_MATCH_TABLE_SELECTION_TABLE_REFS,
-		&sel_list_cjson);
+		 CTX_JSON_MATCH_TABLE_SELECTION_TABLE_REFS,
+		 &sel_list_cjson);
 
 	if (sel_list_cjson) {
 		CTX_JSON_FOR_EACH(sel_cjson, sel_list_cjson) {
@@ -792,29 +952,41 @@ skip_match_tbl_attribute:
 	}
 
 	LOG_DBG
-	("%s:%d: Parsing RMT configuration for"
-	 " match table handle 0x%x and "
-			"name \"%s\".",
-			__func__,
-			__LINE__,
-			handle,
-			name);
+		("%s:%d: Parsing RMT configuration for"
+		 " match table handle 0x%x and "
+		 "name \"%s\".",
+		 __func__,
+		 __LINE__,
+		 handle,
+		 name);
 
 	mat_ctx->duplicate_entry_check = 1;
 	return rc;
 
+
+	/* TODO: all these goto statement  are bug and can create a
+	   heap corrurption,
+	   it is not noticed because on error we exit all our stack and
+	   core dump, but this has to be corrected in every pipe manager call*/
 cleanup_mat_actions:
 	PIPE_MGR_FREE_LIST(mat_ctx->actions);
 	mat_ctx->actions = NULL;
 cleanup_mat_sel:
-        PIPE_MGR_FREE_LIST(mat_ctx->sel_tbl);
-        mat_ctx->sel_tbl = NULL;
+	PIPE_MGR_FREE_LIST(mat_ctx->sel_tbl);
+	mat_ctx->sel_tbl = NULL;
 cleanup_mat_adt:
 	PIPE_MGR_FREE_LIST(mat_ctx->adt);
 	mat_ctx->adt = NULL;
+cleanup_mat_key_mask_buffer:
+	P4_SDE_FREE(mat_ctx->match_key_buffer);
+	mat_ctx->match_key_buffer = NULL;
+cleanup_mat_key_format_failure:
+	P4_SDE_FREE(mat_key_format_temp);
 cleanup_mat_key_fields:
 	PIPE_MGR_FREE_LIST(mat_ctx->mat_key_fields);
 	mat_ctx->mat_key_fields = NULL;
+cleanup_mat_key_format:
+	mat_ctx->mat_key_format = NULL;
 	return rc;
 }
 
@@ -987,16 +1159,6 @@ cleanup_key_fields:
 	return rc;
 }
 
-/* This funtion can be used to establish the inter table relations.
- */
-static int post_parse_processing
-	   (int dev_id, int prof_id,
-	    cJSON *root,
-	    struct pipe_mgr_p4_pipeline *ctx)
-{
-	return dal_post_parse_processing(dev_id, prof_id,ctx);
-}
-
 static int ctx_json_parse_extern(int dev_id,
 			         int prof_id,
 		                 cJSON *root,
@@ -1007,6 +1169,16 @@ static int ctx_json_parse_extern(int dev_id,
 					 root,
 					 ctx);
 }
+/* This funtion can be used to establish the inter table relations.
+ */
+static int post_parse_processing
+	   (int dev_id, int prof_id,
+	    cJSON *root,
+	    struct pipe_mgr_p4_pipeline *ctx)
+{
+	return dal_post_parse_processing(dev_id, prof_id,ctx);
+}
+
 
 static int ctx_json_parse_tables_json
 	   (int dev_id, int prof_id,
@@ -1017,19 +1189,16 @@ static int ctx_json_parse_tables_json
 	struct pipe_mgr_mat *mat_temp = NULL;
 	int rc = BF_SUCCESS;
 	int err = 0;
-
 	cJSON *tables_cjson = NULL;
-
 	err |= bf_cjson_get_object
 		(root, CTX_JSON_TABLES_NODE, &tables_cjson);
+
 	if (err)
 		return rc;
 
 	cJSON *table_cjson = NULL;
-
 	CTX_JSON_FOR_EACH(table_cjson, tables_cjson) {
 		char *table_type = NULL;
-
 		err |= bf_cjson_get_string
 				(table_cjson,
 				 CTX_JSON_TABLE_TABLE_TYPE, &table_type);
@@ -1039,6 +1208,7 @@ static int ctx_json_parse_tables_json
 		if (!strcmp(table_type, CTX_JSON_TABLE_TYPE_MATCH) ||
 			!strcmp(table_type, CTX_JSON_TABLE_TYPE_ACTION_DATA) ||
 			!strcmp(table_type, CTX_JSON_TABLE_TYPE_SELECTION)) {
+
 			mat_temp =
 				P4_SDE_CALLOC
 					(1,
@@ -1195,7 +1365,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 	int rc;
 
 	LOG_DBG("Parsing context json file: %s.", ctx_file);
-
 	pkg_ctx = P4_SDE_CALLOC(1, sizeof(*pkg_ctx));
 	if (!pkg_ctx) {
 		LOG_ERROR
@@ -1205,7 +1374,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __LINE__);
 		goto ctx_file_fopen_err;
 	}
-
 	file = fopen(ctx_file, "r");
 	if (!file) {
 		LOG_ERROR("%s:%d: Could not open configuration file: %s.\n",
@@ -1214,11 +1382,9 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			  ctx_file);
 		goto ctx_file_fopen_err;
 	}
-
 	fd = fileno(file);
 	fstat(fd, &stat_b);
 	to_allocate = stat_b.st_size + 1;
-
 	ctx_file_buffer = P4_SDE_CALLOC(1, to_allocate);
 	if (!ctx_file_buffer) {
 		LOG_ERROR
@@ -1228,7 +1394,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __LINE__);
 		goto ctx_file_buffer_alloc_err;
 	}
-
 	num_items = fread(ctx_file_buffer, stat_b.st_size, 1, file);
 	if (num_items != 1) {
 		if (ferror(file)) {
@@ -1238,7 +1403,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 				 __LINE__);
 			goto ctx_file_fread_err;
 		}
-
 		/* TODO: Add assert support in p4_sde_osdep.h and add here.
 		 * PIPE_MGR_ASSERT(feof(file));
 		 */
@@ -1246,7 +1410,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			__func__,
 			__LINE__);
 	}
-
 	root = cJSON_Parse(ctx_file_buffer);
 	if (!root) {
 		LOG_ERROR("%s:%d: cJSON error while parsing ctx file.",
@@ -1254,7 +1417,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			  __LINE__);
 		goto cjson_parse_err;
 	}
-
 	rc = ctx_json_parse_version(root);
 	if (rc) {
 		LOG_ERROR
@@ -1262,7 +1424,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __func__, __LINE__);
 		goto version_parse_err;
 	}
-
 	rc = ctx_json_parse_target(root, pkg_ctx);
 	if (rc) {
 		LOG_ERROR
@@ -1270,7 +1431,6 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			 __func__, __LINE__);
 		goto version_parse_err;
 	}
-
 	if (pkg_ctx->target == PIPE_MGR_TARGET_DPDK) {
 		rc = ctx_json_compile_command(root, pkg_ctx);
 		if (rc) {
@@ -1280,26 +1440,20 @@ static struct pipe_mgr_p4_pipeline *parse_ctx_json
 			goto version_parse_err;
 		}
 	}
-
 	rc = ctx_json_parse_extern(dev_id, profile_id, root, pkg_ctx);
 
 	if (rc)
 		goto version_parse_err;
-
 	rc = ctx_json_parse_tables_json(dev_id, profile_id, root, pkg_ctx);
-
 	if (rc)
 		goto version_parse_err;
-
 	rc = post_parse_processing(dev_id, profile_id, root, pkg_ctx);
 	if (rc)
 		goto version_parse_err;
-
 	cJSON_Delete(root);
 	P4_SDE_FREE(ctx_file_buffer);
 	fclose(file);
 	return pkg_ctx;
-
 version_parse_err:
 	cJSON_Delete(root);
 cjson_parse_err:
@@ -1320,6 +1474,7 @@ int pipe_mgr_ctx_import(int dev_id,
 			struct bf_device_profile *inp_profile,
 			enum bf_dev_init_mode_s warm_init_mode)
 {
+
 	struct pipe_mgr_p4_pipeline *parsed_pipe_ctx;
 	struct bf_p4_pipeline *p4_pipeline = NULL;
 	struct bf_p4_program *p4_program = NULL;
@@ -1332,7 +1487,9 @@ int pipe_mgr_ctx_import(int dev_id,
 	LOG_TRACE("Enter %s", __func__);
 
 	status = pipe_mgr_get_num_profiles(dev_id, &num_profiles);
+
 	if (status) {
+
 		LOG_TRACE("Exit %s", __func__);
 		return status;
 	}
@@ -1340,6 +1497,7 @@ int pipe_mgr_ctx_import(int dev_id,
 	/* Process the context for all profiles */
 	for (p = 0; p < num_profiles; p++) {
 		if (inp_profile) {
+
 			p4_program = pipe_mgr_get_p4_program_profile_db
 					(inp_profile, p);
 			if (!p4_program) {
@@ -1347,24 +1505,29 @@ int pipe_mgr_ctx_import(int dev_id,
 				("No P4-program for profile index %d dev %d",
 				 p, dev_id);
 				LOG_TRACE("Exit %s", __func__);
+
 				return BF_INVALID_ARG;
 			}
 			p4_pipeline = pipe_mgr_get_p4_pipeline_profile_db
 					(inp_profile, p);
+
 			if (!p4_pipeline) {
 				LOG_ERROR
 				("No P4-pipeline for profile index %d, dev %d",
 				 p,
 				 dev_id);
 				LOG_TRACE("Exit %s", __func__);
+
 				return BF_INVALID_ARG;
 			}
 		} else {
+
 			p4_program = NULL;
 			p4_pipeline = NULL;
 		}
 
 		if (p4_pipeline) {
+
 			json_file_path = p4_pipeline->runtime_context_file;
 			LOG_TRACE("%s: device %u, file %s, profile id %d ",
 				  __func__,
@@ -1377,29 +1540,35 @@ int pipe_mgr_ctx_import(int dev_id,
 					BF_DEV_WARM_INIT_FAST_RECFG) {
 				LOG_ERROR(" %s : context json file path is"
 						" null", __func__);
+
 				return BF_UNEXPECTED;
 			}
 
 			if (json_file_path) {
+
 				parsed_pipe_ctx = parse_ctx_json(dev_id,
 						profile_id,
 						json_file_path);
 
 				if (!parsed_pipe_ctx) {
+
 					LOG_ERROR("%s : Error in parsing the"
 							" ctx file",
 							__func__);
 					LOG_TRACE("Exit %s", __func__);
 					return BF_NO_SYS_RESOURCES;
 				}
+
 			}
 
 			status = pipe_mgr_set_profile(dev_id, p, p4_program,
 						      p4_pipeline,
 						      parsed_pipe_ctx);
+
 			if (parsed_pipe_ctx)
 				P4_SDE_FREE(parsed_pipe_ctx);
 		}
+
 	}
 	LOG_TRACE("Exit %s", __func__);
 	return BF_SUCCESS;

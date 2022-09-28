@@ -61,9 +61,9 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 				struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	struct pipe_mgr_dpdk_stage_table *stage_table = mat_ctx->stage_table;
+	struct pipe_mgr_actions_list *action;
 	struct rte_swx_ctl_action_arg_info *action_arg_info;
 	struct pipe_mgr_dpdk_action_format *act_fmt = NULL;
-	struct pipe_mgr_actions_list *action;
 	int status = BF_SUCCESS;
 	uint64_t action_id;
 	uint32_t index;
@@ -91,7 +91,7 @@ static int adt_action_args_info(struct dal_dpdk_table_metadata *meta,
 		action_id = get_action_id(meta->pipe, action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
-				  act_fmt->action_name);
+					act_fmt->action_name);
 			status = BF_UNEXPECTED;
 			goto cleanup;
 		}
@@ -165,9 +165,9 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 				struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	struct rte_swx_ctl_action_arg_info *action_arg_info;
-	struct pipe_mgr_dpdk_stage_table *stage_table;
 	struct pipe_mgr_dpdk_action_format *act_fmt;
-	struct pipe_mgr_actions_list *action;
+	struct pipe_mgr_dpdk_stage_table *stage_table;
+	struct pipe_mgr_actions_list *action = NULL;
 	int status = BF_SUCCESS;
 	uint64_t action_id;
 	uint32_t index;
@@ -176,8 +176,8 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 
 	stage_table = mat_ctx->match_attr.stage_table;
 	n_action = meta->dpdk_table_info.n_actions;
-
 	action = mat_ctx->actions;
+
 	meta->action_data_size = 0;
 	act_fmt = stage_table->act_fmt;
 	/* Indirect table will not have action format
@@ -190,6 +190,11 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 
 	for (i=0; i < n_action; i++) {
 		if(!act_fmt) {
+			LOG_ERROR("reached end of action format in context");
+			return BF_UNEXPECTED;
+		}
+
+		if(!action) {
 			LOG_ERROR("reached end of action in context");
 			return BF_UNEXPECTED;
 		}
@@ -197,7 +202,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 		action_id = get_action_id(meta->pipe, action->target_action_name);
 		if (action_id == UINT64_MAX) {
 			LOG_ERROR("dpdk action id get failed for action %s",
-				  action->target_action_name);
+					act_fmt->action_name);
 			return BF_UNEXPECTED;
 		}
 
@@ -207,7 +212,7 @@ static int mat_action_args_info(struct dal_dpdk_table_metadata *meta,
 				&(act_fmt->n_args));
 		if (status) {
 			LOG_ERROR("dpdk action info get failed for action %s",
-				  action->target_action_name);
+					 act_fmt->action_name);
 			return BF_UNEXPECTED;
 		}
 

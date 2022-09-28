@@ -18,8 +18,6 @@
 
 #include <osdep/p4_sde_osdep.h>
 
-#define LOG_CRIT(...) \
-	P4_SDE_LOG(BF_MOD_PIPE, BF_LOG_CRIT, __VA_ARGS__)
 #define LOG_ERROR(...) \
 	P4_SDE_LOG(BF_MOD_PIPE, BF_LOG_ERR, __VA_ARGS__)
 #define LOG_WARN(...) \

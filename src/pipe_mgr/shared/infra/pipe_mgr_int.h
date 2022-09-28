@@ -121,6 +121,29 @@ struct pipe_mgr_match_key_fields {
 	struct pipe_mgr_match_key_fields *next;
 };
 
+/*! byte order range
+ */
+/*!
+ * Enum for byte order range hit state
+ */
+enum pipe_mgr_byte_order {
+	PIPE_MGR_BYTE_ORDER_NETWORK = 0,
+	PIPE_MGR_BYTE_ORDER_HOST,
+	PIPE_MGR_BYTE_ORDER_INVALID
+};
+
+/*!
+ * structure as per format accepted by MEV
+ */
+struct pipe_mgr_match_key_format {
+	uint32_t match_key_handle;
+	struct pipe_mgr_match_key_fields *match_key_field_ref;
+	enum pipe_mgr_byte_order byte_order;
+	uint32_t byte_array_index;
+	uint32_t start_bit_offset;
+	uint32_t bit_width;
+};
+
 struct pipe_mgr_match_attribute {
 
 	int stage_table_count;
@@ -203,6 +226,11 @@ struct pipe_mgr_mat_ctx {
 	char uses_range;
 	int mat_key_fields_count;
 	struct pipe_mgr_match_key_fields *mat_key_fields;
+	int mat_key_format_count;
+	struct pipe_mgr_match_key_format *mat_key_format;
+	u8 *match_key_buffer;
+	u8 *match_key_mask_buffer;
+	int mat_key_num_bytes;
 	int action_count;
 	struct pipe_mgr_actions_list *actions;
 	struct pipe_mgr_match_attribute match_attr;
@@ -309,8 +337,9 @@ struct pipe_mgr_global_config {
 	void *dal_global_config;
 };
 
-/* This is the mirror profile configuration, parameters for
- * mirror profile configuration are taken from P4runtime.
+
+/* This is the mirror profile/session configuration, parameters for
+ * mirror profile/session configuration are taken from P4runtime.
  */
 struct pipe_mgr_mir_prof {
 	uint32_t port_id;                /* out port id */
@@ -337,10 +366,6 @@ struct pipe_mgr_p4_pipeline {
 	 * pipeline.
 	 */
 	struct pipe_mgr_mat *mat_tables;
-	/* Hash Map containing externs Objects information for this P4
-	 * pipeline.
-	 */
-	bf_hashtable_t *bf_externs_htbl;
 	/* Number of value lookup tables per context json. */
 	int num_value_lookup_tables;
 	/* Array contaning value lookup tables information for this P4
@@ -349,6 +374,10 @@ struct pipe_mgr_p4_pipeline {
         struct pipe_mgr_value_lookup *value_lookup_tables;
 	enum pipe_mgr_target target;
 	char arch_name[P4_SDE_ARCH_NAME_LEN];
+	/* Hash Map containing externs Objects information for this P4
+	 * pipeline.
+	 */
+	bf_hashtable_t *bf_externs_htbl;
 };
 
 /* P4 Program Pipeline Profile  */

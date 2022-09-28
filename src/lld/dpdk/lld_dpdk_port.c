@@ -26,6 +26,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 int lld_dpdk_tap_port_create(struct port_attributes_t *port_attrib)
 {
@@ -66,19 +67,22 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 		params_in.mempool = mp->m;
 		params_in.mtu = port_attrib->tap.mtu;
 		params_in.burst_size = PORT_IN_BURST_SIZE;
-		if (port_attrib->tap.mtu > 65535) {
+		if (port_attrib->tap.mtu > PORT_MTU_MAX) {
 			LOG_ERROR("MTU for Tap Port %s is greater than max limit\n",
 				   port_attrib->port_name);
 			return BF_INVALID_ARG;
 		}
 		sfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-		if (sfd == -1)
+		if (sfd == -1) {
 			LOG_ERROR("Socket creation failed\n");
+			return BF_INVALID_ARG;
+		}
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, port_attrib->port_name, sizeof(ifr.ifr_name) - 1);
 		ifr.ifr_mtu = port_attrib->tap.mtu;
 		if (ioctl(sfd, SIOCSIFMTU, &ifr) < 0)
 			LOG_ERROR("ioctl SIOCSIFMTU Failed...\n");
+		close(sfd);
 
 		status = rte_swx_pipeline_port_in_config(pipe_in->p,
 							port_attrib->port_in_id,

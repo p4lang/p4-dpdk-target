@@ -93,6 +93,7 @@ typedef struct bf_device_profile {
   asic_fw_profile_t asic_prof;
   char *bfrt_non_p4_json_dir_path;  // bfrt fixed feature info json files path
   char eal_args[MAX_EAL_LEN]; // eal-args required for dpdk model
+  bool is_skip_p4; // skip_p4
 } bf_device_profile_t;
 
 /* @} */

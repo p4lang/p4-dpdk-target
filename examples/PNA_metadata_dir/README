@@ -1,0 +1,51 @@
+------- Test Case 1 -----
+1. commands on bf_switchd console (console-1)
+	./bf_switchd --install-dir $SDE_INSTALL --conf-file $SDE_INSTALL/share/tofinopd/PNA_metadata_dir/simple_l2l3_lpm.conf  --init-mode=cold -
+-status-port 7777 --skip-hld mkt
+	bfrt_python
+	bfrt.enable
+	from netaddr import IPAddress
+        bfrt.simple_l2l3_lpm.pipe.MainControlImpl.ipv4_lpm.add_with_send(ipv4_addr=IPAddress('192.168.2.0'), ipv4_addr_p_length=24, port=3)
+2. commands on new console (console-2)
+	make tap interfaces up
+	tcpdump -i TAP2 -XXx
+3. commands on new console (console-3)
+	tcpdump -i TAP3 -XXx
+4. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.0")/TCP(sport=7777, dport=8888)/Raw(load="0"*    50), iface='TAP0')	
+	
+5. Expected results
+	As we configured match rule from bf-shell, if packet has destination ip "192.168.2.x" then match rule hit
+	since packet received on TAP 0 which is configured as HOST port and as per p4 program send action execute 
+	packet send on port2.
+	
+------- Test Case 2 -----
+1. commands on bf_switchd console (console-1)
+	rule configured in test case 1
+2. commands on new console (console-2)
+	listening on port 2
+3. commands on new console (console-3)
+	listening on port 3
+4. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.0")/TCP(sport=7777, dport=8888)/Raw(load="0"*    50), i1"*    50), iface='TAP1')
+5. Expected results
+	As we configured match rule from bf-shell, if packet has destination ip "192.168.2.x" then match rule hit
+	since packet received on TAP 1 which is configured as NETWOK port and as per p4 program send action execute 
+	packet send on port3.
+	
+
+----------------------- configuration and p4 programs are looks as below -------------------------
+ports    configuration       direction 
+ 
+Port0 -->  HOST_PORT     --> HOST_TO_NET
+Port1 -->  NETWORK_PORT  --> NET_TO_HOST 
+Port2 -->  HOST_PORT     --> HOST_TO_NET
+Port3 -->  HOST_PORT     --> HOST_TO_NET   
+
+P4-program
+if(rule_match) {
+	if(direction == NET_TO_HOST)
+		send_on(port3)
+	else
+		send_on(port2)
+}	

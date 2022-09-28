@@ -509,6 +509,7 @@ bf_status_t bf_switchd_device_add(bf_dev_id_t dev_id, bool setup_dma) {
   }
 
   is_skip_p4 = switchd_ctx->skip_p4;
+  dev_profile.is_skip_p4 = is_skip_p4;
   if (switchd_ctx->skip_p4) {
     printf("Skipping P4 program load for dev_id %d\n", dev_id);
   }

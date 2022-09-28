@@ -16,7 +16,7 @@ PKG_CONFIG_PATH := $(shell dirname $(PC_FILE))
 PKGCONF ?= pkg-config
 
 CFLAGS += -O3 -fPIC $(shell PKG_CONFIG_PATH='$(PKG_CONFIG_PATH)' $(PKGCONF) --cflags libdpdk)
-LDFLAGS = $(shell PKG_CONFIG_PATH='$(PKG_CONFIG_PATH)' $(PKGCONF) --libs libdpdk)
+LDFLAGS = -L$(libdir) $(shell PKG_CONFIG_PATH='$(PKG_CONFIG_PATH)' $(PKGCONF) --libs libdpdk)
 #This is needed as we are compiling a library on top of shared library
 #as-needed will strip of all unused libraries
 STRING = -Wl,--as-needed

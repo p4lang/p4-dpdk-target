@@ -2371,40 +2371,41 @@ tdi_status_t TdiRegisterParamTableData::getValue(const tdi_id_t &field_id,
 
 // MATCH_VALUE_LOOKUP_TABLE_DATA
 tdi_status_t MatchValueLookupDataSpec::setMatchValueLookupData(
-               const tdi::DataFieldInfo &field, const uint64_t &value,
-         const uint8_t *value_ptr, pipe_data_spec_t *specData) {
-       size_t field_size = field.sizeGet();
-       size_t field_offset = static_cast<const RtDataFieldContextInfo *>(
-                       field.dataFieldContextInfoGet())
-               ->offsetGet();
+		const tdi::DataFieldInfo &field, const uint64_t &value,
+		const uint8_t *value_ptr, pipe_data_spec_t *specData) {
+	size_t field_size = field.sizeGet();
+	size_t field_offset = static_cast<const RtDataFieldContextInfo *>(
+			field.dataFieldContextInfoGet())
+		->offsetGet();
 
-       auto size = (field_size + 7) / 8;
-       if (value_ptr) {
-               std::memcpy(specData->data_bytes + field_offset, value_ptr, size);
-       } else {
-               utils::TableFieldUtils::toNetworkOrderData(
-                               field, value, specData->data_bytes + field_offset);
-       }
-       return TDI_SUCCESS;
+	auto size = (field_size + 7) / 8;
+	if (value_ptr) {
+		std::memcpy(specData->data_bytes + field_offset, value_ptr, size);
+	} else {
+		utils::TableFieldUtils::toNetworkOrderData(
+				field, value, specData->data_bytes + field_offset);
+	}
+	return TDI_SUCCESS;
 }
 
 void MatchValueLookupDataSpec::getMatchValueLookupData(
                pipe_data_spec_t *value, pipe_data_spec_t *specData) const {
-       value->num_data_bytes = specData->num_data_bytes;
-       value->data_bytes = specData->data_bytes;
+	       value->num_data_bytes = specData->num_data_bytes;
+	       value->data_bytes = specData->data_bytes;
 }
 
 void MatchValueLookupDataSpec::getMatchValueLookupDataBytes(const tdi::DataFieldInfo &field,  const size_t size,
 		uint8_t *value, pipe_data_spec_t *specData) const{
-	size_t offset = static_cast<const RtDataFieldContextInfo *>(
+size_t offset = static_cast<const RtDataFieldContextInfo *>(
                        field.dataFieldContextInfoGet())->offsetGet();
+
 	std::memcpy(value, specData->data_bytes+offset, size);
 }
 
 tdi_status_t MatchValueLookupTableData::setValueInternal(const tdi_id_t &field_id,
-                const size_t &size,
-                const uint64_t &value,
-		const uint8_t *value_ptr) {
+		                const size_t &size,
+				                const uint64_t &value,
+						const uint8_t *value_ptr) {
 	const tdi::DataFieldInfo *tableDataField =
 		this->table_->tableInfoGet()->dataFieldGet(field_id, 0);
 
@@ -2468,9 +2469,8 @@ tdi_status_t MatchValueLookupTableData::getValueInternal(
        }
 
        getMatchValueLookupDataSpecObj().getMatchValueLookupDataBytes(*tableDataField, size, value_ptr, &this->spec_data_->spec_data);
-	return BF_SUCCESS;
+       return BF_SUCCESS;
 }
-
 
 tdi_status_t MatchValueLookupTableData::setValue(const tdi_id_t &field_id,
 		const uint8_t *value_ptr,

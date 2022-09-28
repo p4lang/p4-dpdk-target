@@ -4,9 +4,9 @@ project("unit-test")
 
 #Adding include directories
 include_directories(${CMAKE_INSTALL_PREFIX}/include
-                    ${CMAKE_SOURCE_DIR}/../src)
-
-set(CMAKE_CXX_FLAGS "-fprofile-arcs -ftest-coverage -pthread -fpermissive -std=c++11 -O0 ${CMAKE_CXX_FLAGS}")
+                    ${CMAKE_SOURCE_DIR}/../src
+		    ${CMAKE_SOURCE_DIR}/include)
+set(CMAKE_CXX_FLAGS "-fprofile-arcs -ftest-coverage -pthread -fpermissive -std=c++11 -DLOG_USER -O0 ${CMAKE_CXX_FLAGS}")
 
 #Adding libary link directories
 link_directories(${CMAKE_INSTALL_PREFIX}/lib
