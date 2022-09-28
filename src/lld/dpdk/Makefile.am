@@ -1,3 +1,4 @@
+export libdir
 all:
 	$(shell ./apply_patch.sh > /dev/null 2>&1)
 	stat dpdk_src/build > /dev/null 2>&1 || \

@@ -6923,6 +6923,7 @@ tdi_status_t MatchValueLookupTable::entryAdd(const tdi::Session &session,
     return TDI_INVALID_ARG;
   }
 
+
   pipe_tbl_match_spec_t pipe_match_spec = {0};
   match_key.populate_match_spec(&pipe_match_spec);
   pipe_mat_ent_hdl_t pipe_entry_hdl = 0;
@@ -6936,12 +6937,12 @@ tdi_status_t MatchValueLookupTable::entryAdd(const tdi::Session &session,
   match_data.getMatchValueLookupDataSpecObj().getMatchValueLookupData(&data_value, &match_data.spec_data_->spec_data);
 
 return pipeMgr->pipeMgrValueLookupEntAdd(session.handleGet(
-			  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-		  pipe_dev_tgt,
-		  table_context_info->tableHdlGet(),
-		  &pipe_match_spec,
-		  &data_value,
-		  &pipe_entry_hdl);
+                         static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+                 pipe_dev_tgt,
+                 table_context_info->tableHdlGet(),
+                 &pipe_match_spec,
+                 &data_value,
+                 &pipe_entry_hdl);
 }
 
 tdi_status_t MatchValueLookupTable::entryMod(const tdi::Session &session,
@@ -6984,7 +6985,6 @@ tdi_status_t MatchValueLookupTable::entryMod(const tdi::Session &session,
               tableInfoGet()->nameGet().c_str());
     return status;
   }
-
   return entryModInternal(*this, session, dev_tgt, flags, data, pipe_entry_hdl);
 }
 
@@ -7052,7 +7052,7 @@ tdi_status_t MatchValueLookupTable::entryGet(const tdi::Session &session,
 
   const MatchActionKey &match_key = static_cast<const MatchActionKey &>(key);
   MatchValueLookupTableData *match_data =
-	        static_cast<MatchValueLookupTableData *>(data);
+               static_cast<MatchValueLookupTableData *>(data);
   dev_target_t pipe_dev_tgt;
   auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
   dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
@@ -7082,32 +7082,31 @@ tdi_status_t MatchValueLookupTable::entryGet(const tdi::Session &session,
   pipe_data_spec_t *data_spec = match_data->getMatchValueLookupDataSpecObj().getMatchValueLookupDataSpec();
   std::vector<tdi_id_t> dataFields;
   status = pipeMgr->pipeMgrValueLookupEntGet((
-		  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-       		                                        pipe_dev_tgt,
-       		                                        table_context_info->tableHdlGet(),
-       		                                       pipe_entry_hdl,
-       		                                        &pipe_match_spec,
-       		                                        data_spec);
+                 static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+                                                               pipe_dev_tgt,
+                                                               table_context_info->tableHdlGet(),
+                                                              pipe_entry_hdl,
+                                                               &pipe_match_spec,
+                                                               data_spec);
   if (status != BF_SUCCESS) {
            LOG_TRACE("%s:%d %s ERROR : Entry does not exist",
-       	              __func__,
-       	              __LINE__,
-       	              tableInfoGet()->nameGet().c_str());
+                             __func__,
+                             __LINE__,
+                             tableInfoGet()->nameGet().c_str());
            return status;
          }
     dataFields = tableInfoGet()->dataFieldIdListGet(0);
     if (dataFields.empty()) {
                   LOG_TRACE("%s:%d %s ERROR in getting data Fields, err %d",
-       	                           __func__,
-       	                           __LINE__,
-       	                           tableInfoGet()->nameGet().c_str(),
-       	                           status);
+                                          __func__,
+                                          __LINE__,
+                                          tableInfoGet()->nameGet().c_str(),
+                                          status);
                   return status;
            }
     match_data->activeFieldsSet(dataFields);
-	return status;
+       return status;
 }
-
 tdi_status_t MatchValueLookupTable::keyAllocate(
     std::unique_ptr<TableKey> *key_ret) const {
   *key_ret = std::unique_ptr<TableKey>(new MatchActionKey(this));
@@ -7148,6 +7147,7 @@ tdi_status_t MatchValueLookupTable::dataAllocate_internal(
   }
   return TDI_SUCCESS;
 }
+
 
 }  // namespace rt
 }  // namespace pna

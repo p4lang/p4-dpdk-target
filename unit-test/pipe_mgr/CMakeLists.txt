@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 #Adding unit test folders
-set(SUB_DIRS "core" "shared")
+set(SUB_DIRS "core" "shared") 
 
 if(CMAKE_ARGV1 STREQUAL "")
 foreach(dir ${SUB_DIRS})

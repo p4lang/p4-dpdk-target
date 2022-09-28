@@ -24,8 +24,9 @@
 #include <gmock-global.h>
 
 extern "C"{
-    #include "pipe_mgr_ctx_json.c"
     #include "mock.h"
+    #include <ctx_json/ctx_json_utils.h>
+    #include "pipe_mgr_ctx_json.c"
     #include "../mock_pipe_mgr_ctx_json.h"
 }
 

@@ -1,0 +1,89 @@
+Ring Port :
+============
+
+
+This example contains 2 DPDK Pipelines with a Ring Port connecting them.
+The Port JSON for this topology is port_config.json.
+
+
+
+
+
+
+			IN                                  OUT
+
+
+	         |-----------------------------------|
+	TAP0(0)  |				                     | TAP0(0)
+	         |				                     |
+	TAP1(1)  |				                     | TAP1(1)
+	         |				                     |
+	TAP2(2)  |	       DPDK Pipeline 1	         | RING0(2)-------|
+	         |				                     |                |
+	TAP3(3)  |				                     | TAP3(3)        |
+	         |				                     |                |
+	         |				                     | SINK0(4)       |
+	         |-----------------------------------|                |
+                                                                  |
+                                                                  |
+ |----------------------------------------------------------------|
+ |
+ |
+ |          IN                                  OUT
+ |
+ |
+ |           |-----------------------------------|
+ |   TAP4(0) |                                   | TAP4(0)
+ |           |                                   |
+ |   TAP5(1) |                                   | TAP5(1)
+ |           |                                   |
+ |--RING0(2) |         DPDK Pipeline 2           | TAP6(2)
+             |                                   |
+     TAP7(3) |                                   | TAP7(3)
+             |                                   |
+             |                                   | SINK1(4)
+             |-----------------------------------|
+
+
+
+
+BF SHELL Commands :
+===================
+
+bfshell> bfrt_python
+bfrt_root> bfrt.port.port
+bfrt.port.port>
+
+add(DEV_PORT=0, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=0, PORT_OUT_ID =0, PIPE_IN="pipe1",
+    PIPE_OUT="pipe1", MEMPOOL="MEMPOOL0", PORT_NAME="TAP0", MTU=1500)
+
+add(DEV_PORT=1, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=1, PORT_OUT_ID =1, PIPE_IN="pipe1",
+    PIPE_OUT="pipe1", MEMPOOL="MEMPOOL0", PORT_NAME="TAP1", MTU=1500)
+
+add(DEV_PORT=2, PORT_TYPE="BF_DPDK_RING", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=2, PORT_OUT_ID =2, PIPE_IN="pipe2",
+    PIPE_OUT="pipe1", PORT_NAME="RING0", SIZE=32)
+
+add(DEV_PORT=3, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_RX_ONLY", PORT_IN_ID=2, PIPE_IN="pipe1",
+    MEMPOOL="MEMPOOL0", PORT_NAME="TAP2", MTU=1500)
+
+add(DEV_PORT=4, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=3, PORT_OUT_ID =3,PIPE_IN="pipe1",
+    PIPE_OUT="pipe1", MEMPOOL="MEMPOOL0", PORT_NAME="TAP3", MTU=1500)
+
+add(DEV_PORT=5, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID=4, PIPE_OUT="pipe1",
+    PORT_NAME="SINK0",  FILE_NAME="./sink0.pcap")
+
+
+add(DEV_PORT=6, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=0, PORT_OUT_ID =0, PIPE_IN="pipe2",
+    PIPE_OUT="pipe2", MEMPOOL="MEMPOOL0", PORT_NAME="TAP4", MTU=1500)
+
+add(DEV_PORT=7, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=1, PORT_OUT_ID =1, PIPE_IN="pipe2",
+    PIPE_OUT="pipe2", MEMPOOL="MEMPOOL0", PORT_NAME="TAP5", MTU=1500)
+
+add(DEV_PORT=8, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID =2, PIPE_OUT="pipe2",
+    MEMPOOL="MEMPOOL0", PORT_NAME="TAP6", MTU=1500)
+
+add(DEV_PORT=9, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=3, PORT_OUT_ID =3, PIPE_IN="pipe2",
+    PIPE_OUT="pipe2", MEMPOOL="MEMPOOL0", PORT_NAME="TAP7", MTU=1500)
+
+add(DEV_PORT=10, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID=4, PIPE_OUT="pipe2",
+    PORT_NAME="SINK1",  FILE_NAME="./sink1.pcap")

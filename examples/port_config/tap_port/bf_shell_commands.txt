@@ -30,9 +30,9 @@ The Port JSON for this topology is port_config.json.
 BF SHELL Commands :
 ===================
 
-bfshell> tdi_python
-tdi.port.port
-tdi.port.port>
+bfshell> bfrt_python
+bfrt_root> bfrt.port.port
+bfrt.port.port>
 
 add(DEV_PORT=0, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=0,
     PORT_OUT_ID =0, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP0",

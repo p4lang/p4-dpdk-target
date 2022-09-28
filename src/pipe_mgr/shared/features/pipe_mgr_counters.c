@@ -75,23 +75,25 @@ pipe_mgr_cnt_read_counter_pair(int abs_id, void *stats)
 bf_status_t
 pipe_mgr_cnt_read_flow_counter_pair(uint32_t id, void *stats)
 {
-	return dal_cnt_read_flow_counter_pair(id, stats);
+	return dal_cnt_read_flow_counter_pair(id, &stats);
 }
 
 /*!
  * Reads DDR to get the flow counter pair value.
  *
- * @param id assignable counter id to be read for stats
+ * @param dev_tgt device target
+ * @param table_name table name
+ * @param id indirect counter id to be read for stats
  * @param stats buffer to fill stats
  * @return Status of the API call
  */
 bf_status_t
-pipe_mgr_cnt_read_assignable_counter_set(dev_target_t dev_tgt,
-				         const char *name,
-					 int id,
-					 void *stats)
+pipe_mgr_cnt_read_flow_indirect_counter_set(dev_target_t dev_tgt,
+					    const char *table_name,
+					    int id,
+					    void *stats)
 {
-	return dal_cnt_read_assignable_counter_set(dev_tgt, name, id, stats);
+	return dal_cnt_read_flow_indirect_counter_set(dev_tgt, table_name, id, stats);
 }
 
 /*!
@@ -181,10 +183,10 @@ bf_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
 		return status;
 	}
 
-	status = pipe_mgr_cnt_read_assignable_counter_set(dev_tgt,
-                                                          table_name,
-                                                          stat_ent_idx,
-                                                          (void *)stat_data);
+	status = pipe_mgr_cnt_read_flow_indirect_counter_set(dev_tgt,
+                                                             table_name,
+                                                             stat_ent_idx,
+                                                             (void *)stat_data);
 
 	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
 

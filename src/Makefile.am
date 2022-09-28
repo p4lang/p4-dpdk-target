@@ -3,6 +3,10 @@ lib_LTLIBRARIES =
 SUBDIRS =
 SUBDIRS += lld/dpdk
 
+LIBPATH := $(shell gcc --print-multiarch)
+LDFLAGS = -Wl,-rpath-link=$(prefix)/lib64 -Wl,-rpath-link=$(libdir)
+LDFLAGS += -Wl,-rpath-link=$(prefix)/lib/$(LIBPATH)
+
 bf_rt_shareddir = $(datadir)/bf_rt_shared
 dist_bf_rt_shared_DATA =  \
 bf_rt/bf_rt_port/dpdk/bf_rt_port.json
@@ -11,7 +15,7 @@ bfruntime_grpc_protocoldir = $(bf_rt_shareddir)/proto
 dist_bfruntime_grpc_protocol_DATA = bf_rt/proto/bfruntime.proto
 
 if IS_BFRT_ENABLED
-bfrt_pythondir = $(libdir)/python3.8
+bfrt_pythondir = $(libdir)/python3.10
 bfrt_python_DATA = $(bfrt_python_python_sources) \
 $(tdi_python_python_sources) \
 $(tdi_rt_python_python_sources)
@@ -41,6 +45,7 @@ libdriver_la_CFLAGS += -I$(srcdir)/lld/dpdk
 libdriver_la_CXXFLAGS = $(AM_CXXFLAGS) $(BF_DRIVERS_CXXFLAGS)
 libdvm_la_CFLAGS = $(libdriver_la_CFLAGS)
 liblld_la_CFLAGS = $(libdriver_la_CFLAGS) -fPIC -DPIC
+liblld_la_LIBADD = -ldpdk_infra
 libpipe_mgr_la_CFLAGS = $(libdriver_la_CFLAGS) -DPIPE_MGR_DEBUG
 libport_mgr_la_CFLAGS = $(libdriver_la_CFLAGS)
 libbf_pm_la_CFLAGS = $(libdriver_la_CFLAGS)
@@ -48,11 +53,13 @@ libutils_la_CFLAGS = $(libdriver_la_CFLAGS)
 
 if IS_BFRT_ENABLED
 libbfrt_la_CFLAGS = $(libdriver_la_CFLAGS)
-libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk -I$(top_builddir)third_party/ptf_grpc
+libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk -I$(top_builddir)third_party/ptf_grpc \
+                                               -I$(srcdir)/tdi_rt/tdi_port/dpdk
 libtdirt_la_CFLAGS = $(libdriver_la_CFLAGS)
-libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt \
+libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt_common \
                                                 -I$(srcdir)/../third-party/tdi/include \
 						-I$(srcdir)/bf_rt \
+                                                -I$(srcdir)/tdi_rt \
                                                 -I$(srcdir)/tdi_rt/tdi_port/dpdk
 endif # end IS_BFRT_ENABLED
 
@@ -65,9 +72,7 @@ tdi_rt/tdi_common/tdi_session_impl.cpp \
 tdi_rt/tdi_common/tdi_rt_target.cpp \
 tdi_rt/c_frontend/tdi_rt_init_c.cpp \
 tdi_rt/tdi_port/tdi_port_table_key_impl.cpp \
-tdi_rt/tdi_port/dpdk/tdi_port_table_data_impl.cpp \
 tdi_rt/tdi_port/tdi_table_data_utils.cpp \
-tdi_rt/tdi_port/dpdk/tdi_port_table_impl.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_impl.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp
@@ -107,7 +112,9 @@ bf_rt/cli/bf_rt_cli.c
 
 bfrt_sources += \
 bf_rt/bf_rt_port/dpdk/bf_rt_port_table_impl.cpp \
-bf_rt/bf_rt_port/dpdk/bf_rt_port_table_data_impl.cpp
+bf_rt/bf_rt_port/dpdk/bf_rt_port_table_data_impl.cpp \
+tdi_rt/tdi_port/dpdk/tdi_port_table_impl.cpp \
+tdi_rt/tdi_port/dpdk/tdi_port_table_data_impl.cpp
 
 
 bf_types_sources = \
@@ -224,7 +231,6 @@ libtdirt_la_SOURCES = $(tdirt_sources)
 endif
 libdvm_la_SOURCES = $(dvm_sources)
 liblld_la_SOURCES = $(lld_sources)
-liblld_la_LDFLAGS = -L$(libdir)
 libpipe_mgr_la_SOURCES = $(pipe_mgr_sources)
 libport_mgr_la_SOURCES = $(port_mgr_sources)
 libbf_pm_la_SOURCES = $(bf_pm_sources)
@@ -279,14 +285,13 @@ endif
 
 lib_LTLIBRARIES += libdriver.la
 
-libdriver_la_LDFLAGS = -Wl,-Bsymbolic
-libdriver_la_LDFLAGS += -ltarget_utils
+libdriver_la_LDFLAGS = -ltarget_sys -ltarget_utils -lstdc++ -lclish -lcjson
 
 if IS_BFRT_ENABLED
-libdriver_la_LDFLAGS += -lpython3.8 -ltdi -ltdi_pna 
+libdriver_la_LDFLAGS += -lpython3.10 -ltdi -ltdi_pna 
 else
 if IS_DEBUG_PYTHON_SHELL_ENABLED
-libdriver_la_LDFLAGS += -lpython3.8
+libdriver_la_LDFLAGS += -lpython3.10
 endif #IS_DEBUG_PYTHON_SHELL_ENABLED
 endif #IS_BFRT_ENABLED
 if COVERAGE

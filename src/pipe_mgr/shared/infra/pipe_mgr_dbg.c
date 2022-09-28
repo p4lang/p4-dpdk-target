@@ -50,6 +50,25 @@ void pipe_mgr_print_action_spec(struct pipe_action_spec *action_spec)
 	printf("\n");
 }
 
+void pipe_mgr_print_dal_mat_buf(struct pipe_mgr_mat_ctx *mat_ctx)
+{
+	int i;
+	printf("\r\ntarget_match_Key_num_bytes:%d\n", mat_ctx->mat_key_num_bytes);
+	printf("\rtarget_match_key_bits: 0x");
+	for (i = 0; i < mat_ctx->mat_key_num_bytes; i++)
+		printf("%02x", mat_ctx->match_key_buffer[i]);
+
+	if (mat_ctx->mat_key_fields->match_type ==
+			PIPE_MGR_MATCH_TYPE_TERNARY ||
+			mat_ctx->mat_key_fields->match_type ==
+			PIPE_MGR_MATCH_TYPE_LPM) {
+		printf("\r\ntarget_match_key_bits_mask: 0x");
+		for (i = 0; i < mat_ctx->mat_key_num_bytes; i++)
+			printf("%02x", mat_ctx->match_key_mask_buffer[i]);
+		printf("\r\n");
+	}
+}
+
 void pipe_mgr_print_data_spec(struct pipe_data_spec *data_spec)
 {
 	int i;

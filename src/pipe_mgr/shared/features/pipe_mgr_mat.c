@@ -139,15 +139,15 @@ error_match_value:
 }
 
 static int pipe_mgr_mat_unpack_entry_data(struct bf_dev_target_t dev_tgt,
-		struct pipe_tbl_match_spec *match_spec,
-		u32 *act_fn_hdl,
-		struct pipe_action_spec *act_data_spec,
-		u32 ent_hdl,
-		struct pipe_mgr_mat *tbl,
-		struct pipe_mgr_mat_entry_info *entry)
+					  struct pipe_tbl_match_spec *match_spec,
+					  u32 *act_fn_hdl,
+					  struct pipe_action_spec *act_data_spec,
+					  u32 ent_hdl,
+					  struct pipe_mgr_mat *tbl,
+					  struct pipe_mgr_mat_entry_info *entry,
+					  void *res_data)
 {
 	int status;
-
 	if (ent_hdl != entry->mat_ent_hdl) {
 		LOG_ERROR("entry unpack error");
 		return BF_UNEXPECTED;
@@ -156,20 +156,20 @@ static int pipe_mgr_mat_unpack_entry_data(struct bf_dev_target_t dev_tgt,
 	*act_fn_hdl = entry->act_fn_hdl;
 
 	status = pipe_mgr_mat_unpack_match_spec(entry->match_spec,
-			match_spec);
+						match_spec);
 	if (status) {
 		LOG_ERROR("match_spec unpack failed");
 		return status;
 	}
 
 	status = pipe_mgr_mat_unpack_act_spec(entry->act_data_spec,
-					    act_data_spec);
+					      act_data_spec);
 	if (status) {
 		LOG_ERROR("act_spec unpack failed");
 		return status;
 	}
 
-	status = dal_unpack_dal_data(entry->dal_data);
+	status = dal_unpack_dal_data(entry->dal_data, res_data);
 	if (status) {
 		LOG_ERROR("dal_data unpack failed");
 		return status;
@@ -333,8 +333,8 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 	}
 
 	status = pipe_mgr_mat_unpack_entry_data(dev_tgt, match_spec,
-			act_fn_hdl, act_data_spec,
-			entry_hdl, tbl, entry);
+						act_fn_hdl, act_data_spec,
+						entry_hdl, tbl, entry, res_data);
 
 	if (status)
 		LOG_ERROR("Unpacking enty data failed for entry hdl %d\n",
@@ -451,6 +451,7 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 				       struct pipe_tbl_match_spec *match_spec,
 				       u32 pipe_api_flags)
 {
+	struct pipe_tbl_match_spec *match_spec_temp;
 	struct pipe_mgr_mat_entry_info *entry;
 	struct pipe_mgr_mat *tbl;
 	u32 mat_ent_hdl;
@@ -497,11 +498,25 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 			goto cleanup;
 		}
 	}
+	/* send copy of match_spec only as below func
+	   dal_table_ent_del_by_match_spec modify the
+	   contain of match_spec */
+	match_spec_temp = P4_SDE_CALLOC(1, sizeof(*match_spec_temp));
+	if (!match_spec_temp)
+		return BF_NO_SYS_RESOURCES;
+
+	status = pipe_mgr_mat_pack_match_spec(&match_spec_temp, match_spec);
+	if (status)
+		goto cleanup;
 
 	status = dal_table_ent_del_by_match_spec(sess_hdl, dev_tgt, mat_tbl_hdl,
-						 match_spec, pipe_api_flags,
-						 &tbl->ctx,
-						 NULL);
+			match_spec_temp, pipe_api_flags,
+			&tbl->ctx,
+			NULL);
+
+	/* We are done with match_spec_tmp */
+	free(match_spec_temp);
+
 	if (status) {
 		LOG_ERROR("dal table entry del failed");
 		goto cleanup;

@@ -93,7 +93,8 @@ apt_packages = ['git',
                 'tshark',
                 'cmake',
                 'libglib2.0-dev',
-                'patch'
+                'patch',
+                'python3.10'
                 ]
 
 pip_packages = ['thrift', 'protobuf','pyelftools','scapy','six']
@@ -123,7 +124,8 @@ dnf_pkg = [ "clang", #libstdc++ is part of clang
             "cmake",
             "libunwind-devel",
             "glib2-devel",
-            "patch"
+            "patch",
+            "python3.10"
 ]
 
 

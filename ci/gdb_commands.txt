@@ -1,5 +1,0 @@
-bt full
-info threads
-thread apply all bt
-show args
-quit

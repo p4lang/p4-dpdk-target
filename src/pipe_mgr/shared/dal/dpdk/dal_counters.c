@@ -96,11 +96,11 @@ dal_cnt_read_counter_pair(int abs_id, void *stats)
  * Reads DDR to get the flow counter pair value.
  *
  * @param id flow counter id to be read for stats
- * @param stats buffer to fill stats
+ * @param stats address of buffer to fill stats
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_flow_counter_pair(uint32_t id, void *stats)
+dal_cnt_read_flow_counter_pair(uint32_t id, void **stats)
 {
 	LOG_TRACE("STUB:%s\n", __func__);
 	return BF_SUCCESS;
@@ -123,27 +123,29 @@ static void dal_cnt_set_value(pipe_stat_data_t *stat_data,
 }
 
 /*!
- * Reads DDR to get the flow counter pair value.
+ * Reads DDR to get the flow indirect counter pair value.
  *
- * @param id assignable counter id to be read for stats
+ * @param dev_tgt device target
+ * @param table_name table name
+ * @param id indirect counter id to be read for stats
  * @param stats buffer to fill stats
  * @return Status of the API call
  */
 bf_status_t
-dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt,
-                                    const char *name,
-                                    int id,
-                                    void *stats)
+dal_cnt_read_flow_indirect_counter_set(bf_dev_target_t dev_tgt,
+				       const char *table_name,
+				       int id,
+				       void *stats)
 {
+	struct pipe_mgr_externs_ctx *externs_entry = NULL;
+	char target_name[P4_SDE_COUNTER_TARGET_LEN] = {0};
+	struct pipe_mgr_p4_pipeline *ctx_obj = NULL;
+	char key_name[P4_SDE_TABLE_NAME_LEN] = {0};
+	struct pipe_mgr_profile *profile = NULL;
 	bf_status_t status = BF_SUCCESS;
-	const char  *ptr   = NULL;
-	uint64_t     value = 0;
 	struct pipeline *pipe = NULL;
-	struct pipe_mgr_profile *profile            = NULL;
-	struct pipe_mgr_p4_pipeline *ctx_obj        = NULL;
-	struct pipe_mgr_externs_ctx *externs_entry  = NULL;
-	char   key_name[P4_SDE_TABLE_NAME_LEN]        = {0};
-	char   target_name[P4_SDE_COUNTER_TARGET_LEN] = {0};
+	const char *ptr = NULL;
+	uint64_t value = 0;
 
 	status = pipe_mgr_get_profile(dev_tgt.device_id,
 				      dev_tgt.dev_pipe_id, &profile);
@@ -170,87 +172,86 @@ dal_cnt_read_assignable_counter_set(bf_dev_target_t dev_tgt,
 	}
 
 	/* extract table name which is used as a key in hash map */
-	ptr = trim_classifier_str((char*)name);
+	ptr = trim_classifier_str((char*)table_name);
 	strncpy(key_name, ptr, P4_SDE_TABLE_NAME_LEN-1);
 
 	externs_entry = bf_hashtbl_search(ctx_obj->bf_externs_htbl, key_name);
 
 	if (!externs_entry) {
 		LOG_ERROR("externs object/entry get for table \"%s\" failed",
-				name);
+			  table_name);
 		return BF_OBJECT_NOT_FOUND;
 	}
 
 	switch (externs_entry->attr_type) {
-	  case EXTERNS_ATTR_TYPE_BYTES:
-	  case EXTERNS_ATTR_TYPE_PACKETS:
-		  //read counter stats from dpdk pipeline
-		  status = rte_swx_ctl_pipeline_regarray_read(
-				  pipe->p,
+	case EXTERNS_ATTR_TYPE_BYTES:
+	case EXTERNS_ATTR_TYPE_PACKETS:
+
+		/* read counter stats from dpdk pipeline */
+		status = rte_swx_ctl_pipeline_regarray_read(pipe->p,
+							    externs_entry->target_name,
+							    id,
+							    &value);
+
+		if (status) {
+			LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
+				  , __func__,
 				  externs_entry->target_name,
-				  id,
-				  &value);
+				  id);
 
-		  if (status) {
-			  LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
-					  , __func__,
-					  externs_entry->target_name,
-					  id);
+			return BF_OBJECT_NOT_FOUND;
+		}
 
-			  return BF_OBJECT_NOT_FOUND;
-		  }
+		dal_cnt_set_value(stats, externs_entry->attr_type, value);
+		break;
+	case EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES:
+		/* for packet and bytes, fetch counter values for
+		 * bytes and packets in saparate calls by appending
+		 * target name with respective attribute type
+		 */
+		snprintf(target_name, sizeof(target_name), "%s_%s",
+			 externs_entry->target_name, "packets");
 
-		  dal_cnt_set_value(stats, externs_entry->attr_type, value);
-		  break;
-	  case EXTERNS_ATTR_TYPE_PACKETS_AND_BYTES:
-		  /* for packet and bytes, fetch counter values for
-		   * bytes and packets in saparate calls by appending
-		   * target name with respective attribute type */
-		  snprintf(target_name, sizeof(target_name), "%s_%s",
-				  externs_entry->target_name, "packets");
-		  //read counter stats from dpdk pipeline
-		  status = rte_swx_ctl_pipeline_regarray_read(
-				  pipe->p,
-				  target_name,
-				  id,
-				  &value);
+		/* read counter stats from dpdk pipeline */
+		status = rte_swx_ctl_pipeline_regarray_read(pipe->p,
+							    target_name,
+							    id,
+							    &value);
 
-		  if (status) {
-			  LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
-					  , __func__,
-					  externs_entry->target_name,
-					  id);
+		if (status) {
+			LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
+				  , __func__,
+				  externs_entry->target_name,
+				  id);
 
-			  return BF_OBJECT_NOT_FOUND;
-		  }
+			return BF_OBJECT_NOT_FOUND;
+		}
 
-		  dal_cnt_set_value(stats, EXTERNS_ATTR_TYPE_PACKETS, value);
+		dal_cnt_set_value(stats, EXTERNS_ATTR_TYPE_PACKETS, value);
+		memset(target_name, 0x0, sizeof(target_name));
+		snprintf(target_name, sizeof(target_name), "%s_%s",
+			 externs_entry->target_name, "bytes");
 
-		  memset(target_name, 0x0, sizeof(target_name));
-		  snprintf(target_name, sizeof(target_name), "%s_%s",
-				  externs_entry->target_name, "bytes");
+		/* read counter stats from dpdk pipeline */
+		status = rte_swx_ctl_pipeline_regarray_read(pipe->p,
+							    target_name,
+							    id,
+							    &value);
 
-		  //read counter stats from dpdk pipeline
-		  status = rte_swx_ctl_pipeline_regarray_read(
-				  pipe->p,
-				  target_name,
-				  id,
-				  &value);
+		if (status) {
+			LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
+				  , __func__,
+				  externs_entry->target_name,
+				  id);
+			return BF_OBJECT_NOT_FOUND;
+		}
 
-		  if (status) {
-			  LOG_ERROR("%s:Counter read failed for Name[%s][%d]\n"
-					  , __func__,
-					  externs_entry->target_name,
-					  id);
-			  return BF_OBJECT_NOT_FOUND;
-		  }
-
-		  dal_cnt_set_value(stats, EXTERNS_ATTR_TYPE_BYTES, value);
-		  break;
-		default:
-		  LOG_ERROR("invalid attribute type for counter table %s",
-				  externs_entry->target_name);
-		  return (BF_INTERNAL_ERROR);
+		dal_cnt_set_value(stats, EXTERNS_ATTR_TYPE_BYTES, value);
+		break;
+	default:
+		LOG_ERROR("invalid attribute type for counter table %s",
+			  externs_entry->target_name);
+		return BF_INTERNAL_ERROR;
 	}
 
 	return BF_SUCCESS;
@@ -432,10 +433,10 @@ dal_cnt_display_assignable_counter_set(void *stats)
 bf_status_t
 dal_cnt_free_externs(struct pipe_mgr_p4_pipeline *pipe_ctx)
 {
-        if (pipe_ctx->bf_externs_htbl) {
-                bf_hashtbl_delete(pipe_ctx->bf_externs_htbl);
-                P4_SDE_FREE(pipe_ctx->bf_externs_htbl);
-                pipe_ctx->bf_externs_htbl = NULL;
-        }
-        return BF_SUCCESS;
+	if (pipe_ctx->bf_externs_htbl) {
+		bf_hashtbl_delete(pipe_ctx->bf_externs_htbl);
+		P4_SDE_FREE(pipe_ctx->bf_externs_htbl);
+		pipe_ctx->bf_externs_htbl = NULL;
+	}
+	return BF_SUCCESS;
 }

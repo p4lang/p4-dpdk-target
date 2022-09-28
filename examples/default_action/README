@@ -1,0 +1,57 @@
+------- Test Case 1 -----
+1. commands on bf_switchd console (console-1)
+	./bf_switchd --install-dir $SDE_INSTALL --conf-file $SDE_INSTALL/share/tofinopd/default_action/simple_l2l3_lpm.conf  --init-mode=cold --status-port 7777 --skip-hld mkt
+	bfrt_python
+	bfrt.enable
+2. commands on new console (console-2)
+	make tap interfaces up
+	tcpdump -i TAP1 -XXx
+3. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.12")/TCP(sport=7777, dport=8888)/Raw(load="0"*50), iface='TAP0')
+	
+4. Expected results
+	As we not configured any match rule from bf-shell, packet has to hit default action
+	which is macupdt as per this p4 program and we should see packets on TAP1(console-2),with
+	source mac address 1 and destination mac address 2.
+	
+------- Test Case 2 -----
+1. commands on bf_switchd console (console-1)
+	bfrt.simple_l2l3_lpm.ip.ingress.ipv4_lpm.add_with_macupdt(src_addr=0xAAAAAAAAAAAA, dst_addr=0xBBBBBBBBBBBB)
+2. commands on new console (console-2)
+	as part of Test case 1 we already running command on this console
+3. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.12")/TCP(sport=7777, dport=8888)/Raw(load="0"*50), iface='TAP0')
+	
+4. Expected results
+	As we not configured any match rule from bf-shell but we changed arguments to default action macupdt,
+	packet has to hit default action and we should see packets on TAP1(console-2), with src_mac: 0xAAAAAAAAAAAA
+	and dst_mac: 0xBBBBBBBBBBBB
+	
+------- Test Case 3 -----
+1. commands on bf_switchd console (console-1)
+	bfrt.simple_l2l3_lpm.ip.ingress.ipv4_lpm.delete()
+2. commands on new console (console-2)
+	as part of Test case 1 we already running command on this console
+3. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.12")/TCP(sport=7777, dport=8888)/Raw(load="0"*50), iface='TAP0')
+	
+4. Expected results
+	As we not configured any match rule from bf-shell and also we deleted default action which we configured from bf-shell,
+	packet has to hit default action and we should see packets on TAP1(console-2), with src_mac: 0xAAAAAAAAAAAA
+	and dst_mac: 0xBBBBBBBBBBBB which are the mac address configured with last default action configured.
+
+	
+------- Test Case 4 -----
+1. commands on bf_switchd console (console-1)
+	bfrt.simple_l2l3_lpm.ip.ingress.ipv4_lpm.add_with_send(port=2)
+2. commands on new console (console-2)
+	since we configured different action as default action in the above command (on console-1)
+	we need to stop current command running in this console with ctrl+c and rerun below command
+	tcpdump -i TAP2 -XXx
+3. commands on scapy console (console-3)
+	sendp(Ether(dst="aa:bb:cc:dd:00:00", src="9e:ba:ce:98:d9:d3")/IP(src="192.168.1.10", dst="192.168.2.12")/TCP(sport=7777, dport=8888)/Raw(load="0"*50), iface='TAP0')
+	
+4. Expected results
+	As we not configured any match rule from bf-shell but we changed default action from "macupdt" to "send",
+	packet has to hit default action and we should see packets on TAP2(console-2), with original mac address
+	

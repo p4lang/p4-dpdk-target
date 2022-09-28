@@ -1,0 +1,58 @@
+Source and Sink Ports :
+=======================
+
+This example contains a DPDK Pipeline with 4 TAP Ports, 1 Source Port and
+1 Sink Port. The Port JSON for this topology is port_config.json.
+
+
+
+
+
+
+                              IN                                  OUT
+
+
+	                       |-----------------------------------|
+	           SOURCE0(0)  |				                   | TAP0(0)
+	                       |				                   |
+		          TAP1(1)  |				                   | TAP1(1)
+	                       |				                   |
+		          TAP2(2)  |	       DPDK Pipeline	       | TAP2(2)
+	                       |				                   |
+	              TAP3(3)  |				                   | TAP3(3)
+	                       |				                   |
+	                       |				                   | SINK0(4)
+	                       |-----------------------------------|
+
+
+
+BF SHELL Commands :
+===================
+
+bfshell> bfrt_python
+bfrt_root> bfrt.port.port
+bfrt.port.port>
+
+add(DEV_PORT=0, PORT_TYPE="BF_DPDK_SOURCE", PORT_DIR="PM_PORT_DIR_RX_ONLY",
+    PORT_IN_ID=0, PIPE_IN="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="SOURCE0",
+    FILE_NAME="./source0.pcap")
+
+add(DEV_PORT=1, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_TX_ONLY",
+    PORT_OUT_ID =0, PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP0",
+    MTU=1500)
+
+add(DEV_PORT=2, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT",
+    PORT_IN_ID=1, PORT_OUT_ID =1, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0",
+    PORT_NAME="TAP1", MTU=1500)
+
+add(DEV_PORT=3, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT",
+    PORT_IN_ID=2, PORT_OUT_ID =2, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0",
+    PORT_NAME="TAP2", MTU=1500)
+
+add(DEV_PORT=4, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT",
+    PORT_IN_ID=3, PORT_OUT_ID =3, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0",
+    PORT_NAME="TAP3", MTU=1500)
+
+add(DEV_PORT=5, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY",
+    PORT_OUT_ID=4, PIPE_OUT="pipe",  PORT_NAME="SINK0",
+    FILE_NAME="./sink0.pcap")

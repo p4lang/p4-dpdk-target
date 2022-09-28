@@ -1,10 +1,13 @@
+LIBPATH := $(shell gcc --print-multiarch)
+LDFLAGS = -Wl,-rpath-link=$(prefix)/lib64 -Wl,-rpath-link=$(libdir)
+LDFLAGS += -Wl,-rpath-link=$(prefix)/lib/$(LIBPATH)
 bfswitchd_includedir = $(includedir)/bf_switchd
 nobase_bfswitchd_include_HEADERS = bf_switchd.h lib/bf_switchd_lib_init.h
 
 bf_switchd_datadir = $(datadir)/bf_switchd
 libbf_switchd_lib_la_CFLAGS = $(AM_CFLAGS) $(BF_DRIVERS_CFLAGS)
 libbf_switchd_lib_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)
-libbf_switchd_lib_la_LDFLAGS = -L$(top_builddir)/src $(AM_LDFLAGS)
+libbf_switchd_lib_la_LDFLAGS =
 libbf_switchd_lib_la_LIBADD =
 
 bf_switchd_CFLAGS =
@@ -26,6 +29,7 @@ export top_srcdir libdir prefix
 
 libbf_switchd_lib_la_SOURCES = $(bf_switchd_lib_sources)
 lib_LTLIBRARIES = libbf_switchd_lib.la
+
 
 if IS_GRPC_ENABLED
 if !IS_STATIC_LINKED_LIB
@@ -54,9 +58,8 @@ bf_switchd_LDFLAGS += -lgcov
 endif
 endif
 
-dpdk_lib != find $(prefix) -name librte_eal.so | xargs dirname
-libbf_switchd_lib_la_LDFLAGS += -Wl,-rpath-link,$(dpdk_lib)
-libbf_switchd_lib_la_LIBADD += -ltarget_sys -ltarget_utils -ldriver -lstdc++ -ldpdk_infra -lclish -lcjson
+libbf_switchd_lib_la_LDFLAGS += -L$(top_builddir)/src
+libbf_switchd_lib_la_LIBADD += -ldriver
 
 if !IS_STATIC_LINKED_LIB
 bf_switchd_DEPENDENCIES = libbf_switchd_lib.la
@@ -68,7 +71,6 @@ bf_switchd_CPPFLAGS += $(AM_CPPFLAGS)
 bf_switchd_SOURCES = \
 bf_switchd_main.c
 
-bf_switchd_LDFLAGS += -Wl,-rpath-link,$(dpdk_lib) -L$(top_builddir)/src -L$(top_builddir)/bf_switchd \
-			$(AM_LDFLAGS)
+bf_switchd_LDFLAGS += -L$(top_builddir)/bf_switchd
 bf_switchd_LDADD += -lbf_switchd_lib
 endif
