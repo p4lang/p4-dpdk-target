@@ -42,9 +42,6 @@ TEST(MIRROR_DPDK, case0) {
 	mir_params.n_slots = 4;
 	mir_params.n_sessions = 16;
 
-	EXPECT_GLOBAL_CALL(rte_swx_pipeline_mirroring_config, rte_swx_pipeline_mirroring_config(_,_))
-		.Times(1).
-		WillOnce(Return(0));
 	actual_res = lld_dpdk_pipeline_mirror_config(NULL, &mir_params);
 	expected_res = 0;
 

@@ -185,6 +185,7 @@ struct pipeline {
 	int enabled;
 	uint32_t thread_id;
 	uint32_t cpu_id;
+	uint32_t numa_node;
 	uint64_t net_port_mask[4];
 };
 

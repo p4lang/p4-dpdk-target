@@ -76,6 +76,8 @@
 ******************************************************************************/
 #include "bf_switchd.h"
 
+#define BUF_SIZE 64
+
 /* Global defines */
 bool is_skip_p4 = false;
 
@@ -1660,6 +1662,7 @@ int bf_switchd_lib_init_local(void *ctx_local) {
   int ret = 0;
   bf_dev_id_t dev_id = 0;
   int num_active_devices = 0;
+  char buf[BUF_SIZE];
 
   if (ctx) {
     if ((switchd_ctx = malloc(sizeof(bf_switchd_context_t))) == NULL) {
@@ -1691,6 +1694,13 @@ int bf_switchd_lib_init_local(void *ctx_local) {
     pthread_setname_np(switchd_ctx->dev_sts_t_id, "bf_device_sts");
   }
   #endif
+
+  snprintf(buf, sizeof(buf), "rm %s", IOSPEC_FILE_PATH);
+  ret = system(buf);
+  if (ret) {
+	  printf("%s line:%d Fail to delete %s file\n"
+		 , __func__, __LINE__, IOSPEC_FILE_PATH);
+  }
 
   /* Initialize system services */
   ret = bf_switchd_sys_init();
