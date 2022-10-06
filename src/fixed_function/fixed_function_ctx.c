@@ -49,8 +49,9 @@ struct fixed_function_mgr_map {
  * Fixed Function Mgr Map
  */
 static struct fixed_function_mgr_map ff_mgr_map[] = {
-        {"port", FF_MGR_PORT},           /*!< Port Manager */
-        {"vport", FF_MGR_VPORT},         /*!< vPort Manager */
+	{"port", FF_MGR_PORT},           /*!< Port Manager */
+	{"vport", FF_MGR_VPORT},         /*!< vPort Manager */
+	{"crypto", FF_MGR_CRYPTO},       /*!< crypto Manager */
 };
 
 /**
@@ -75,7 +76,7 @@ static struct fixed_function_table_type_map ff_table_type_map[] = {
  * @param port_type  String
  * @return Port Type Enum
  */
-static enum fixed_function_mgr get_fixed_function_mgr_enum(char *ff_name)
+enum fixed_function_mgr get_fixed_function_mgr_enum(char *ff_name)
 {
         int num_ff_mgr;
         int i;

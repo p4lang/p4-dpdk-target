@@ -38,3 +38,5 @@ class TdiRtTable(TdiTable):
             self.name = name_lowercase_without_dollar
         if self.table_type in ["SNAPSHOT", "SNAPSHOT_LIVENESS"]:
             self.name = "{}".format(name_lowercase_without_dollar)
+        if self.table_type in ["FIXED_FUNC"]:
+            self.name = "fixed.{}".format(name_lowercase_without_dollar)

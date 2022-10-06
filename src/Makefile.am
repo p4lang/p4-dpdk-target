@@ -69,6 +69,7 @@ tdirt_sources = \
 tdi_rt/tdi_common/tdi_rt_init.cpp \
 tdi_rt/tdi_common/tdi_context_info.cpp \
 tdi_rt/tdi_common/tdi_pipe_mgr_intf.cpp \
+tdi_rt/tdi_common/tdi_fixed_mgr_intf.cpp \
 tdi_rt/tdi_common/tdi_session_impl.cpp \
 tdi_rt/tdi_common/tdi_rt_target.cpp \
 tdi_rt/c_frontend/tdi_rt_init_c.cpp \
@@ -76,7 +77,10 @@ tdi_rt/tdi_port/tdi_port_table_key_impl.cpp \
 tdi_rt/tdi_port/tdi_table_data_utils.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_impl.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
-tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp
+tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp \
+tdi_rt/tdi_fixed/tdi_fixed_table_impl.cpp \
+tdi_rt/tdi_fixed/tdi_fixed_table_data_impl.cpp \
+tdi_rt/tdi_fixed/tdi_fixed_table_key_impl.cpp
 
 bfrt_sources = \
 bf_rt/bf_rt_common/bf_rt_info_impl.cpp \
@@ -191,7 +195,9 @@ pipe_mgr/stubs/pipe_mgr_intf.c \
 pipe_mgr/shared/dal/dal_init.h \
 pipe_mgr/shared/dal/dal_value_lookup.h \
 pipe_mgr/shared/dal/dal_counters.h \
-pipe_mgr/shared/dal/dal_mirror.h
+pipe_mgr/shared/dal/dal_mirror.h   \
+pipe_mgr/shared/features/pipe_mgr_fixed.c \
+pipe_mgr/shared/features/pipe_mgr_fixed.h
 
 pipe_mgr_sources += \
 pipe_mgr/shared/dal/dpdk/dal_mat.c \

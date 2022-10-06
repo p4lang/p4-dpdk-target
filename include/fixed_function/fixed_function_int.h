@@ -33,6 +33,7 @@
 enum fixed_function_mgr {
 	FF_MGR_PORT = 0,       /* Port Manager */
 	FF_MGR_VPORT,          /* vPort Manager */
+	FF_MGR_CRYPTO,         /* Crypto Manager */
 	FF_MGR_INVALID
 };
 
@@ -193,4 +194,11 @@ bf_status_t fixed_function_decode_data_spec(
 		int bit_width,
 		u8 *data);
 
+/**
+ * Get the Fixed Function Mgr Enum from
+ * string
+ * @param ff_name fixed function manager name string
+ * @return fixed_function_mgr ff manager enum
+ */
+enum fixed_function_mgr get_fixed_function_mgr_enum(char *ff_name);
 #endif /* __FIXED_FUNCTION_INT_H__ */

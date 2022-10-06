@@ -38,6 +38,7 @@
 
 #include "tdi_port_table_impl.hpp"
 #include "../tdi_p4/tdi_p4_table_impl.hpp"
+#include "../tdi_fixed/tdi_fixed_table_impl.hpp"
 /**
  * @brief Namespace for TDI
  */
@@ -84,6 +85,7 @@ const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"PortStat", TDI_RT_TABLE_TYPE_PORT_STAT},
     {"DevConfigure", TDI_RT_TABLE_TYPE_DEV_CFG},
     {"MatchValueLookupTable", TDI_RT_TABLE_TYPE_VALUE_LOOKUP},
+    {"FixedFunctionConfig", TDI_RT_TABLE_TYPE_FIXED_FUNC},
 };
 }
 namespace pna {
@@ -139,13 +141,13 @@ class TableFactory : public tdi::pna::TableFactory {
       case TDI_RT_TABLE_TYPE_METER:
         return std::unique_ptr<tdi::Table>(new MeterIndirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_PORT_CFG:
-	LOG_DBG("%s:%d table info received for PORT_CFG", __func__, __LINE__);
-        return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(tdi_info, table_info));
+	return std::unique_ptr<tdi::Table>(new tdi::PortCfgTable(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_PORT_STAT:
-	LOG_DBG("%s:%d table info received for PORT_STAT", __func__, __LINE__);
         return std::unique_ptr<tdi::Table>(new tdi::PortStatTable(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_VALUE_LOOKUP:
         return std::unique_ptr<tdi::Table>(new MatchValueLookupTable(tdi_info, table_info));
+      case TDI_RT_TABLE_TYPE_FIXED_FUNC:
+        return std::unique_ptr<tdi::Table>(new FixedFunctionConfigTable(tdi_info, table_info));
       default:
         LOG_DBG("%s:%d table info received for other", __func__, __LINE__);
 	return nullptr;

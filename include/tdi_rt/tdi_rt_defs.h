@@ -185,6 +185,8 @@ extern "C" {
     TDI_RT_TABLE_TYPE_TM_PIPE_SCHED_CFG,
     /** Value Lookup Table */
 	TDI_RT_TABLE_TYPE_VALUE_LOOKUP,
+    /** Fixed function table */
+    TDI_RT_TABLE_TYPE_FIXED_FUNC,
     TDI_RT_TABLE_TYPE_INVALID_TYPE
   };
 
