@@ -113,6 +113,7 @@ class CIntfTdiRt(CIntfTdi):
         return "dev_id={} pipe={} direction={}".format(dev_id.value, pipe_id.value, direction.value)
 
 class TdiRtCli(TdiCli):
+    fixed_nodes=["port", "mirror", "fixed"]
     cIntf_cls = CIntfTdiRt
 
     def fill_dev_node(self, cintf, dev_node):

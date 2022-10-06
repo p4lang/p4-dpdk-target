@@ -135,6 +135,11 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
           profile_name, context_json_path, binary_path, pipe_scope);
     }
     tdi_p4_json_vect.push_back(dev_profile->p4_programs[i].bfrt_json_file);
+
+    // append fixed function TDI.json files
+    for (int j = 0; j < dev_profile->num_fixed_functions; j++) {
+	tdi_p4_json_vect.push_back(dev_profile->fixed_functions[j].tdi_json);
+    }
     program_config_vec.emplace_back(prog_name, tdi_p4_json_vect, p4_pipelines);
   }
   if (num_valid_p4_programs == 0) {

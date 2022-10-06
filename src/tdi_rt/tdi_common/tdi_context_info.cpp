@@ -43,6 +43,7 @@
 #include "tdi_context_info.hpp"
 #include "tdi_rt_info.hpp"
 #include "tdi_pipe_mgr_intf.hpp"
+#include "tdi_fixed_mgr_intf.hpp"
 
 namespace tdi {
 namespace pna {
@@ -137,6 +138,21 @@ tdi_status_t ContextInfoParser::parseContextJson(
 
       kv.second.first->tableContextInfoSet(
           std::move(rt_table_context_info));
+    }
+
+    // Parse Table for fixed function table without help of context json.
+    if (kv.second.first && !kv.second.second) {
+	    tdi_rt_table_type_e table_type =
+		    static_cast<tdi_rt_table_type_e>(kv.second.first->tableTypeGet());
+	    if (table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC) {
+		    auto rt_table_context_info =
+			    contextInfoParser.parseFixedTable(*(kv.second.second),
+					    kv.second.first,
+					    dev_id,
+					    program_config.prog_name_);
+		    kv.second.first->tableContextInfoSet(
+				    std::move(rt_table_context_info));
+	    }
     }
   }
 
@@ -756,6 +772,153 @@ std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseTableContext(
     if (table_context_info->maxDataSzbits_ < bitsize) {
 	table_context_info->maxDataSzbits_ = bitsize;
     }
+  }
+
+  // populate_depends_on_refs(bfrtTable.get(), table_bfrt);
+  return table_context_info;
+}
+
+std::unique_ptr<RtTableContextInfo> ContextInfoParser::parseFixedTable(
+                Cjson &table_context,
+                const TableInfo *tdi_table_info,
+                const tdi_dev_id_t &dev_id,
+                const std::string &prog_name) {
+  // TODO: to avoid compilation errors
+  (void)prog_name;
+
+  std::string table_name = tdi_table_info->nameGet();
+  tdi_id_t table_id = tdi_table_info->idGet();
+//  size_t table_size = tdi_table_info->sizeGet();
+
+  // Get table type
+  tdi_rt_table_type_e table_type =
+      static_cast<tdi_rt_table_type_e>(tdi_table_info->tableTypeGet());
+
+  auto table_context_info =
+      RtTableContextInfo::makeTableContextInfo(table_type);
+
+  // update table_context_info.
+  table_context_info->table_name_ = table_name;
+  table_context_info->table_type_ = table_type;
+  table_context_info->table_id_ = table_id;
+
+  // key parsing
+
+  // getting key
+  const auto &table_key_map = tdi_table_info->tableKeyMapGet();
+
+  std::map<std::string /*match_key_field_name*/, size_t /* position*/>
+      match_key_field_name_to_position_map;
+  std::map<std::string /*match_key_field_name*/,
+           size_t /* size of parent field in bytes */>
+      match_key_field_name_to_parent_field_byte_size_map;
+  std::map<size_t /* position */, size_t /* offset */>
+      match_key_field_position_to_offset_map;
+
+  size_t cumulative_offset = 0;
+  size_t cumulative_key_width_bits = 0;
+
+  parseKeyHelper(nullptr,
+                 table_key_map,
+                 tdi_table_info,
+                 &match_key_field_name_to_position_map,
+                 &match_key_field_position_to_offset_map,
+                 &cumulative_offset,
+                 &cumulative_key_width_bits,
+                 &match_key_field_name_to_parent_field_byte_size_map);
+
+  // parse each key field
+  for (const auto &kv : table_key_map) {
+    const KeyFieldInfo *tdi_key_field_info = kv.second.get();
+    const std::string key_name = tdi_key_field_info->nameGet();
+    size_t start_bit = 0;
+    size_t field_offset = 0;
+    size_t parent_field_byte_size = 0;
+    //start_bit = getStartBit(&table_context_key_fields_cjson,
+    start_bit = getStartBit(nullptr /* context json node */,
+                              tdi_key_field_info,
+                              tdi_table_info);
+
+    if (key_name != match_key_priority_field_name) {
+      // Get the field offset and the size of the field in bytes
+      if (keyByteSizeAndOffsetGet(
+              table_name,
+              key_name,
+              match_key_field_name_to_position_map,
+              match_key_field_name_to_parent_field_byte_size_map,
+              match_key_field_position_to_offset_map,
+              &field_offset,
+              &parent_field_byte_size) != TDI_SUCCESS) {
+        LOG_ERROR(
+            "%s:%d %s ERROR in processing key field %s while trying to get "
+            "field size and offset",
+            __func__,
+            __LINE__,
+            table_name.c_str(),
+            key_name.c_str());
+        // TDI_DBGCHK(0);
+        return nullptr;
+      }
+    } else {
+      // We don't pack the match priority key field in the bytes array in the
+      // match spec and hence this field is also not published in the context
+      // json key node. So set the field offset to an invalid value
+      field_offset = 0xffffffff;
+      parent_field_byte_size = sizeof(uint32_t);
+    }
+
+    // Finally form the key field context object
+    auto key_field_context_info =
+        parseKeyFieldContext(tdi_key_field_info,
+                             field_offset,
+                             start_bit,
+                             parent_field_byte_size);
+
+    tdi_key_field_info->keyFieldContextInfoSet(
+        std::move(key_field_context_info));
+  }
+
+  // Set the table key size in terms of bytes. The field_offset will be the
+  // total size of the key
+  table_context_info->key_size_.bytes = cumulative_offset;
+
+  // Set the table key in terms of exact bit widths.
+  table_context_info->key_size_.bits = cumulative_key_width_bits;
+
+
+  // parse common data
+    // get common data
+    // Cjson common_data_cjson = table_bfrt["data"];
+  const auto &table_data_map = tdi_table_info->tableDataMapGet();
+  size_t offset = 0;
+  size_t bitsize = 0;
+  for (auto &kv : table_data_map) {
+      // Bitsize is needed to fill out some back-end info
+      // which has both action size in bytes and bits
+      // This is not applicable for the common data, but only applicable
+      // for per action data
+      // TODO correct the zeroes down
+      // making a null temp object to pass as contextJson info since we dont
+      // need that
+      Cjson temp;
+      const DataFieldInfo *common_data_field = kv.second.get();
+      auto data_field_context_info =
+          parseDataFieldContext(temp,
+                                common_data_field,
+                                tdi_table_info,
+                                table_context_info.get(),
+                                offset,
+                                bitsize,
+                                0);
+      common_data_field->dataFieldContextInfoSet(
+          std::move(data_field_context_info));
+  }
+    // Check for maxDataSz
+  if (table_context_info->maxDataSz_ < offset) {
+	table_context_info->maxDataSz_ = offset;
+  }
+  if (table_context_info->maxDataSzbits_ < bitsize) {
+     table_context_info->maxDataSzbits_ = bitsize;
   }
 
   // populate_depends_on_refs(bfrtTable.get(), table_bfrt);

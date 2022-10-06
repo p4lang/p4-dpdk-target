@@ -33,6 +33,7 @@
 #include <pipe_mgr/pipe_mgr_err.h>
 #include <pipe_mgr/shared/pipe_mgr_mat.h>
 #include <pipe_mgr/shared/pipe_mgr_value_lookup.h>
+#include <fixed_function/fixed_function_int.h>
 
 /* Allow the use in C++ code.  */
 #ifdef __cplusplus
@@ -314,6 +315,16 @@ typedef struct pipe_action_spec pipe_action_spec_t;
  * Generalized data specification that encodes all types of data refs
  */
 typedef struct pipe_data_spec pipe_data_spec_t;
+
+/*!
+ * fixed function key specification that encodes all types of key refs
+ */
+typedef struct fixed_function_key_spec fixed_function_key_spec_t;
+
+/*!
+ * fixed function data specification that encodes all types of data refs
+ */
+typedef struct fixed_function_data_spec fixed_function_data_spec_t;
 
 #define IS_ACTION_SPEC_ACT_DATA(act_spec) \
   ((act_spec)->pipe_action_datatype_bmap & PIPE_ACTION_DATA_TYPE)
