@@ -35,6 +35,7 @@
 
 #define MAX_EAL_ARGS 64
 #define DEFAULT_NUMA_NODE 0
+#define BUF_SIZE 64
 
 static char *dpdk_args[] = {"dummy", "-n", "4", "-c", "3"};
 static char *dpdk_arr[MAX_EAL_ARGS];
@@ -72,16 +73,22 @@ lld_dpdk_pipeline_mirror_config(struct rte_swx_pipeline *p, void *mir_cfg)
 {
 	int rc = BF_SUCCESS;
 	struct rte_swx_pipeline_mirroring_params mir_params;
+	char buffer[BUF_SIZE];
 
 	mir_params.n_slots = ((struct rte_swx_pipeline_mirroring_params *)mir_cfg)->n_slots;
 	mir_params.n_sessions = ((struct rte_swx_pipeline_mirroring_params *)mir_cfg)->n_sessions;
 
-	if (rte_swx_pipeline_mirroring_config(p, &mir_params)) {
-		LOG_ERROR("Could not configure the pipeline mirror params.");
-		rc = BF_UNEXPECTED;
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer), "mirroring slots %d sessions %d\n",
+		 mir_params.n_slots, mir_params.n_sessions);
+	rc = write_to_iospec_file(buffer);
+	if (rc) {
+		LOG_ERROR("%s line:%d fail to write to %s file\n"
+			  , __func__, __LINE__, IOSPEC_FILE_PATH);
+		return BF_INTERNAL_ERROR;
 	}
 
-	return rc;
+	return 0;
 }
 
 int lld_dpdk_init(bf_device_profile_t *profile)
