@@ -69,6 +69,7 @@ struct dal_dpdk_table_metadata {
 	enum pipe_mgr_match_type match_type;
 	uint32_t match_field_nbits;
 	uint32_t action_data_size;
+	uint32_t first_offset;
 };
 
 struct dal_dpdk_value_lookup_metadata {
