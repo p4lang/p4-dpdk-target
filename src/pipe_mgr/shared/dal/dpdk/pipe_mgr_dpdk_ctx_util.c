@@ -77,7 +77,7 @@ int pipe_mgr_dpdk_encode_match_key_and_mask(
 			return BF_UNEXPECTED;
 		}
 		mf = &meta->mf[i];
-		offset = (mf->offset - meta->mf[0].offset) >> 3;
+		offset = (mf->offset - meta->first_offset) >> 3;
 		match_bytes = (mf->n_bits >> 3) + (mf->n_bits % 8 != 0);
 
 		/* encode key value */

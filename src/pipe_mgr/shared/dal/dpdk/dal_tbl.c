@@ -34,6 +34,7 @@ static int table_match_field_info(char *table_name,
 	int status = BF_SUCCESS;
 	int n_match;
 	int i;
+	int offset_min = INT_MAX;
 
 	n_match = meta->dpdk_table_info.n_match_fields;
 
@@ -52,8 +53,14 @@ static int table_match_field_info(char *table_name,
 			P4_SDE_FREE(meta->mf);
 			return BF_UNEXPECTED;
 		}
+
+		if (offset_min > (int)meta->mf[i].offset)
+			offset_min = meta->mf[i].offset;
+
 		meta->match_field_nbits += meta->mf[i].n_bits;
 	}
+	meta->first_offset = offset_min;
+
 	return status;
 }
 
