@@ -90,6 +90,9 @@ class FixedFunctionTableData : public tdi::TableData {
 		  delete(fixed_spec_data_);
   }
 
+  FixedFunctionTableData(FixedFunctionTableData const &) = delete;
+  FixedFunctionTableData &operator=(const FixedFunctionTableData&) = delete;
+
   FixedFunctionTableData(const tdi::Table *tbl_obj,
                          const std::vector<tdi_id_t> &fields)
       : FixedFunctionTableData(tbl_obj, 0, fields) {}
