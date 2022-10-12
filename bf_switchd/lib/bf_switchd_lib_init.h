@@ -61,6 +61,7 @@ typedef struct switch_asic_s {
 
 #define BF_SWITCHD_MAX_PIPES 4
 #define BF_SWITCHD_MAX_MEMPOOL_OBJS 2
+#define BF_SWITCHD_MAX_CT_TIMER_PROFILES 8
 #define BF_SWITCHD_MAX_P4_PROGRAMS BF_SWITCHD_MAX_PIPES
 #define BF_SWITCHD_MAX_P4_PIPELINES BF_SWITCHD_MAX_PIPES
 typedef struct p4_pipeline_config_s {
@@ -73,6 +74,8 @@ typedef struct p4_pipeline_config_s {
   int num_pipes_in_scope;
   int pipe_scope[BF_SWITCHD_MAX_PIPES];
   struct mirror_config_s mir_cfg;
+  int num_ct_timer_profiles;
+  int ct_timeout[BF_SWITCHD_MAX_CT_TIMER_PROFILES];
 } p4_pipeline_config_t;
 
 typedef struct p4_programs_s {
