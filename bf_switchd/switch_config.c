@@ -407,7 +407,13 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
             cJSON *pipe_scope_obj = cJSON_GetArrayItem(pipe_scope_arr, s);
             p4_pipeline->pipe_scope[s] = pipe_scope_obj->valueint;
           }
-        }
+	  cJSON *ct_timeout_arr = cJSON_GetObjectItem(p4_pipeline_obj, "ct_timeout");
+	  p4_pipeline->num_ct_timer_profiles = cJSON_GetArraySize(ct_timeout_arr);
+	  for (j = 0; j < p4_pipeline->num_ct_timer_profiles; ++j) {
+		  cJSON *ct_timeout_obj = cJSON_GetArrayItem(ct_timeout_arr, j);
+		  p4_pipeline->ct_timeout[j] = ct_timeout_obj->valueint;
+	  }
+	}
       }
       /* Print config */
       printf("P4 profile for dev_id %d\n", device);
@@ -444,6 +450,11 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
             }
             printf("]\n");
           }
+	  printf("  Timer values [");
+	  for (j = 0; j< p4_pipeline->num_ct_timer_profiles; ++j) {
+		printf("%d ", p4_pipeline->ct_timeout[j]);
+	}
+	  printf("]\n");
 	  printf("  Mirror Config\n");
 	  printf("    n_slots: %u \n", p4_pipeline->mir_cfg.n_slots);
 	  printf("    n_sessions: %u \n", p4_pipeline->mir_cfg.n_sessions);
