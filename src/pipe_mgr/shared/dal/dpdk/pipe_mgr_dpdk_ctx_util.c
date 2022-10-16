@@ -96,12 +96,16 @@ int pipe_mgr_dpdk_encode_match_key_and_mask(
 			/* encode key mask */
 			memcpy(&val, &(match_spec->match_mask_bits[index_2]),
 					sizeof(uint64_t));
-			index_2 += sizeof(uint64_t);
+
+			if (!mf->is_header)
+				val = dpdk_field_hton(val, mf->n_bits);
+
 			/* Copy to entry. */
 			memcpy(&entry->key_mask[offset], (uint8_t *)&val,
 					match_bytes);
 		}
 		match_fields = match_fields->next;
+		index_2 += match_bytes;
 	}
 
 	entry->key_priority = match_spec->priority;

@@ -272,8 +272,6 @@ static int ctx_json_parse_mat_key_format_json
 	    int mat_key_fields_count,
 	    struct pipe_mgr_match_key_format *mat_key_format)
 {
-	struct pipe_mgr_match_key_fields * pipe_mgr_match_key_fields_temp;
-	int pipe_mgr_match_key_traverse_count = 0;
 	int match_key_handle;
 	int byte_array_index;
 	int start_bit_offset;
@@ -309,21 +307,20 @@ static int ctx_json_parse_mat_key_format_json
 
 	if (err)
 		return BF_UNEXPECTED;
-    mat_key_format->match_key_handle = match_key_handle;
-    pipe_mgr_match_key_traverse_count = mat_key_fields_count - match_key_handle;
-    pipe_mgr_match_key_fields_temp = mat_key_fields;
 
- for (i = 0; i < pipe_mgr_match_key_traverse_count - 1; i++) {
- 	pipe_mgr_match_key_fields_temp =
-		pipe_mgr_match_key_fields_temp->next;
-	}
-	mat_key_format->match_key_field_ref = pipe_mgr_match_key_fields_temp;
 	err = get_byte_order_enum(byte_order);
- if (err == PIPE_MGR_BYTE_ORDER_INVALID)
-	 return BF_UNEXPECTED;
-  mat_key_format->byte_order = err;
+
+	if (err == PIPE_MGR_BYTE_ORDER_INVALID)
+		return BF_UNEXPECTED;
+
+	for (i = 0; i < match_key_handle; i++)
+		mat_key_fields = mat_key_fields->next;
+
+	mat_key_format->match_key_field_ref = mat_key_fields;
+	mat_key_format->match_key_handle = match_key_handle;
 	mat_key_format->byte_array_index = byte_array_index;
 	mat_key_format->start_bit_offset = start_bit_offset;
+	mat_key_format->byte_order = err;
 	mat_key_format->bit_width = bit_width;
 	return BF_SUCCESS;
 }
@@ -647,6 +644,7 @@ static int ctx_json_parse_match_table_json
 	    struct pipe_mgr_mat_ctx *mat_ctx)
 {
 	struct pipe_mgr_match_key_fields *mat_key_fields_temp = NULL;
+	struct pipe_mgr_match_key_fields *mat_key_fields_head = NULL;
 	struct pipe_mgr_match_key_format *mat_key_format_temp = NULL;
 	struct pipe_mgr_actions_list *actions_temp;
 	struct action_data_table_refs *adt_temp;
@@ -775,11 +773,16 @@ static int ctx_json_parse_match_table_json
 		}
 
 		if (mat_ctx->mat_key_fields)
-			mat_key_fields_temp->next =
+			mat_ctx->mat_key_fields->next =
 				mat_ctx->mat_key_fields;
+		else
+			mat_key_fields_head = mat_key_fields_temp;
+
 		mat_ctx->mat_key_fields = mat_key_fields_temp;
 		mat_ctx->mat_key_fields_count++;
 	}
+
+	mat_ctx->mat_key_fields = mat_key_fields_head;
 
 	err |= bf_cjson_try_get_object
 		(table_cjson, CTX_JSON_MATCH_TABLE_MATCH_KEY_FORMAT,
