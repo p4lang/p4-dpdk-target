@@ -774,7 +774,7 @@ static int ctx_json_parse_match_table_json
 
 		if (mat_ctx->mat_key_fields)
 			mat_ctx->mat_key_fields->next =
-				mat_ctx->mat_key_fields;
+				mat_key_fields_temp;
 		else
 			mat_key_fields_head = mat_key_fields_temp;
 
@@ -986,6 +986,7 @@ cleanup_mat_key_mask_buffer:
 cleanup_mat_key_format_failure:
 	P4_SDE_FREE(mat_key_format_temp);
 cleanup_mat_key_fields:
+	mat_ctx->mat_key_fields = mat_key_fields_head;
 	PIPE_MGR_FREE_LIST(mat_ctx->mat_key_fields);
 	mat_ctx->mat_key_fields = NULL;
 cleanup_mat_key_format:
