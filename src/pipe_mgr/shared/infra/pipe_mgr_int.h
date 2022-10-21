@@ -402,6 +402,8 @@ struct pipe_mgr_profile {
 	int schema_version[P4_SDE_VERSION_LEN];
 
 	/* Currently mod_addr action has 24 bit to specify */
+        int num_ct_timer_profiles;
+        int bf_ct_timeout[MAX_CT_TIMER_PROFILES];
 };
 
 struct pipe_mgr_dev {

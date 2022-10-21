@@ -36,6 +36,7 @@
 #define PCIE_DOMAIN_BDF_LEN 16
 #define IOMMU_GRP_NUM_LEN 6
 #define MAX_EAL_LEN 512
+#define MAX_CT_TIMER_PROFILES 8
 
 struct mirror_config_s {
 	/* Number of packet mirroring slots. */
@@ -59,6 +60,8 @@ typedef struct bf_p4_pipeline {
   int num_pipes_in_scope;            // num pipes in scope
   int pipe_scope[MAX_P4_PIPELINES];  // logical pipe list
   struct mirror_config_s mir_cfg;   // dpdk mirror profile cfg.
+  int num_ct_timer_profiles;
+  int bf_ct_timeout[MAX_CT_TIMER_PROFILES];
 } bf_p4_pipeline_t;
 
 typedef struct asic_fw_profile {

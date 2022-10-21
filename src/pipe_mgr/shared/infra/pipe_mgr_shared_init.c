@@ -155,6 +155,10 @@ int pipe_mgr_set_profile(int dev_id,
 			PIPE_MGR_CFG_FILE_LEN - 1);
 		profile->core_id = p4_pipeline->core_id;
 		profile->fast_clone = p4_pipeline->mir_cfg.fast_clone;
+		profile->num_ct_timer_profiles =
+			p4_pipeline->num_ct_timer_profiles;
+		memcpy(profile->bf_ct_timeout, p4_pipeline->bf_ct_timeout,
+				sizeof(int) * profile->num_ct_timer_profiles);
 	}
 	if (parsed_pipe_ctx)
 		profile->pipe_ctx = *parsed_pipe_ctx;
