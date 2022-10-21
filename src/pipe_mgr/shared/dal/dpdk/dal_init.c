@@ -53,7 +53,7 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 	struct pipeline *pipe;
 	const char *err_msg;
 	uint32_t err_line;
-	int status;
+	int status, j;
 	uint32_t i, n_ports;
 	struct rte_swx_ctl_pipeline_info pipeline;
 	uint64_t net_port_mask;
@@ -130,6 +130,25 @@ create_pipeline:
 	if (status) {
 		LOG_ERROR("error :thread pipeline enable");
 		return BF_UNEXPECTED;
+	}
+	// SET the CT timer values from conf file
+	if (profile->num_ct_timer_profiles) {
+		for (i = 0; i < pipeline.n_learners; i++) {
+			for (j = 0; j < profile->num_ct_timer_profiles; j++ ) {
+				if (profile->bf_ct_timeout[j] <= 0) {
+					LOG_TRACE("Timer with Negative not allowed %d\n",
+							profile->bf_ct_timeout[j]);
+					continue;
+				}
+				status = rte_swx_ctl_pipeline_learner_timeout_set(pipe->p,
+						i, j, profile->bf_ct_timeout[j]);
+				if (status) {
+					LOG_ERROR("set CT timer failed for id %d "
+							"value %d\n", j,
+							profile->bf_ct_timeout[j]);
+				}
+			}
+		}
 	}
 
 	LOG_TRACE("Exit %s", __func__);

@@ -459,6 +459,11 @@ static bf_status_t bf_switchd_init_device_profile(
       for (s = 0; s < p4_pipeline->num_pipes_in_scope; s++) {
         dev_profile_pipeline->pipe_scope[s] = p4_pipeline->pipe_scope[s];
       }
+      // CT timer values
+      dev_profile_pipeline->num_ct_timer_profiles =
+	      p4_pipeline->num_ct_timer_profiles;
+      memcpy(dev_profile_pipeline->bf_ct_timeout, p4_pipeline->ct_timeout,
+		      sizeof(int) * dev_profile_pipeline->num_ct_timer_profiles);
     }
   }
 
