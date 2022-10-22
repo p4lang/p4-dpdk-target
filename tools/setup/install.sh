@@ -48,13 +48,13 @@ then
     exit 1
 fi
 
-# Minimum required system memory is 6 GBytes, minus a few MBytes
+# Minimum required system memory is 4 GBytes, minus a few MBytes
 # because from experiments I have run on several different Ubuntu
 # Linux VMs, when you configure them with 2 Gbytes of RAM, the first
 # line of /proc/meminfo shows a little less than that available, I
 # believe because some memory occupied by the kernel is not shown.
 
-min_mem_MBytes=`expr 6 \* \( 1024 - 64 \)`
+min_mem_MBytes=`expr 4 \* \( 1024 - 64 \)`
 memtotal_KBytes=`head -n 1 /proc/meminfo | awk '{print $2;}'`
 memtotal_MBytes=`expr ${memtotal_KBytes} / 1024`
 
@@ -69,7 +69,7 @@ fi
 echo "Minimum recommended memory to run this script: ${min_mem_MBytes} MBytes"
 echo "Memory on this system from /proc/meminfo:      ${memtotal_MBytes} MBytes -> $memtotal_comment"
 
-min_free_disk_MBytes=`expr 8 \* 1024`
+min_free_disk_MBytes=`expr 6 \* 1024`
 free_disk_MBytes=`df --output=avail --block-size=1M . | tail -n 1`
 
 if [ "${free_disk_MBytes}" -lt "${min_free_disk_MBytes}" ]
