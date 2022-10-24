@@ -28,14 +28,14 @@ fi
 
 supported_os=0
 source /etc/os-release
-if [ "${NAME}" = "Ubuntu" -a \( "${VERSION_ID}" = "22.04" \) ]
+if [ "${ID}" = "ubuntu" -a \( "${VERSION_ID}" = "22.04" \) ]
 then
-    echo "Found distribution '${NAME}' version '${VERSION_ID}'.  Continuing with installation."
+    echo "Found distribution '${ID}' version '${VERSION_ID}'.  Continuing with installation."
     supported_os=1
 fi
-if [ "${NAME}" = "Fedora" -a \( "${VERSION_ID}" = "34" \) ]
+if [ "${ID}" = "fedora" -a \( "${VERSION_ID}" = "34" -o "${VERSION_ID}" = "36" \) ]
 then
-    echo "Found distribution '${NAME}' version '${VERSION_ID}'.  Continuing with installation."
+    echo "Found distribution '${ID}' version '${VERSION_ID}'.  Continuing with installation."
     supported_os=1
 fi
 
@@ -93,7 +93,7 @@ fi
 cd "${THIS_SCRIPT_DIR_ABSOLUTE}"
 source p4sde_env_setup.sh $HOME/sde
 
-if [ "${NAME}" = "Ubuntu" ]
+if [ "${ID}" = "ubuntu" ]
 then
     sudo apt update
 
@@ -105,6 +105,10 @@ then
     sudo DEBIAN_FRONTEND=noninteractive apt-get -y install wireshark tshark
 
     sudo apt-get -y install python3-pip
+fi
+if [ "${ID}" = "fedora" ]
+then
+    sudo yum install -y python3-pip
 fi
 
 pip3 install distro
