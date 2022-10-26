@@ -25,7 +25,6 @@
 
 #include <bf_types/bf_types.h>
 #include <fixed_function/fixed_function_int.h>
-#include <include/fixed_function/fixed_function_int.h>
 
 /**
  * API to install an entry into a fixed table
