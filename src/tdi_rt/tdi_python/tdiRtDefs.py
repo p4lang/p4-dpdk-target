@@ -63,7 +63,7 @@ class AttributesTypeRt(AttributesType):
         #TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = AttributesEnum.TDI_ATTRIBUTES_TYPE_DEVICE.value
         # Notes: need to finalize support of attributes type and update both here and
         # include/tdi_rt/tdi_rt_defs.h
-        TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = AttributesEnum.TDI_ATTRIBUTES_TYPE_CORE.value
+        TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = AttributesEnum.TDI_ATTRIBUTES_TYPE_DEVICE.value
         TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK = auto()
         TDI_RT_ATTRIBUTES_TYPE_IDLE_TABLE_RUNTIME = auto()
         TDI_RT_ATTRIBUTES_TYPE_METER_BYTE_COUNT_ADJ = auto()
@@ -71,6 +71,8 @@ class AttributesTypeRt(AttributesType):
         TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS = auto()
         TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG = auto()
         TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK = auto()
+        TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF = auto()
+        #TDI_RT_ATTRIBUTES_TYPE_IPSEC_ESP_FETCH_SPI_CALLBACK = auto()
 
     attributes_dict = {
         AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE.value: ["symmetric_mode_set", "symmetric_mode_get"],
@@ -80,7 +82,20 @@ class AttributesTypeRt(AttributesType):
         AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_PORT_STATUS_NOTIF.value: ["port_status_notif_cb_set"],
         AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS.value: ["port_stats_poll_intv_set", "port_stats_poll_intv_get"],
         AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG.value: ["pre_device_config_set", "pre_device_config_get"],
-        AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK.value: ["selector_table_update_cb_set"]}
+        AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK.value: ["selector_table_update_cb_set"],
+        AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF.value: ["ipsec_sadb_expire_notif_cb_set", "ipsec_sadb_expire_notif_cb_get"]}
+        #AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_IPSEC_ESP_FETCH_SPI_CALLBACK.value: ["ipsec_esp_fetch_spi_callback"]}
+
+    attributes_rev_dict = {
+        "EntryScope":                 AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE.value,
+        "DynamicKeyMask":             AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK.value,
+        "IdleTimeout":                AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_IDLE_TABLE_RUNTIME.value,
+        "MeterByteCountAdjust":       AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_METER_BYTE_COUNT_ADJ.value,
+        "port_status_notif_cb":       AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_PORT_STATUS_NOTIF.value,
+        "poll_intvl_ms":              AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS.value,
+        "SelectorUpdateCb":           AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK.value,
+        "ipsec_sadb_expire_notif_cb": AttributesEnumRt.TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF.value,
+   }
 
 # tdi_rt_operations_type_e
 class OperationsTypeRt(OperationsType):

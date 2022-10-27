@@ -57,8 +57,8 @@ libbfrt_la_CFLAGS = $(libdriver_la_CFLAGS)
 libbfrt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/bf_rt -I$(srcdir)/bf_rt/bf_rt_port/dpdk -I$(top_builddir)third_party/ptf_grpc \
                                                -I$(srcdir)/tdi_rt/tdi_port/dpdk
 libtdirt_la_CFLAGS = $(libdriver_la_CFLAGS)
-libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt_common \
-                                                -I$(srcdir)/../third-party/tdi/include \
+libtdirt_la_CXXFLAGS = $(libdriver_la_CXXFLAGS) -I$(srcdir)/tdi_rt/tdi_common \
+						-I$(srcdir)/../third-party/tdi/include \
 						-I$(srcdir)/bf_rt \
                                                 -I$(srcdir)/tdi_rt \
                                                 -I$(srcdir)/tdi_rt/tdi_port/dpdk
@@ -80,7 +80,8 @@ tdi_rt/tdi_p4/tdi_p4_table_data_impl.cpp \
 tdi_rt/tdi_p4/tdi_p4_table_key_impl.cpp \
 tdi_rt/tdi_fixed/tdi_fixed_table_impl.cpp \
 tdi_rt/tdi_fixed/tdi_fixed_table_data_impl.cpp \
-tdi_rt/tdi_fixed/tdi_fixed_table_key_impl.cpp
+tdi_rt/tdi_fixed/tdi_fixed_table_key_impl.cpp \
+tdi_rt/tdi_common/tdi_table_attributes_impl.cpp
 
 bfrt_sources = \
 bf_rt/bf_rt_common/bf_rt_info_impl.cpp \

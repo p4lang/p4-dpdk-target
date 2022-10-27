@@ -16,6 +16,8 @@
 from tdiTable import *
 from tdiRtDefs import *
 import functools
+import logging
+import pdb
 
 def target_check_and_set(f):
     @functools.wraps(f)
@@ -91,3 +93,95 @@ class TdiRtTable(TdiTable):
             self.name = "{}".format(name_lowercase_without_dollar)
         if self.table_type in ["FIXED_FUNC"]:
             self.name = "fixed.{}".format(name_lowercase_without_dollar)
+
+    def _wrap_ipsec_sadb_expire_notif_cb(self, callback):
+        # callback_wrapper prototype should be the same as target specific
+
+        # the callback_wrapper parameter should be the same prototype as
+        # include/tdi_rt/c_frontend/tdi_rt_attributes.h 
+        '''
+        typedef void (*tdi_ipsec_sadb_expire_cb)(uint32_t dev_id,
+                                         uint32_t ipsec_sa_api,
+                                         bool soft_lifetime_expire,
+                                         uint8_t ipsec_sa_protocol,
+                                         char *ipsec_sa_dest_address,
+                                         bool ipv4,
+                                         void *cookie);
+        '''
+        # The callback_wrapper should be the same function prototype as in include/tdi_rt/c_frontend/tdi_rt_attributes.h file
+        def callback_wrapper(dev_id, ipsec_sa_api, soft_lifetime_expire, ipsec_sa_protocol, ipsec_sa_dest_address, ipv4, cookie):
+            callback(dev_id, ipsec_sa_api, soft_lifetime_expire, ipsec_sa_protocol, ipsec_sa_dest_address, ipv4, cookie)
+            return 0
+        return self._cintf.ipsec_sadb_expire_notif_cb_type(callback_wrapper)
+
+    #expire notif_cb
+    def set_ipsec_sadb_expire_notif_cb(self, callback, enable, cookie):
+        attr_hdl = self._cintf.handle_type()
+        #sts = self._cintf.get_driver().tdi_table_ipsec_expire_notif_attributes_allocate(self._handle, byref(attr_hdl))
+        logging.debug("ipsec_sadb_expire_notif_cb type enum = {}".format(self.attributes_type_cls.attributes_rev_dict["ipsec_sadb_expire_notif_cb"]))
+        sts = self._cintf.get_driver().tdi_attributes_allocate(self._handle, self.attributes_type_cls.attributes_rev_dict["ipsec_sadb_expire_notif_cb"], byref(attr_hdl))
+        if sts != 0:
+            print("ipsec_sadb_expire_notif_cb tdi_attributes_allocate failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            return -1
+        # registered callback function
+        self.ipsec_sadb_expire_notif_callback = self._wrap_ipsec_sadb_expire_notif_cb(callback)
+        '''
+        sts = self._cintf.get_driver().tdi_attributes_ipsec_sadb_expire_notify_set(attr_hdl,
+                                                                                   c_bool(bool(True)),
+                                                                                   self.ipsec_sadb_expire_notif_callback,
+                                                                                   c_void_p(0))
+        '''
+        # tdi_attributes_set_value need based on the tdi target defs.h
+        sts = self._cintf.get_driver().tdi_attributes_set_value(attr_hdl,
+                0,
+                c_bool(bool(enable)))
+        if not sts == 0:
+            print("ipsec_sadb_expire_set_value for enable failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            self._attr_deallocate(attr_hdl)
+            return -1
+        sts = self._cintf.get_driver().tdi_attributes_set_value(attr_hdl,
+                2,
+                self.ipsec_sadb_expire_notif_callback)
+        if not sts == 0:
+            print("ipsec_sadb_expire_set_value for ipsec_sadb_expire_notif_callback failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            self._attr_deallocate(attr_hdl)
+            return -1
+        sts = self._cintf.get_driver().tdi_attributes_set_value(attr_hdl,
+                3,
+                c_void_p(cookie))
+        if not sts == 0:
+            print("ipsec_sadb_expire_set_value for cookie failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            self._attr_deallocate(attr_hdl)
+            return -1
+        self._attr_set(attr_hdl)
+        self._attr_deallocate(attr_hdl)
+
+    def get_ipsec_sadb_expire_notif_cb(self):
+        attr_hdl = self._cintf.handle_type()
+        sts = self._cintf.get_driver().tdi_attributes_allocate(self._handle, self.attributes_type_cls.attributes_rev_dict["ipsec_sadb_expire_notif_cb"], byref(attr_hdl))
+        if not sts == 0:
+            print("ipsec_sadb_expire_notif_cb tdi_attributes_allocate failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            return -1
+        sts = self._attr_get(attr_hdl)
+        if not sts == 0:
+            self._attr_deallocate(attr_hdl)
+            return -1
+        enable = c_bool()
+        sts = self._cintf.get_driver().tdi_attributes_get_value(attr_hdl,
+                0,
+                byref(enable))
+        if not sts == 0:
+            print("tdi_attributes_get_value for enable failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            self._attr_deallocate(attr_hdl)
+            return -1
+        cookie=c_uint64()
+        sts = self._cintf.get_driver().tdi_attributes_get_value(attr_hdl,
+                3,
+                byref(cookie))
+        if not sts == 0:
+            print("ipsec_sadb_expire_set_value for cookie failed on table {}. [{}]".format(self.name, self._cintf.err_str(sts)))
+            self._attr_deallocate(attr_hdl)
+            return -1
+        self._attr_deallocate(attr_hdl)
+        get_value = {"enable": enable.value, "cookie": cookie.value}
+        return {"enable": enable.value, "cookie": cookie.value}

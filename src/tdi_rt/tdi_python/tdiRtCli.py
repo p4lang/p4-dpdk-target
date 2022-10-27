@@ -40,10 +40,32 @@ from tdicli import *
 from tdiInfo import *
 from tdiRtTable import *
 
+# default callbacks
+# new default callback we don't need the tdi interface specific parameter.
+def _ipsec_sadb_expire_notif_cb_print(dev_id, ipsec_sa_api, soft_lifetime_expire, 
+                                      ipsec_sa_protocol, ipsec_sa_dest_address, ipv4, cookie):
+    print("sa_api={} "\
+          "soft_lifetime_expire={} "\
+          "ipsec_sa_protocol={} "\
+          "ipsec_sa_dest_address={}"\
+          " ipv4={} "\
+          "cookie={}".format(ipsec_sa_api,soft_lifetime_expire,ipsec_sa_protocol,ipsec_sa_dest_address,ipv4,cookie))
+
 """
-    TdiRtLeaf is derived from TDILeaf so that we can generate target specific dynamic APIs
+    TDILeafRt is derived from TDILeaf so that we can generate target specific dynamic APIs
 """
-class TdiRtLeaf(TDILeaf):
+class TDILeafRt(TDILeaf):
+    def ipsec_sadb_expire_notif_cb_set(self, callback=None, enable=True, cookie=0):
+        if callback is None:
+           callback = _ipsec_sadb_expire_notif_cb_print
+        self._c_tbl.set_ipsec_sadb_expire_notif_cb(callback, enable, cookie)
+
+    def ipsec_sadb_expire_notif_cb_get(self):
+        ret = self._c_tbl.get_ipsec_sadb_expire_notif_cb()
+        if ret == -1:
+            return
+        return ret
+
     TDILeaf.target_check_and_set = target_check_and_set
 
     # Generating add_with_<action> APIs dynamically
@@ -361,13 +383,21 @@ def {}(self, return_ent=True, print_ent=True, from_hw=False, pipe=None, gress_di
 
 class CIntfTdiRt(CIntfTdi):
     target_type_cls = TargetTypeRt
-    leaf_type_cls = TdiRtLeaf
+    leaf_type_cls = TDILeafRt
 
     def __init__(self, dev_id, table_cls, info_cls):
         driver_path = install_directory+'/lib/libdriver.so'
         super().__init__(dev_id, TdiRtTable, TdiInfo, driver_path)
         self._dev_tgt = self.TdiDevTgt(self._dev_id, 0, 0xff)
-        
+        '''
+        # define target specific python callback here
+        # Note: Currently the ipsec_sadb_expire_notif_cb is the same function prototype 
+        # as internal cb for fixed manager
+        # c function prototype as:
+        # void ipsec_sadb_expire_notif_cb_type(uint32_t dev_id, uint32_t spi, bool hard, uint8_t protocol, char *ipaddr, bool ipv4).
+        '''
+        self.ipsec_sadb_expire_notif_cb_type = CFUNCTYPE(None, c_uint32, c_uint32, c_bool, c_uint8, c_char_p, c_bool, c_void_p)
+
     class TdiDevTgt(Structure):
         # tdi_rt: target specific fields based on
         # 1. include/tdi/common/tdi_target.hpp   (core specific: TDI_TARGET_DEV_ID)
@@ -392,18 +422,22 @@ class CIntfTdiRt(CIntfTdi):
         return self.TdiDevTgt(self._dev_id, 0, 0xff)
 
     def print_target(self, target):
+        return "dev_id={} pipe={} direction={}".format(self.get_target_vals(target))
+
+    def get_target_vals(self, target):
         dev_id = c_uint64(0);
         sts = self.get_driver().tdi_target_get_value(target, self.target_type_cls.target_type_map(target_type_str="dev_id"), byref(dev_id));
         pipe_id = c_uint64(0);
         sts = self.get_driver().tdi_target_get_value(target, self.target_type_cls.target_type_map(target_type_str="pipe_id"), byref(pipe_id));
         direction = c_uint64(0);
         sts = self.get_driver().tdi_target_get_value(target, self.target_type_cls.target_type_map(target_type_str="direction"), byref(direction));
-        return "dev_id={} pipe={} direction={}".format(dev_id.value, pipe_id.value, direction.value)
+        return dev_id.value, pipe_id.value, direction.value
 
 class TdiRtCli(TdiCli):
+    # Fixed Tables created at child Nodes of the root 'tdi' Node.
     fixed_nodes=["port", "mirror", "fixed"]
     cIntf_cls = CIntfTdiRt
-    leaf_cls = TdiRtLeaf
+    leaf_cls = TDILeafRt
 
     def fill_dev_node(self, cintf, dev_node):
         dev_node.devcall = cintf._devcall

@@ -40,11 +40,20 @@ extern "C" {
 #include "tdi_session_impl.hpp"
 #include <tdi/common/tdi_utils.hpp>
 #include <tdi/common/tdi_defs.h>
+#include <tdi_rt/tdi_rt_defs.h>
+#include <tdi_rt/c_frontend/tdi_rt_attributes.h>
 
 namespace tdi {
 namespace pna {
 namespace rt {
 
+typedef struct ff_notif_params_ {
+  bool enable;
+  tdi_ipsec_sadb_expire_cb callback_c;
+  void *cookie;
+} ff_notif_params_t;
+
+// temperately define here
 class IFixedFunctionMgrIntf {
  public:
   virtual ~IFixedFunctionMgrIntf() = default;
@@ -116,6 +125,15 @@ class IFixedFunctionMgrIntf {
 		    pipe_tbl_match_spec_t *match_spec,
 		    pipe_val_lookup_ent_hdl_t *ent_hdl_p) = 0;
 
+  virtual pipe_status_t ffMgrNotifParamsGet(
+                tdi_rt_attributes_type_e attr_type,
+                ff_notif_params_t *ff_notif_params) = 0;
+
+  virtual pipe_status_t ffMgrNotifParamsSet(
+                tdi_rt_attributes_type_e attr_type,
+                ff_notif_params_t *ff_notif_param) = 0;
+
+  ff_notif_params_t notif_params_;                 
  protected:
   static std::unique_ptr<IFixedFunctionMgrIntf> instance;
   static std::mutex fixed_mgr_intf_mtx;
@@ -204,6 +222,24 @@ class FixedFunctionMgrIntf : public IFixedFunctionMgrIntf{
 		    pipe_tbl_match_spec_t *match_spec,
 		    pipe_val_lookup_ent_hdl_t *ent_hdl_p);
 
+  pipe_status_t ffMgrNotifParamsGet(
+                  tdi_rt_attributes_type_e attr_type,
+                  ff_notif_params_t *notif_params) {
+    notif_params->enable = notif_params_.enable;
+    notif_params->callback_c = notif_params_.callback_c;
+    notif_params->cookie = notif_params_.cookie;
+    return (TDI_SUCCESS);
+  }
+
+  pipe_status_t ffMgrNotifParamsSet(
+                  tdi_rt_attributes_type_e attr_type,
+                  ff_notif_params_t *notif_params) {
+    notif_params_.enable = notif_params->enable;
+    notif_params_.callback_c = notif_params->callback_c;
+    notif_params_.cookie = notif_params->cookie;
+    return (TDI_SUCCESS);
+  }
+ 
  private:
   FixedFunctionMgrIntf(const FixedFunctionMgrIntf &src) = delete;
   FixedFunctionMgrIntf &operator=(const FixedFunctionMgrIntf &rhs) = delete;

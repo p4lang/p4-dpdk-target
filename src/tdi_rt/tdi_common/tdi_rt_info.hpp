@@ -61,6 +61,7 @@ const std::map<std::string, tdi_rt_attributes_type_e> rt_attributes_type_map =
         {"poll_intvl_ms", TDI_RT_ATTRIBUTES_TYPE_PORT_STAT_POLL_INTVL_MS},
         {"pre_device_config", TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG},
         {"SelectorUpdateCb", TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK},
+        {"ipsec_sadb_expire_notif", TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF},
 };
 const std::map<std::string, tdi_rt_operations_type_e> rt_operations_type_map =
     {
