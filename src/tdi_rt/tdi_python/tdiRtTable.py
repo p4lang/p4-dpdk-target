@@ -15,6 +15,56 @@
 #
 from tdiTable import *
 from tdiRtDefs import *
+import functools
+
+def target_check_and_set(f):
+    @functools.wraps(f)
+    def target_wrapper(*args, **kw):
+        cintf = args[0]._cintf
+        pipe = None
+        gress_dir = None
+        old_tgt = None
+
+        for k,v in kw.items():
+            if k == "pipe":
+                pipe = v
+            elif k == "gress_dir":
+                gress_dir = v
+
+        if pipe is not None or gress_dir is not None:
+            old_tgt = cintf._dev_tgt
+        if pipe is not None:
+            cintf._set_pipe(pipe=pipe)
+        if gress_dir is not None:
+            cintf._set_direction(gress_dir)
+        # If there is an exception, then revert back the
+        # target. Store the ret value of the original function
+        # in case it does return something like some entry_get
+        # functions and return it at the end
+        ret_val = None
+        try:
+            ret_val = f(*args, **kw)
+        except Exception as e:
+            if old_tgt:
+                cintf._dev_tgt = old_tgt
+            raise e
+        if old_tgt:
+            cintf._dev_tgt = old_tgt
+        return ret_val
+    return target_wrapper
+
+class TdiRtTableEntry(TableEntry):
+    @target_check_and_set
+    def push(self, verbose=False, pipe=None, gress_dir=None):
+        TableEntry.push(self, verbose)
+
+    @target_check_and_set
+    def update(self, pipe=None, gress_dir=None):
+        TableEntry.update(self)
+
+    @target_check_and_set
+    def remove(self, pipe=None, gress_dir=None):
+        TableEntry.remove(self)
 
 class TdiRtTable(TdiTable):
     key_match_type_cls = KeyMatchTypeRt
@@ -22,6 +72,7 @@ class TdiRtTable(TdiTable):
     attributes_type_cls = AttributesTypeRt
     operations_type_cls = OperationsTypeRt
     flags_type_cls = FlagsTypeRt
+    table_entry_cls = TdiRtTableEntry
 
     """
         Remove $ and change the table names to lower case
