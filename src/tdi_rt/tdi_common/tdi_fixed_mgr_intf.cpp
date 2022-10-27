@@ -48,9 +48,21 @@ pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntDel(
 		struct fixed_function_key_spec *key_spec)
 {
         return ff_mgr_ent_del(sess_hdl,
-			      dev_tgt,
- 			      table_name,
-			      key_spec);
+                              dev_tgt,
+                              table_name,
+                              key_spec);
+}
+
+pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntGetDefaultEntry(
+		pipe_sess_hdl_t sess_hdl,
+		dev_target_t dev_tgt,
+		const char *table_name,
+		struct fixed_function_data_spec *data_spec)
+{
+	return ff_mgr_ent_get_default_entry(sess_hdl,
+			                    dev_tgt,
+			                    table_name,
+			                    data_spec);
 }
 
 pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntGet(

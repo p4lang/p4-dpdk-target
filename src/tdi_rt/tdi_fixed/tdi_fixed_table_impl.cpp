@@ -38,13 +38,21 @@ tdi_status_t key_reset(const Table & /*table*/, Key *match_key) {
 }  // anonymous namespace
 
 // FixedFunctionConfigTable ******************
+tdi_status_t FixedFunctionConfigTable::defaultEntryGet(
+		const tdi::Session &session,
+		const tdi::Target &dev_tgt,
+		const tdi::Flags &flags,
+		tdi::TableData *data) const {
+	return entryGet_internal(session, dev_tgt, flags, nullptr, data);
+}
+
 tdi_status_t FixedFunctionConfigTable::entryAdd(
 		const tdi::Session &session,
 		const tdi::Target &dev_tgt,
 		const tdi::Flags & /*flags*/,
 		const tdi::TableKey &key,
 		const tdi::TableData &data) const {
-  auto *ffMgr = FixedFunctionMgrIntf::getInstance();
+  auto *fixedFuncMgr  = FixedFunctionMgrIntf::getInstance();
   const FixedFunctionTableKey &match_key =
 	  static_cast<const FixedFunctionTableKey &>(key);
   const FixedFunctionTableData &match_data =
@@ -70,7 +78,7 @@ tdi_status_t FixedFunctionConfigTable::entryAdd(
 	  getFixedFunctionData(&data_value,
                                &match_data.fixed_spec_data_->fixed_spec_data);
 
-  tdi_status_t status =  ffMgr->ffMgrMatEntAdd(
+  tdi_status_t status =  fixedFuncMgr->ffMgrMatEntAdd(
 		  session.handleGet(
 		     static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
 		  fixed_dev_tgt,
@@ -229,7 +237,7 @@ tdi_status_t FixedFunctionConfigTable::entryDel(
 		const tdi::Target &dev_tgt,
 		const tdi::Flags & /*flags*/,
 		const tdi::TableKey &key) const {
-  auto *ffMgr = FixedFunctionMgrIntf::getInstance();
+  auto *fixedFuncMgr = FixedFunctionMgrIntf::getInstance();
   const FixedFunctionTableKey &match_key =
 	  static_cast<const FixedFunctionTableKey &>(key);
 
@@ -249,7 +257,7 @@ tdi_status_t FixedFunctionConfigTable::entryDel(
   auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
   dev_target->getTargetVals(&fixed_dev_tgt, nullptr);
 
-  tdi_status_t status = ffMgr->ffMgrMatEntDel(
+  tdi_status_t status = fixedFuncMgr->ffMgrMatEntDel(
 		  session.handleGet(
 			static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
 		  fixed_dev_tgt,
@@ -267,13 +275,55 @@ tdi_status_t FixedFunctionConfigTable::entryDel(
 }
 
 tdi_status_t FixedFunctionConfigTable::entryGet_internal(
-    const tdi::Session &session,
-    const tdi::Target &dev_tgt,
-    const tdi::Flags &flags,
-    const pipe_mat_ent_hdl_t &pipe_entry_hdl,
-    fixed_function_key_spec_t *pipe_match_spec,
-    tdi::TableData *data) const {
-  return TDI_SUCCESS;
+		const tdi::Session &session,
+		const tdi::Target &dev_tgt,
+		const tdi::Flags &flags,
+		fixed_function_key_spec_t *pipe_match_spec,
+                tdi::TableData *data) const {
+    auto *fixedFuncMgr  = FixedFunctionMgrIntf::getInstance();
+    tdi_status_t status = TDI_NOT_SUPPORTED;
+    fixed_function_data_spec_t data_spec;
+    std::vector<tdi_id_t> dataFields;
+    dev_target_t fixed_dev_tgt;
+
+    auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+    dev_target->getTargetVals(&fixed_dev_tgt, nullptr);
+
+    FixedFunctionTableData *match_data =
+	    static_cast<FixedFunctionTableData *>(data);
+
+    // reset the data object with act_id 0 and all fields
+    match_data->TableData::reset(0);
+
+    match_data->getFixedFunctionTableDataSpecObj().
+	    getFixedFunctionData(&data_spec,
+			         &match_data->fixed_spec_data_->fixed_spec_data);
+    /* TODO - add regular key-data table support as required */
+    if (!pipe_match_spec) {
+	    //key-less table
+	    status = fixedFuncMgr->ffMgrMatEntGetDefaultEntry(
+			session.handleGet(
+		        static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+			fixed_dev_tgt,
+			tableInfoGet()->nameGet().c_str(),
+			&data_spec);
+
+	    if (status != TDI_SUCCESS) {
+	        LOG_TRACE(
+	        "%s:%d %s ERROR getting defualt entry for fixed function, "
+		"err %d",
+		__func__,
+		__LINE__,
+		tableInfoGet()->nameGet().c_str(),
+		status);
+		return status;
+	    }
+
+	    dataFields = tableInfoGet()->dataFieldIdListGet(0);
+	    match_data->activeFieldsSet(dataFields);
+    }
+
+    return status;
 }
 
 tdi_status_t FixedFunctionConfigTable::entryGet(
