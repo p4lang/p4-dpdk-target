@@ -40,6 +40,8 @@ class FixedFunctionConfigTable : public tdi::Table {
                 {TDI_TABLE_API_TYPE_ADD, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
                 /*{TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
@@ -83,6 +85,11 @@ class FixedFunctionConfigTable : public tdi::Table {
   virtual tdi_status_t clear(const tdi::Session &session,
                              const tdi::Target &dev_tgt,
                              const tdi::Flags &flags) const override;
+
+  virtual tdi_status_t defaultEntryGet(const tdi::Session &session,
+                                       const tdi::Target &dev_tgt,
+                                       const tdi::Flags &flags,
+                                       tdi::TableData *data) const override;
 
   virtual tdi_status_t entryGet(const tdi::Session &session,
                                 const tdi::Target &dev_tgt,
@@ -172,7 +179,6 @@ class FixedFunctionConfigTable : public tdi::Table {
   tdi_status_t entryGet_internal(const tdi::Session &session,
                                  const tdi::Target &dev_tgt,
                                  const tdi::Flags &flags,
-                                 const pipe_mat_ent_hdl_t &pipe_entry_hdl,
                                  fixed_function_key_spec_t *pipe_match_spec,
                                  tdi::TableData *data) const;
 };

@@ -47,8 +47,9 @@ class FixedFunctionTableDataSpec {
 
         void getFixedFunctionDataBytes(const tdi::DataFieldInfo &field,
                                        const size_t size,
-			               uint8_t *value,
-			               pipe_data_spec_t *fixed_spec_data) const;
+                                       uint64_t *value,
+                                       uint8_t  *value_ptr,
+                                       pipe_data_spec_t *fixed_spec_data) const;
 
         void getFixedFunctionDataSpec(pipe_data_spec_t *value,
                                       pipe_data_spec_t *fixed_spec_data) const;

@@ -28,6 +28,10 @@
 namespace tdi {
 namespace pna {
 namespace rt {
+#define BITS_PER_BYTE     8
+#define MIN_BITS_TO_CONV  7
+/* Macro to convert bits to bytes */
+#define CONV_BITS_TO_BYTES(_bits) ((_bits+MIN_BITS_TO_CONV) / BITS_PER_BYTE)
 
 // FixedFunctionConfigTable ******************
 tdi_status_t FixedFunctionTableDataSpec::setFixedFunctionData(
@@ -37,9 +41,9 @@ tdi_status_t FixedFunctionTableDataSpec::setFixedFunctionData(
 		const std::string &value_str,
 		pipe_data_spec_t *specData) {
 
-        size_t field_size = field.sizeGet();
+        size_t field_size_in_bits = field.sizeGet();
+        auto   size = CONV_BITS_TO_BYTES(field_size_in_bits);
         size_t field_offset = 0;
-        auto size = (field_size + 7) / 8;
 
         field_offset = static_cast<const RtDataFieldContextInfo *>
 		(field.dataFieldContextInfoGet())->offsetGet();
@@ -76,12 +80,19 @@ void FixedFunctionTableDataSpec::getFixedFunctionDataSpec(
 void FixedFunctionTableDataSpec::getFixedFunctionDataBytes(
 		const tdi::DataFieldInfo &field,
                 const size_t size,
-                uint8_t *value,
+                uint64_t *value,
+                uint8_t  *value_ptr,
                 pipe_data_spec_t *specData) const {
 	size_t offset = static_cast<const RtDataFieldContextInfo *>(
 			field.dataFieldContextInfoGet())->offsetGet();
+        size_t field_size_in_bits = field.sizeGet();
+        auto   fsize = CONV_BITS_TO_BYTES(field_size_in_bits);
 
-        std::memcpy(value, specData->data_bytes+offset, size);
+        if (value_ptr) {
+	    std::memcpy(value_ptr, specData->data_bytes+offset, fsize);
+	} else {
+	    std::memcpy((uint8_t*)value, specData->data_bytes+offset, fsize);
+	}
 }
 
 tdi_status_t FixedFunctionTableData::setValue(const tdi_id_t &field_id,
@@ -116,7 +127,26 @@ tdi_status_t FixedFunctionTableData::getValueInternal(
                 uint64_t *value,
                 uint8_t *value_ptr,
                 const size_t &size) const {
-       return TDI_SUCCESS;
+  const tdi::DataFieldInfo *tableDataField =
+	  this->table_->tableInfoGet()->dataFieldGet(field_id, 0);
+
+  if (!tableDataField) {
+	  LOG_ERROR("%s:%d %s ERROR : Invalid field id %d",
+			  __func__,
+			  __LINE__,
+			  this->table_->tableInfoGet()->nameGet().c_str(),
+			  field_id);
+	  return TDI_OBJECT_NOT_FOUND;
+  }
+
+  getFixedFunctionTableDataSpecObj().
+	  getFixedFunctionDataBytes(*tableDataField,
+                                    size,
+                                    value,
+                                    value_ptr,
+                                    &this->fixed_spec_data_->fixed_spec_data);
+
+	return TDI_SUCCESS;
 }
 
 tdi_status_t FixedFunctionTableData::getValue(const tdi_id_t &field_id,

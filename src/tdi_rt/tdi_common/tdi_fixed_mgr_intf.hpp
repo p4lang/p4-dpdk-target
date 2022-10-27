@@ -54,8 +54,8 @@ class IFixedFunctionMgrIntf {
 		  pipe_sess_hdl_t sess_hdl,
 		  dev_target_t dev_tgt,
 		  const char *name,
-		  fixed_function_key_spec *match_spec,
-		  fixed_function_data_spec *data_spec) = 0;
+		  struct fixed_function_key_spec *match_spec,
+		  struct fixed_function_data_spec *data_spec) = 0;
 
   virtual pipe_status_t ffMgrMatEntDel(
 		  pipe_sess_hdl_t sess_hdl,
@@ -70,6 +70,12 @@ class IFixedFunctionMgrIntf {
 		  pipe_val_lookup_ent_hdl_t ent_hdl,
 		  pipe_tbl_match_spec_t *match_spec,
 		  pipe_data_spec_t *data_spec) = 0;
+
+  virtual pipe_status_t ffMgrMatEntGetDefaultEntry(
+		  pipe_sess_hdl_t sess_hdl,
+		  dev_target_t dev_tgt,
+		  const char *table_name,
+		  struct fixed_function_data_spec *data_spec) = 0;
 
   virtual pipe_status_t ffMgrMatEntGetFirst(
 		  pipe_sess_hdl_t sess_hdl,
@@ -140,8 +146,8 @@ class FixedFunctionMgrIntf : public IFixedFunctionMgrIntf{
   pipe_status_t ffMgrMatEntAdd(pipe_sess_hdl_t sess_hdl,
                                dev_target_t dev_tgt,
                                const char *name,
-                               fixed_function_key_spec *match_spec,
-                               fixed_function_data_spec *data_spec);
+                               struct fixed_function_key_spec *match_spec,
+                               struct fixed_function_data_spec *data_spec);
 
   pipe_status_t ffMgrMatEntDel(pipe_sess_hdl_t sess_hdl,
                                dev_target_t dev_tgt,
@@ -154,6 +160,11 @@ class FixedFunctionMgrIntf : public IFixedFunctionMgrIntf{
 			       pipe_val_lookup_ent_hdl_t ent_hdl,
 			       pipe_tbl_match_spec_t *match_spec,
 			       pipe_data_spec_t *data_spec);
+
+  pipe_status_t ffMgrMatEntGetDefaultEntry(pipe_sess_hdl_t sess_hdl,
+                                           dev_target_t dev_tgt,
+                                           const char *table_name,
+                                           struct fixed_function_data_spec *data_spec);
 
   pipe_status_t ffMgrMatEntGetFirst(pipe_sess_hdl_t sess_hdl,
                                     dev_target_t dev_tgt,

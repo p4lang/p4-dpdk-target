@@ -27,9 +27,16 @@
 #include "../../core/pipe_mgr_log.h"
 #include <port_mgr/port_mgr_port.h>
 
-static int get_fixed_function_mgr_from_table(const char *table_name,
-                                             enum fixed_function_mgr *ff_mgr) {
+/* IPSEC Yang module name prefix */
+/* TODO: need to create mapping of yang module name with fixed funciton manager
+*/
+#define IPSEC_YANG_MODULE_PREFIX_PYTHON "ipsec_"   /* python input */
+#define IPSEC_YANG_MODULE_PREFIX_OVS    "ipsec-"   /* input from OVS */
+
+static int get_fixed_func_mgr_from_table(const char *table_name,
+                                         enum fixed_function_mgr *ff_mgr) {
 	char *target = strndup(table_name, P4_SDE_TABLE_NAME_LEN);
+	char fixed_func_mgr_name[P4_SDE_TABLE_NAME_LEN+1] = {0};
 	char *saveptr  = NULL;
 	char *mgr_name = NULL;
 
@@ -47,7 +54,22 @@ static int get_fixed_function_mgr_from_table(const char *table_name,
 		return BF_UNEXPECTED;
 	}
 
-	*ff_mgr = get_fixed_function_mgr_enum(mgr_name);
+	strncpy(fixed_func_mgr_name, mgr_name, P4_SDE_TABLE_NAME_LEN);
+
+	/*  TODO: currently hard coding IPSEC module
+	         "ipsec_" -> "crypto"
+	         "ipsec-" -> "crypto"
+	 * Need to create a MAP for yang module name -> Fixed func mgr module
+	 * and discuss on naming part weather "-" should be removed with "_"
+	 * as expected by pythong.
+	 */
+	if (!strncmp(fixed_func_mgr_name, IPSEC_YANG_MODULE_PREFIX_PYTHON,
+				strlen(IPSEC_YANG_MODULE_PREFIX_PYTHON)) ||
+	    !strncmp(fixed_func_mgr_name, IPSEC_YANG_MODULE_PREFIX_OVS,
+				strlen(IPSEC_YANG_MODULE_PREFIX_PYTHON)))
+		strncpy(fixed_func_mgr_name, "crypto", P4_SDE_TABLE_NAME_LEN);
+
+	*ff_mgr = get_fixed_function_mgr_enum(fixed_func_mgr_name);
 
 	P4_SDE_FREE(target);
 
@@ -60,12 +82,12 @@ int ff_mgr_ent_add(u32 sess_hdl,
 		   struct fixed_function_key_spec  *key_spec,
 		   struct fixed_function_data_spec *data_spec)
 {
-	enum fixed_function_mgr ff_mgr = 0;
+	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
 	int status = BF_SUCCESS;
 
 	LOG_TRACE("Entering %s", __func__);
 
-	status = get_fixed_function_mgr_from_table(table_name, &ff_mgr);
+	status = get_fixed_func_mgr_from_table(table_name, &ff_mgr);
 
 	if (status)
 		goto exit;
@@ -78,12 +100,13 @@ int ff_mgr_ent_add(u32 sess_hdl,
                                                     data_spec);
 			break;
 		case FF_MGR_VPORT:
-			printf("in vport manager\n");
+			LOG_DBG("in vport manager");
 			break;
 		case FF_MGR_CRYPTO:
-			printf("in crypto manager\n");
+			LOG_DBG("in crypto manager\n");
 			break;
 		case FF_MGR_INVALID:
+		default:
 			LOG_ERROR("%s: invalid fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
@@ -99,12 +122,12 @@ int ff_mgr_ent_del(u32 sess_hdl,
 		   const char *table_name,
 		   struct fixed_function_key_spec  *key_spec)
 {
-	enum fixed_function_mgr ff_mgr = 0;
+	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
 	int  status = BF_SUCCESS;
 
 	LOG_TRACE("Entering %s", __func__);
 
-	status = get_fixed_function_mgr_from_table(table_name, &ff_mgr);
+	status = get_fixed_func_mgr_from_table(table_name, &ff_mgr);
 
 	if (status)
 		goto exit;
@@ -112,19 +135,60 @@ int ff_mgr_ent_del(u32 sess_hdl,
 	switch (ff_mgr)
 	{
 		case FF_MGR_PORT:
-			printf("in port manager delete operation\n");
+			LOG_DBG("in port manager delete operation");
 			break;
 		case FF_MGR_VPORT:
-			printf("in vport manager delete operation\n");
+			LOG_DBG("in vport manager delete operation");
 			break;
 		case FF_MGR_CRYPTO:
-			printf("in crypto managre delete operation\n");
+			LOG_DBG("in crypto managre delete operation\n");
 			break;
 		case FF_MGR_INVALID:
+		default:
 			LOG_ERROR("%s: invalid fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
 	}
+exit:
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+/**
+ * API to get default entry for key less table
+ */
+int ff_mgr_ent_get_default_entry(u32 sess_hdl,
+                                 bf_dev_target_t dev_tgt,
+                                 const char *table_name,
+                                 struct fixed_function_data_spec *data_spec)
+{
+	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
+	int  status = BF_SUCCESS;
+
+	LOG_TRACE("Entering %s", __func__);
+
+	status = get_fixed_func_mgr_from_table(table_name, &ff_mgr);
+
+	if (status)
+		goto exit;
+
+	switch (ff_mgr)
+	{
+		case FF_MGR_PORT:
+		case FF_MGR_VPORT:
+			status = BF_NOT_SUPPORTED;
+		        break;
+		case FF_MGR_CRYPTO:
+			LOG_DBG("in crypto managre default get operation");
+			status = BF_NOT_SUPPORTED;
+			break;
+		case FF_MGR_INVALID:
+		default:
+			LOG_ERROR("%s: invalid fixed function manager",
+					__func__);
+			status = BF_INVALID_ARG;
+	}
+
 exit:
 	LOG_TRACE("Exiting %s", __func__);
 	return status;

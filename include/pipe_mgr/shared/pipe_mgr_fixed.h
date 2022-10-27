@@ -27,9 +27,6 @@
 #include <fixed_function/fixed_function_int.h>
 #include <include/fixed_function/fixed_function_int.h>
 
-/*!
- * API to install an entry into a fixed table
- */
 /**
  * API to install an entry into a fixed table
  *
@@ -58,4 +55,18 @@ int ff_mgr_ent_del(u32 sess_hdl,
                    struct bf_dev_target_t dev_tgt,
                    const char *table_name,
                    struct fixed_function_key_spec  *key_spec);
+
+/**
+ * API to get default entry for key less table
+ *
+ * @param  sess_hdl     Session handle.
+ * @param  dev_tgt      Device target.
+ * @param  table_name   table name
+ * @param  data_spec    data spec to fill in return value
+ * @return              Status of the API call
+ */
+int ff_mgr_ent_get_default_entry(u32 sess_hdl,
+                                 struct bf_dev_target_t dev_tgt,
+                                 const char *table_name,
+                                 struct fixed_function_data_spec *data_spec);
 #endif /* __FF_MGR_FUNCT_H__ */
