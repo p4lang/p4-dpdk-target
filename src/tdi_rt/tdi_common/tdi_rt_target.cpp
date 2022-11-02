@@ -61,10 +61,14 @@ void Target::getTargetVals(bf_dev_target_t *dev_tgt,
 Device::Device(const tdi_dev_id_t &device_id,
                const tdi_arch_type_e &arch_type,
                const std::vector<tdi::ProgramConfig> &device_config,
-               const std::vector<tdi_mgr_type_e> mgr_type_list,
+	       void *target_options,
                void *cookie)
     : tdi::pna::Device(
-          device_id, arch_type, device_config, mgr_type_list, cookie) {
+          device_id, arch_type, device_config, cookie) {
+  auto mgr_list = static_cast<std::vector<tdi_mgr_type_e> *>(target_options);
+  std::copy(
+      mgr_list->begin(), mgr_list->end(), std::back_inserter(mgr_type_list_));
+
   // Parse tdi json for every program
   for (const auto &program_config : device_config) {
     LOG_DBG("%s:%d parsing %s",

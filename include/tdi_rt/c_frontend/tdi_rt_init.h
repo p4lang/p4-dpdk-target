@@ -35,7 +35,7 @@
 extern "C" {
 #endif
 
-tdi_status_t tdi_module_init(const tdi_mgr_type_e* arr, const size_t arr_size);
+tdi_status_t tdi_module_init(void *target_options);
 
 #ifdef __cplusplus
 }

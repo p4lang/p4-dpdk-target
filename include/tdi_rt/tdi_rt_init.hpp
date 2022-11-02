@@ -36,9 +36,6 @@
 #include <mutex>
 
 // tdi includes
-//#include <tdi/common/tdi_target.hpp>
-//#include <tdi/common/tdi_info.hpp>
-//#include <tdi/common/tdi_session.hpp>
 
 // pna includes
 #include <tdi/arch/pna/pna_init.hpp>
@@ -67,17 +64,12 @@ class Init : public tdi::Init {
  public:
   /**
    * @brief Bf Rt Module Init API. This function needs to be called to
-   * initialize TDI. Some specific managers can be specified to be skipped
-   * TDI initialization. This allows TDI session layer to not know about these
-   * managers. By default, no mgr initialization is skipped if empty vector is
-   * passed
+   * initialize TDI. Target specific options can be provided
    *
-   * @param[in] mgr_type_list vector of mgrs to skip initializing. If
-   * empty, don't skip anything
+   * @param[in] target_options
    * @return Status of the API call
    */
-  static tdi_status_t tdiModuleInit(
-      const std::vector<tdi_mgr_type_e> mgr_type_list);
+  static tdi_status_t tdiModuleInit(void *target_options);
   static std::string tdi_module_name;
   static bf_drv_client_handle_t tdi_drv_hdl;
 };  // Init
