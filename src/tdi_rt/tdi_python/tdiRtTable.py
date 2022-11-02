@@ -82,7 +82,7 @@ class TdiRtTable(TdiTable):
     def modify_table_names(self, table_name):
         self.name = table_name.value.decode('ascii')
         #Unify the table name for TDINode (command nodes)
-        name_lowercase_without_dollar=self.name.lower().replace("$","")
+        name_lowercase_without_dollar=self.name.lower().replace("$","").replace("-","_")
         if self.table_type in ["PORT_CFG", "PORT_STAT", "PORT_HDL_INFO", "PORT_FRONT_PANEL_IDX_INFO", "PORT_STR_INFO"]:
             self.name = "port.{}".format(name_lowercase_without_dollar)
         if self.table_type in ["PRE_MGID", "PRE_NODE", "PRE_ECMP", "PRE_LAG", "PRE_PRUNE", "PRE_PORT", "MIRROR_CFG"]:
