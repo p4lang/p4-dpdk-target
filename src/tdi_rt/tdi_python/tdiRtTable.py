@@ -92,7 +92,15 @@ class TdiRtTable(TdiTable):
         if self.table_type in ["SNAPSHOT", "SNAPSHOT_LIVENESS"]:
             self.name = "{}".format(name_lowercase_without_dollar)
         if self.table_type in ["FIXED_FUNC"]:
+            # temperated workaround for the table name is on node level with command,
+            # in order to make it works with currently python CLI(The target independent code needs to add this feature).
+            # Here is a list of dic for table name at node level and corresponding the leaf level table name.
+            replace_name_dic = {"ipsec_offload": "ipsec_offload.notification"}
+            if (name_lowercase_without_dollar in replace_name_dic.keys()):
+                name_lowercase_without_dollar = replace_name_dic[name_lowercase_without_dollar]
+                logging.debug("after translation: name_lowercase_without_dollar = "+name_lowercase_without_dollar)
             self.name = "fixed.{}".format(name_lowercase_without_dollar)
+
 
     def _wrap_ipsec_sadb_expire_notif_cb(self, callback):
         # callback_wrapper prototype should be the same as target specific
