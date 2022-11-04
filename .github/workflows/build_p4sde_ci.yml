@@ -10,7 +10,7 @@ on:
 
 concurrency:
   # if workflow for PR or push is already running stop it, and start new one
-  group: storage-ci-${{ github.ref }}
+  group: build_p4sde_ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
