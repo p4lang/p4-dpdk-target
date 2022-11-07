@@ -21,7 +21,9 @@
 #include "fixed_function/fixed_function_log.h"
 #include <dvm/bf_drv_intf.h>
 
+/* Global defines */
 static struct fixed_function_ctx *fixed_function_ctx_obj;
+bool is_skip_fix_func_mgr_init = false; //fixed func mgr init status
 
 /*
  * Get the Fixed Function Context Object
@@ -68,7 +70,7 @@ struct fixed_function_table_ctx *get_fixed_function_table_ctx(struct fixed_funct
 			return &(ff_mgr_ctx->table_ctx[i]);
 	}
 
-	LOG_ERROR("%s : Fixed Function Table Ctx not found", __func__);	
+	LOG_ERROR("%s : Fixed Function Table Ctx not found", __func__);
 	return NULL;
 }
 
@@ -192,7 +194,16 @@ bf_status_t fixed_function_dev_add(bf_dev_id_t dev_id,
 
         LOG_TRACE("Entering %s", __func__);
 
-        status = fixed_function_ctx_import(dev_id, profile);
+	/* TODO: register all fixed function manager such as port/crypto
+	   * with fixed function manager and respective device add should
+	   * be triggered as part of fixed function device add instead of
+	   * adding individual managers (such as crypto/port).
+	   */
+	/* skip fixed function manager init if initialised */
+	if (!is_skip_fix_func_mgr_init) {
+		status = fixed_function_ctx_import(dev_id, profile);
+		is_skip_fix_func_mgr_init = true;
+	}
 
 	LOG_TRACE("Exiting %s", __func__);
         return status;
