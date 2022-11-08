@@ -2,7 +2,6 @@
 
 #include <core.p4>
 #include <psa.p4>
-
 /*************************************************************************
  ************* C O N S T A N T S    A N D   T Y P E S  *******************
 **************************************************************************/
@@ -118,7 +117,7 @@ control ingress(
     action drop() {
         ostd.drop = true;
     }
-	
+
 	action set_port_and_src_mac( PortId_t port,
                                  ethernet_addr_t src_mac,
                                  ethernet_addr_t dst_mac) {
@@ -135,7 +134,7 @@ control ingress(
                     @defaultonly NoAction;
             }
     }
-	
+
     table l2_fwd {
             key = {
                     hdr.ethernet.dst_addr: exact;
@@ -258,8 +257,8 @@ bit<32> test_version = __p4c_version__;
 
 /************ F I N A L   P A C K A G E ******************************/
 
-IngressPipeline(Ingress_Parser(), ingress(), Ingress_Deparser()) pipe;
+IngressPipeline(Ingress_Parser(), ingress(), Ingress_Deparser()) ip;
 
 EgressPipeline(Egress_Parser(), egress(), Egress_Deparser()) ep;
 
-PSA_Switch(pipe, PacketReplicationEngine(), ep, BufferingQueueingEngine()) main;
+PSA_Switch(ip, PacketReplicationEngine(), ep, BufferingQueueingEngine()) main;
