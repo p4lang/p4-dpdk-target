@@ -1,0 +1,38 @@
+name: "P4SDE CI Build pipeline"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      
+concurrency:
+  # if workflow for PR or push is already running stop it, and start new one
+  group: build_p4sde_ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_p4dpdk_ubuntu:
+    timeout-minutes: 15
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+        with:
+             submodules: 'recursive'
+      - name: 'Install dependencies'
+        working-directory: ./tools/setup
+        run: |
+              sudo apt update -y
+              python install_dep.py
+      - name: 'Compile p4sde dpdk target'
+        run: |
+             export SDE=${GITHUB_WORKSPACE}
+             mkdir install
+             export SDE_INSTALL=${GITHUB_WORKSPACE}/install
+             ./autogen.sh
+             ./configure --prefix=$SDE_INSTALL
+             make 
+             make install
