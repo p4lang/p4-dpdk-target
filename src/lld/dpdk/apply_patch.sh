@@ -17,7 +17,7 @@
 
 apply_patch()
 {
-	local PATCH_FILES=(007-Fix-pipeline-structs-initialization.patch 0001-Copy-required-header-file-to-install-include-path.patch)
+	local PATCH_FILES=(0001-Copy-required-header-file-to-install-include-path.patch)
 
 	DPDK_PATH=${PWD}
 	DPDK_SRC_PATH="${DPDK_PATH}"/dpdk_src
