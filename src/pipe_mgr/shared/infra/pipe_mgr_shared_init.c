@@ -530,6 +530,20 @@ void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state)
 	P4_SDE_FREE(mat_state);
 }
 
+void pipe_mgr_free_pipe_ctx_ext_table_name(struct pipe_mgr_p4_pipeline *ctx)
+{
+	int itr;
+
+	if (!ctx->externs_tables_name)
+		return;
+
+	for (itr = 0; itr < ctx->num_externs_tables; itr++)
+		P4_SDE_FREE(ctx->externs_tables_name[itr]);
+
+	P4_SDE_FREE(ctx->externs_tables_name);
+	ctx->externs_tables_name = NULL;
+}
+
 void pipe_mgr_free_mat_table(struct pipe_mgr_p4_pipeline *pipe_ctx)
 {
 	struct pipe_mgr_mat *mat;

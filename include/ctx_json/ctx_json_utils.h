@@ -857,7 +857,7 @@
 #define CTX_JSON_EXTERN_TYPE              "type"
 #define CTX_JSON_EXTERN_ATTRIBUTES        "attributes"
 #define CTX_JSON_EXTERN_ATTRIBUTE_TYPE    CTX_JSON_EXTERN_TYPE
-
+#define CTX_JSON_EXTERN_ATTRIBUTE_TABLE_ID   "table_id"
 #define CTX_JSON_EXTERN_TYPE_COUNTER      "Counter"
 
 #define CTX_JSON_EXTERN_ATTR_TYPE_BYTES               "bytes"

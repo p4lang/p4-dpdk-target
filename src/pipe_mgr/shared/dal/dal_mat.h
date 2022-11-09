@@ -18,6 +18,7 @@
 #include "../infra/pipe_mgr_int.h"
 #include "../infra/pipe_mgr_ctx_util.h"
 #include "../pipe_mgr_shared_intf.h"
+
 /* Threshold of table size above which SDE doesn't store entries */
 #define PIPE_MGR_STORE_ENTRIES_THRESHOLD 10000
 
@@ -71,9 +72,13 @@ int dal_table_ent_del_by_match_spec(u32 sess_hdl,
  *
  * @param  dal_data              Pointer to Dal layer data.
  * @param  res_data              Pointer to res data to be filled with stats.
+ * @param  dev_tgt               device target.
+ * @param  match_spec            Match spec to populate.
  * @return                       Status of the API call
  */
-int dal_unpack_dal_data(void *dal_data, void *res_data);
+int dal_unpack_dal_data(void *dal_data, void *res_data,
+                        struct bf_dev_target_t dev_tgt,
+                        struct pipe_tbl_match_spec *match_spec);
 
 /**
  * DAL data delete API.

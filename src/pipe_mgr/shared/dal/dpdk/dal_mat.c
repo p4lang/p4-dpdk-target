@@ -25,6 +25,7 @@
 #include "pipe_mgr_dpdk_ctx_util.h"
 #include "../../infra/pipe_mgr_int.h"
 #include "dal_tbl.h"
+#include "../dal_counters.h"
 
 static int is_match_value_present(struct pipe_tbl_match_spec *match_spec)
 {
@@ -266,11 +267,12 @@ exit:
 	return status;
 }
 
-/* currently no DPDK dal data struct for table entries,
-   if we have in future then this function should be written */
-int dal_unpack_dal_data(void *dal_data, void *res_data)
+int dal_unpack_dal_data(void *dal_data, void *res_data,
+                        struct bf_dev_target_t dev_tgt,
+                        struct pipe_tbl_match_spec *match_spec)
 {
-	return BF_SUCCESS;
+	return dal_cnt_read_flow_direct_counter_set(dal_data, res_data,
+                                                   dev_tgt, match_spec);
 }
 
 void dal_delete_table_entry_data(void *dal_data)
