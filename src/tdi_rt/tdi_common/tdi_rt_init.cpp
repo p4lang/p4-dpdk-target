@@ -88,11 +88,11 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
     const std::vector<std::string> &tdi_fixed_json_path_vec) {
   // tracks P4 programs with valid bf-rt.json of their own
   uint32_t num_valid_p4_programs = 0;
+  std::vector<std::string> tdi_p4_json_vect(tdi_fixed_json_path_vec);
 
   std::vector<tdi::ProgramConfig> program_config_vec;
   for (int i = 0; i < dev_profile->num_p4_programs; i++) {
     std::string prog_name(dev_profile->p4_programs[i].prog_name);
-    std::vector<std::string> tdi_p4_json_vect(tdi_fixed_json_path_vec);
     std::vector<tdi::P4Pipeline> p4_pipelines;
     // If bf-rt.json doesn't exist, then continue the loop
     if (dev_profile->p4_programs[i].bfrt_json_file == nullptr) {
@@ -147,7 +147,12 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
     // fake p4 program name "$SHARED".
     std::vector<tdi::P4Pipeline> dummy;
     std::string prog_name = "$SHARED";
-    program_config_vec.emplace_back(prog_name, tdi_fixed_json_path_vec, dummy);
+
+    // append fixed function TDI.json files
+    for (int j = 0; j < dev_profile->num_fixed_functions; j++) {
+	tdi_p4_json_vect.push_back(dev_profile->fixed_functions[j].tdi_json);
+    }
+    program_config_vec.emplace_back(prog_name, tdi_p4_json_vect, dummy);
   }
   return program_config_vec;
 }
