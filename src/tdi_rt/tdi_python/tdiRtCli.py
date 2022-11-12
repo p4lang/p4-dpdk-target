@@ -388,7 +388,6 @@ class CIntfTdiRt(CIntfTdi):
     def __init__(self, dev_id, table_cls, info_cls):
         driver_path = install_directory+'/lib/libdriver.so'
         super().__init__(dev_id, TdiRtTable, TdiInfo, driver_path)
-        self._dev_tgt = self.TdiDevTgt(self._dev_id, 0, 0xff)
         '''
         # define target specific python callback here
         # Note: Currently the ipsec_sadb_expire_notif_cb is the same function prototype 
@@ -397,7 +396,7 @@ class CIntfTdiRt(CIntfTdi):
         # void ipsec_sadb_expire_notif_cb_type(uint32_t dev_id, uint32_t spi, bool hard, uint8_t protocol, char *ipaddr, bool ipv4).
         '''
         self.ipsec_sadb_expire_notif_cb_type = CFUNCTYPE(None, c_uint32, c_uint32, c_bool, c_uint8, c_char_p, c_bool, c_void_p)
-
+    '''
     class TdiDevTgt(Structure):
         # tdi_rt: target specific fields based on
         # 1. include/tdi/common/tdi_target.hpp   (core specific: TDI_TARGET_DEV_ID)
@@ -408,18 +407,26 @@ class CIntfTdiRt(CIntfTdi):
             for name, type_ in self._fields_:
                 ret_val += name + ": " + str(getattr(self, name)) + "\n"
             return ret_val
+    '''
     def _set_pipe(self, pipe=0xFFFF):
-        self._dev_tgt = self.TdiDevTgt(self._dev_tgt.dev_id, pipe, self._dev_tgt.direction)
+        pipe_id = c_uint64(pipe);
+        sts = self.get_driver().tdi_target_set_value(self._target, self.target_type_cls.target_type_map(target_type_str="pipe_id"), pipe_id);
 
     def _set_direction(self, direction=0xFFFF):
-        self._dev_tgt = self.TdiDevTgt(self._dev_tgt.dev_id, self._dev_tgt.pipe_id, direction)
+        sts = self.get_driver().tdi_target_set_value(self._target, self.target_type_cls.target_type_map(target_type_str="direction"), c_uint64(direction));
+ 
+    def set_target_vals(self, dev_id, pipe_id, direction, target):
+       sts = self.get_driver().tdi_target_set_value(target, self.target_type_cls.target_type_map(target_type_str="dev_id"), dev_id);
+       sts = self.get_driver().tdi_target_set_value(target, self.target_type_cls.target_type_map(target_type_str="pipe_id"), pipe_id);
+       sts = self.get_driver().tdi_target_set_value(target, self.target_type_cls.target_type_map(target_type_str="direction"), direction);
+
     # this can be removed after changes from tdi repro changes with 4 parameters
     '''
     def _set_parser(self, parser=0xFF):
         self._dev_tgt = self.TdiDevTgt(self._dev_tgt.dev_id, self._dev_tgt.pipe_id, self._dev_tgt.direction, parser)
-    '''
     def create_devTgt(self, dev_id, pipe_id=0, direction=0xff):
         return self.TdiDevTgt(self._dev_id, 0, 0xff)
+    '''
 
     def print_target(self, target):
         return "dev_id={} pipe={} direction={}".format(self.get_target_vals(target))

@@ -25,7 +25,7 @@ def target_check_and_set(f):
         cintf = args[0]._cintf
         pipe = None
         gress_dir = None
-        old_tgt = None
+        old_tgt = False
 
         for k,v in kw.items():
             if k == "pipe":
@@ -34,7 +34,8 @@ def target_check_and_set(f):
                 gress_dir = v
 
         if pipe is not None or gress_dir is not None:
-            old_tgt = cintf._dev_tgt
+            _, old_pipe, old_gress_dir = cintf.get_target_vals(cintf._target)
+            old_tgt = True
         if pipe is not None:
             cintf._set_pipe(pipe=pipe)
         if gress_dir is not None:
@@ -48,10 +49,12 @@ def target_check_and_set(f):
             ret_val = f(*args, **kw)
         except Exception as e:
             if old_tgt:
-                cintf._dev_tgt = old_tgt
+               cintf._set_pipe(pipe=old_pipe)
+               cintf._set_direction(old_gress_dir)
             raise e
         if old_tgt:
-            cintf._dev_tgt = old_tgt
+            cintf._set_pipe(pipe=old_pipe)
+            cintf._set_direction(old_gress_dir)
         return ret_val
     return target_wrapper
 
