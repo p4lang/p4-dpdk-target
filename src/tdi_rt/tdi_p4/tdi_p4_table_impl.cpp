@@ -75,7 +75,8 @@ tdi_status_t getActionSpec(const tdi::Session &session,
             static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
         dev_tgt,
         pipe_tbl_hdl,
-        pipe_action_spec,
+        mat_ent_hdl,
+	 pipe_action_spec,
         act_fn_hdl,
         read_from_hw,
         res_get_flags,
@@ -3900,6 +3901,11 @@ tdi_status_t ActionProfile::entryAdd(const tdi::Session &session,
       this->tableInfoGet()->tableContextInfoGet());
   tdi_id_t mbr_id = action_tbl_key.getMemberId();
 
+  if(!mbr_id) {
+	  LOG_ERROR("Mbr id should not be 0 \n");
+	  return BF_INVALID_ARG;
+  }
+
   status = pipeMgr->pipeMgrAdtEntAdd(
       session.handleGet(
           static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
@@ -3917,6 +3923,95 @@ tdi_status_t ActionProfile::entryAdd(const tdi::Session &session,
               tableInfoGet()->idGet());
   }
   return status;
+}
+
+tdi_status_t ActionProfile::defaultEntrySet(
+    const tdi::Session &session,
+    const tdi::Target &dev_tgt,
+    const tdi::Flags & /*flags*/,
+    const tdi::TableData &data) const {
+	tdi_status_t status = TDI_SUCCESS;
+	auto *pipeMgr = PipeMgrIntf::getInstance(session);
+	const ActionProfileData &action_tbl_data =
+		static_cast<const ActionProfileData &>(data);
+	const pipe_action_spec_t *pipe_action_spec =
+		action_tbl_data.get_pipe_action_spec();
+
+	pipe_adt_ent_hdl_t adt_entry_hdl;
+	pipe_act_fn_hdl_t act_fn_hdl = action_tbl_data.getActFnHdl();
+	dev_target_t pipe_dev_tgt;
+	auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+	dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+	auto table_context_info = static_cast<const RtTableContextInfo *>(
+			this->tableInfoGet()->tableContextInfoGet());
+	tdi_id_t mbr_id = 0;
+
+	status = pipeMgr->pipeMgrAdtDefaultEntAdd(
+			session.handleGet(
+				static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+			pipe_dev_tgt,
+			table_context_info->tableHdlGet(),
+			act_fn_hdl,
+			mbr_id,
+			pipe_action_spec,
+			&adt_entry_hdl,
+			PIPE_FLAG_CACHE_ENT_ID);
+	if (status != TDI_SUCCESS) {
+		LOG_TRACE("%s:%d Error adding new ADT %d entry",
+				__func__,
+				__LINE__,
+				tableInfoGet()->idGet());
+	}
+	return status;
+}
+
+tdi_status_t ActionProfile::defaultEntryGet(const tdi::Session &session,
+                                                  const tdi::Target &dev_tgt,
+                                                  const tdi::Flags &flags,
+                                                  tdi::TableData *data) const {
+  tdi_status_t status = TDI_SUCCESS;
+  const Table *table_from_data;
+  data->getParent(&table_from_data);
+  auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
+
+  if (table_id_from_data != this->tableInfoGet()->idGet()) {
+    LOG_TRACE(
+        "%s:%d %s ERROR : Table Data object with object id %d  does not match "
+        "the table",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str(),
+        table_id_from_data);
+    return TDI_INVALID_ARG;
+  }
+
+  ActionProfileData *action_tbl_data = static_cast<ActionProfileData *>(data);
+
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+  auto table_context_info = static_cast<const RtTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+  tdi_id_t mbr_id = 0;
+  pipe_adt_ent_hdl_t adt_ent_hdl;
+  auto *pipeMgr = PipeMgrIntf::getInstance();
+  status = pipeMgr->pipeMgrAdtDefaultEntHdlGet(
+      session.handleGet(
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      table_context_info->tableHdlGet(),
+      mbr_id,
+      &adt_ent_hdl);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE("%s:%d %s ERROR Action member Id %d does not exist",
+              __func__,
+              __LINE__,
+              tableInfoGet()->nameGet().c_str(),
+              mbr_id);
+    return TDI_OBJECT_NOT_FOUND;
+  }
+  return entryGet_internal(
+      session, dev_tgt, flags, adt_ent_hdl, action_tbl_data);
 }
 
 tdi_status_t ActionProfile::entryMod(const tdi::Session &session,
@@ -4859,6 +4954,174 @@ tdi_status_t Selector::entryDel(const tdi::Session &session,
     return status;
   }
   return TDI_SUCCESS;
+}
+
+
+tdi_status_t Selector::defaultEntrySet(
+    const tdi::Session &session,
+    const tdi::Target &dev_tgt,
+    const tdi::Flags & /*flags*/,
+    const tdi::TableData &data) const {
+  tdi_status_t status = TDI_SUCCESS;
+  auto *pipeMgr = PipeMgrIntf::getInstance(session);
+  const SelectorTableData &sel_data =
+      static_cast<const SelectorTableData &>(data);
+  pipe_sel_grp_hdl_t sel_grp_hdl;
+  uint32_t max_grp_size = sel_data.get_max_grp_size();
+  tdi_id_t sel_grp_id = 0;
+
+  dev_target_t pipe_dev_tgt;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
+
+  std::vector<tdi_id_t> members = sel_data.getMembers();
+  std::vector<bool> member_status = sel_data.getMemberStatus();
+
+  if (members.size() != member_status.size()) {
+    LOG_TRACE("%s:%d MemberId size %zu and member status size %zu do not match",
+              __func__,
+              __LINE__,
+              members.size(),
+              member_status.size());
+    return TDI_INVALID_ARG;
+  }
+
+  if (members.size() > max_grp_size) {
+    LOG_TRACE(
+        "%s:%d %s Number of members provided %zd exceeds the maximum group "
+        "size %d for group id %d",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str(),
+        members.size(),
+        max_grp_size,
+        sel_grp_id);
+    return TDI_INVALID_ARG;
+  }
+
+  // Before we add the group, we first check the validity of the members to be
+  // added if any and build up a vector of action entry handles and action
+  // function handles to be used to pass to the pipe-mgr API
+  std::vector<pipe_adt_ent_hdl_t> action_entry_hdls(members.size(), 0);
+  std::vector<char> pipe_member_status(members.size(), 0);
+
+  auto selector_context_info = static_cast<const SelectorTableContextInfo *>(
+      this->tableInfoGet()->tableContextInfoGet());
+  for (unsigned i = 0; i < members.size(); ++i) {
+    // For each member verify if the member ID specified exists. If so, get the
+    // action function handle
+    pipe_adt_ent_hdl_t adt_ent_hdl = 0;
+
+    ActionProfile *actTbl =
+        static_cast<ActionProfile *>(selector_context_info->actProfTbl_);
+    status =
+        actTbl->getHdlFromMbrId(session, dev_tgt, members[i], &adt_ent_hdl);
+    if (status != TDI_SUCCESS) {
+      LOG_TRACE(
+          "%s:%d %s Error in adding member id %d which does not exist into "
+          "group id %d on pipe %x",
+          __func__,
+          __LINE__,
+          tableInfoGet()->nameGet().c_str(),
+          members[i],
+          sel_grp_id,
+          pipe_dev_tgt.dev_pipe_id);
+      return TDI_INVALID_ARG;
+    }
+
+    action_entry_hdls[i] = adt_ent_hdl;
+    pipe_member_status[i] = member_status[i];
+  }
+
+  // Now, attempt to add the group;
+  status = pipeMgr->pipeMgrSelGrpAdd(
+      session.handleGet(
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      selector_context_info->tableHdlGet(),
+      sel_grp_id,
+      max_grp_size,
+      &sel_grp_hdl,
+      PIPE_FLAG_CACHE_ENT_ID);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE("%s:%d %s Error in adding group id %d pipe %x, err %d",
+              __func__,
+              __LINE__,
+              tableInfoGet()->nameGet().c_str(),
+              sel_grp_id,
+              pipe_dev_tgt.dev_pipe_id,
+              status);
+    return status;
+  }
+
+  // Set the membership of the group
+  status = pipeMgr->pipeMgrSelGrpMbrsSet(
+      session.handleGet(
+          static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+      pipe_dev_tgt,
+      selector_context_info->tableHdlGet(),
+      sel_grp_hdl,
+      members.size(),
+      action_entry_hdls.data(),
+      (bool *)(pipe_member_status.data()),
+      0 /* Pipe API flags */);
+  if (status != TDI_SUCCESS) {
+    LOG_TRACE(
+        "%s:%d %s : Error in setting membership for group id %d pipe %x, err "
+        "%d",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str(),
+        sel_grp_id,
+        pipe_dev_tgt.dev_pipe_id,
+        status);
+    pipeMgr->pipeMgrSelGrpDel(session.handleGet(static_cast<tdi_mgr_type_e>(
+                                  TDI_RT_MGR_TYPE_PIPE_MGR)),
+                              pipe_dev_tgt,
+                              selector_context_info->tableHdlGet(),
+                              sel_grp_hdl,
+                              0 /* Pipe API flags */);
+  }
+
+  return status;
+}
+
+tdi_status_t Selector::defaultEntryGet(const tdi::Session &session,
+                                                  const tdi::Target &dev_tgt,
+                                                  const tdi::Flags &flags,
+                                                  tdi::TableData *data) const {
+  const Table *table_from_data;
+  data->getParent(&table_from_data);
+  auto table_id_from_data = table_from_data->tableInfoGet()->idGet();
+
+  bool read_from_hw = false;
+  flags.getValue(static_cast<tdi_flags_e>(TDI_RT_FLAGS_FROM_HW),
+                 &read_from_hw);
+  if (read_from_hw) {
+    LOG_WARN(
+        "%s:%d %s : Table entry get from hardware not supported"
+        " Defaulting to sw read",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str());
+  }
+
+  if (table_id_from_data != this->tableInfoGet()->idGet()) {
+    LOG_TRACE(
+        "%s:%d %s ERROR : Table Data object with object id %d  does not match "
+        "the table",
+        __func__,
+        __LINE__,
+        tableInfoGet()->nameGet().c_str(),
+        table_id_from_data);
+    return TDI_INVALID_ARG;
+  }
+
+  SelectorTableData *sel_tbl_data = static_cast<SelectorTableData *>(data);
+  tdi_id_t grp_id = 0;
+
+  return entryGet_internal(session, dev_tgt, grp_id, sel_tbl_data);
+	return TDI_SUCCESS;
 }
 
 tdi_status_t Selector::clear(const tdi::Session &session,

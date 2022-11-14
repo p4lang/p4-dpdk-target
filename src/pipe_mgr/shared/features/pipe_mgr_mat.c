@@ -445,6 +445,106 @@ cleanup:
 	return status;
 }
 
+int pipe_mgr_mat_default_ent_add(u32 sess_hdl,
+				 struct bf_dev_target_t dev_tgt,
+				 u32 mat_tbl_hdl,
+				 struct pipe_tbl_match_spec *match_spec,
+				 u32 act_fn_hdl,
+				 struct pipe_action_spec *act_data_spec,
+				 u32 ttl, u32 pipe_api_flags,
+				 u32 *ent_hdl_p)
+{
+	struct pipe_mgr_mat_entry_info *entry;
+	struct pipe_mgr_mat *tbl;
+	bool exists;
+	int status;
+
+	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_ctx_get_table(dev_tgt, mat_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_MAT, (void *)&tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  mat_tbl_hdl);
+		goto cleanup;
+	}
+
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_table_key_exists((void *)tbl,
+						   PIPE_MGR_TABLE_TYPE_MAT,
+						   match_spec,
+						   dev_tgt.dev_pipe_id,
+						   &exists, ent_hdl_p,
+						   NULL);
+		if (status) {
+			LOG_ERROR("pipe_mgr_table_key_exists failed");
+			goto cleanup;
+		}
+
+		if (exists) {
+			LOG_ERROR("duplicate entry found in table = %s",
+				  tbl->ctx.name);
+			status = BF_UNEXPECTED;
+			goto cleanup;
+		}
+	}
+
+	status = pipe_mgr_mat_pack_entry_data(dev_tgt, match_spec,
+					      act_fn_hdl, act_data_spec,
+					      tbl, &entry);
+	if (status) {
+		LOG_ERROR("Entry encoding failed");
+		goto cleanup;
+	}
+
+	status = dal_table_default_ent_add(sess_hdl, dev_tgt, mat_tbl_hdl,
+					   act_fn_hdl, act_data_spec,
+					   pipe_api_flags, &tbl->ctx,
+					   &entry->dal_data);
+
+	if (status) {
+		LOG_ERROR("dal_table_ent_add failed");
+		goto cleanup_entry;
+	}
+
+	if (tbl->ctx.store_entries) {
+		status = pipe_mgr_table_key_insert(dev_tgt, (void *)tbl,
+						   PIPE_MGR_TABLE_TYPE_MAT,
+						   (void *)entry, ent_hdl_p);
+		if (status) {
+			LOG_ERROR("Error in inserting entry in table");
+			goto cleanup_entry;
+		}
+	}
+
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+
+cleanup_entry:
+	pipe_mgr_mat_delete_entry_data(entry);
+
+cleanup:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
 int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 				       struct bf_dev_target_t dev_tgt,
 				       u32 mat_tbl_hdl,

@@ -181,32 +181,64 @@ pipe_status_t PipeMgrIntf::pipeMgrMatDefaultEntrySet(
     const pipe_action_spec_t *act_spec,
     uint32_t pipe_api_flags,
     pipe_mat_ent_hdl_t *ent_hdl_p) {
-  return pipe_mgr_mat_default_entry_set(sess_hdl,
-                                        dev_tgt,
-                                        mat_tbl_hdl,
-                                        act_fn_hdl,
-                                        (pipe_action_spec_t *)act_spec,
-                                        pipe_api_flags,
-                                        ent_hdl_p);
+    pipe_status_t status;
+    uint32_t ttl = 0;
+    pipe_tbl_match_spec_t match_spec;
+    memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+    match_spec.match_value_bits = (uint8_t *) malloc(4);
+    match_spec.match_mask_bits = (uint8_t *) malloc(4);
+    if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
+	    return -1;
+    memset(match_spec.match_value_bits, 0, 4);
+    memset(match_spec.match_mask_bits, 0, 4);
+
+    status = pipe_mgr_mat_default_ent_add(sess_hdl,
+		    dev_tgt,
+		    mat_tbl_hdl,
+		    &match_spec,
+		    act_fn_hdl,
+		    (pipe_action_spec_t *)act_spec,
+		    ttl,
+		    pipe_api_flags,
+		    ent_hdl_p);
+    free(match_spec.match_value_bits);
+    free(match_spec.match_mask_bits);
+    return status;
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrTableGetDefaultEntry(
     pipe_sess_hdl_t sess_hdl,
     dev_target_t dev_tgt,
     pipe_mat_tbl_hdl_t mat_tbl_hdl,
+    pipe_mat_ent_hdl_t entry_hdl,
     pipe_action_spec_t *pipe_action_spec,
     pipe_act_fn_hdl_t *act_fn_hdl,
     bool from_hw,
     uint32_t res_get_flags,
     pipe_res_get_data_t *res_data) {
-  return pipe_mgr_table_get_default_entry(sess_hdl,
-                                          dev_tgt,
-                                          mat_tbl_hdl,
-                                          pipe_action_spec,
-                                          act_fn_hdl,
-                                          from_hw,
-                                          res_get_flags,
-                                          res_data);
+
+    pipe_status_t status;
+    pipe_tbl_match_spec_t match_spec;
+    memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+    match_spec.match_value_bits = (uint8_t *) malloc(4);
+    match_spec.match_mask_bits = (uint8_t *) malloc(4);
+    if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
+                   return -1;
+    memset(match_spec.match_value_bits, 0, 4);
+    memset(match_spec.match_mask_bits, 0, 4);
+    status = pipe_mgr_get_entry(sess_hdl,
+	                            mat_tbl_hdl,
+	                            dev_tgt,
+	                            entry_hdl,
+	                            &match_spec,
+	                            pipe_action_spec,
+	                            act_fn_hdl,
+	                            from_hw,
+	                            res_get_flags,
+	                            res_data);
+    free(match_spec.match_value_bits);
+    free(match_spec.match_mask_bits);
+    return status;
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrTableGetDefaultEntryHandle(
@@ -214,8 +246,20 @@ pipe_status_t PipeMgrIntf::pipeMgrTableGetDefaultEntryHandle(
     dev_target_t dev_tgt,
     pipe_mat_tbl_hdl_t mat_tbl_hdl,
     pipe_mat_ent_hdl_t *ent_hdl_p) {
-  return pipe_mgr_table_get_default_entry_handle(
-      sess_hdl, dev_tgt, mat_tbl_hdl, ent_hdl_p);
+	pipe_status_t status;
+	pipe_tbl_match_spec_t match_spec;
+	memset(&match_spec, 0, sizeof(pipe_tbl_match_spec_t));
+	match_spec.match_value_bits = (uint8_t *) malloc(4);
+	match_spec.match_mask_bits = (uint8_t *) malloc(4);
+	if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
+		return -1;
+	memset(match_spec.match_value_bits, 0, 4);
+	memset(match_spec.match_mask_bits, 0, 4);
+	status = pipe_mgr_match_spec_to_ent_hdl(
+			sess_hdl, dev_tgt, mat_tbl_hdl, &match_spec, ent_hdl_p);
+	free(match_spec.match_value_bits);
+	free(match_spec.match_mask_bits);
+	return status;
 }
 
 pipe_status_t PipeMgrIntf::pipeMgrMatTblClear(pipe_sess_hdl_t sess_hdl,
@@ -323,6 +367,25 @@ pipe_status_t PipeMgrIntf::pipeMgrAdtEntAdd(
                               pipe_api_flags);
 }
 
+pipe_status_t PipeMgrIntf::pipeMgrAdtDefaultEntAdd(
+    pipe_sess_hdl_t sess_hdl,
+    dev_target_t dev_tgt,
+    pipe_adt_tbl_hdl_t adt_tbl_hdl,
+    pipe_act_fn_hdl_t act_fn_hdl,
+    const pipe_adt_mbr_id_t mbr_id,
+    const pipe_action_spec_t *action_spec,
+    pipe_adt_ent_hdl_t *adt_ent_hdl_p,
+    uint32_t pipe_api_flags) {
+  return pipe_mgr_adt_default_ent_add(sess_hdl,
+                              dev_tgt,
+                              adt_tbl_hdl,
+                              act_fn_hdl,
+                              mbr_id,
+                              (pipe_action_spec_t *)action_spec,
+                              adt_ent_hdl_p,
+                              pipe_api_flags);
+}
+
 pipe_status_t PipeMgrIntf::pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
                                             dev_target_t dev_tgt,
                                             pipe_adt_tbl_hdl_t adt_tbl_hdl,
@@ -356,6 +419,16 @@ pipe_status_t PipeMgrIntf::pipeMgrAdtEntHdlGet(
     pipe_adt_mbr_id_t mbr_id,
     pipe_adt_ent_hdl_t *adt_ent_hdl) {
   return pipe_mgr_adt_ent_hdl_get(
+      sess_hdl, dev_tgt, adt_tbl_hdl, mbr_id, adt_ent_hdl);
+}
+
+pipe_status_t PipeMgrIntf::pipeMgrAdtDefaultEntHdlGet(
+    pipe_sess_hdl_t sess_hdl,
+    dev_target_t dev_tgt,
+    pipe_adt_tbl_hdl_t adt_tbl_hdl,
+    pipe_adt_mbr_id_t mbr_id,
+    pipe_adt_ent_hdl_t *adt_ent_hdl) {
+  return pipe_mgr_adt_default_ent_hdl_get(
       sess_hdl, dev_tgt, adt_tbl_hdl, mbr_id, adt_ent_hdl);
 }
 

@@ -258,6 +258,9 @@ static int pipe_mgr_table_key_insert_internal(void *tbl,
 			key_sz += sizeof(match_spec->priority);
 		}
 
+		if (!key_sz)
+			key_sz = sizeof(match_spec->priority);
+
 		if (match_type == PIPE_MGR_MATCH_TYPE_EXACT) {
 			htbl_sts = bf_hashtbl_init(*key_htbl,
 						   pipe_mgr_mat_exm_key_cmp_fn,
