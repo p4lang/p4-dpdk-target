@@ -25,7 +25,15 @@
 
 #include <bf_types/bf_types.h>
 #include <fixed_function/fixed_function_int.h>
+#include <tdi/common/tdi_defs.h>
+#include <tdi_rt/tdi_rt_defs.h>
+#include <tdi_rt/c_frontend/tdi_rt_attributes.h>
 
+typedef pipe_status_t (*fixed_func_mgr_update_callback)(
+		dev_target_t dev_tgt,
+		tdi_rt_attributes_type_e __attr_type,
+		void *cookie,
+		void *notif_data);
 /**
  * API to install an entry into a fixed table
  *
@@ -68,4 +76,22 @@ int ff_mgr_ent_get_default_entry(u32 sess_hdl,
                                  struct bf_dev_target_t dev_tgt,
                                  const char *table_name,
                                  struct fixed_function_data_spec *data_spec);
+
+
+/**
+ * API to register auto notification
+ *
+ * @param  dev_tgt      Device target.
+ * @param  table_name   table name
+ * @param  call_back    C++ fixed func call back API
+ * @param  _attr_type   TDI Attribute type
+ * @param  void ptr     void pointer to callback cookie
+ * @return              Status of the API call
+ */
+int fixed_func_mgr_notification_register(struct bf_dev_target_t dev_tgt,
+                                         const char *table_name,
+                                         fixed_func_mgr_update_callback cb,
+                                         tdi_rt_attributes_type_e _attr_type,
+                                         void *cb_cookie);
+
 #endif /* __FF_MGR_FUNCT_H__ */

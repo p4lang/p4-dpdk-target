@@ -18,11 +18,48 @@
 #include "tdi_table_attributes_impl.hpp"
 #include <iostream>
 #include <string>
+#include "tdi_fixed_mgr_intf.hpp"
 namespace tdi {
 namespace pna {
 namespace rt {
 
 #define CALLBACK_NOTIF_TEST 0
+
+/**
+ * Fixed function manager auto-notifacation Callback.
+ */
+tdi_status_t FixedFunctionMgrInternalCb(
+		dev_target_t dev_tgt,
+		tdi_rt_attributes_type_e tdi_rt_attr_type,
+		void *cb_cookie,
+		void *notif_data)
+{
+  fixed_function_notif_params_t *ff_mgr_notif_param =
+	  static_cast <fixed_function_notif_params_t *>(cb_cookie);
+  auto table = reinterpret_cast<const tdi::Table *>(ff_mgr_notif_param->table_);
+
+  switch (tdi_rt_attr_type) {
+    case TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF: {
+
+	if (ff_mgr_notif_param->enable && ff_mgr_notif_param->callback_c) {
+		//invoke C callback
+	}
+    }
+    break;
+    default:
+      LOG_TRACE(
+          "%s:%d Invalid Attribute type (%d) encountered while trying to "
+          "set "
+          "attributes for table %s",
+          __func__,
+          __LINE__,
+          static_cast<int>(tdi_rt_attr_type),
+          table->tableInfoGet()->nameGet().c_str());
+  }
+
+  return TDI_SUCCESS;
+}
+
 tdi_status_t TableAttributesImpl::setValue(const tdi_attributes_field_type_e &type,
                                            const uint64_t &value) {
   auto tdi_rt_attr_type =

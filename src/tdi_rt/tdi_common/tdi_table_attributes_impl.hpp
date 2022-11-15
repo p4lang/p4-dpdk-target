@@ -41,6 +41,21 @@ namespace tdi {
 namespace pna {
 namespace rt {
 
+/**
+ * @brief Fixed function manager auto-notifacation Callback.
+ * This can be used to get notification of data plane for all
+ * fixed function devices.
+ *
+ * @param[in] dev_tgt Device target
+ * @param[in] tdi_rt_attr_type attribute type of a notification
+ * @param[in] cookie  User provided cookie during cb registration
+ * @param[in] notif_data data to be passed up for relevant notification
+ */
+tdi_status_t FixedFunctionMgrInternalCb(dev_target_t dev_tgt,
+		                        tdi_rt_attributes_type_e __attr_type,
+					void *cookie,
+					void *notif_data);
+
 // This class is responsible for handling everything related to idle params
 // and is called by the parent class (TableAttributesImpl)
 class TableAttributesIdleTable {

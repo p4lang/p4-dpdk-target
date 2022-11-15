@@ -193,3 +193,42 @@ exit:
 	LOG_TRACE("Exiting %s", __func__);
 	return status;
 }
+
+/**
+ * API to register auto-notification with back-end manager
+ */
+int fixed_func_mgr_notification_register(struct bf_dev_target_t dev_tgt,
+                                         const char *table_name,
+                                         fixed_func_mgr_update_callback cb,
+                                         tdi_rt_attributes_type_e _attr_type,
+                                         void *cb_cookie)
+{
+       enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
+       int  status = BF_SUCCESS;
+
+       LOG_TRACE("Entering %s", __func__);
+
+       status = get_fixed_func_mgr_from_table(table_name, &ff_mgr);
+
+       if (status)
+	       goto exit;
+
+	switch (ff_mgr)
+	{
+		case FF_MGR_PORT:
+		case FF_MGR_VPORT:
+			status = BF_NOT_SUPPORTED;
+		        break;
+		case FF_MGR_CRYPTO:
+			status = BF_NOT_SUPPORTED;
+			break;
+		case FF_MGR_INVALID:
+		default:
+			LOG_ERROR("%s: invalid fixed function manager",
+					__func__);
+			status = BF_INVALID_ARG;
+	}
+exit:
+       LOG_TRACE("Exiting %s", __func__);
+       return status;
+}

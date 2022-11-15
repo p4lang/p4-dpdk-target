@@ -120,6 +120,17 @@ struct fixed_function_data_spec {
 	uint8_t *array;     /* Bytes of data values */
 };
 
+/*
+ * Fixed Function auto-notification params
+ */
+struct fixed_function_notif_params {
+	bool enable;         /* auto-notify enable?? */
+	void *callback_c;    /* C callback API too be invoked */
+	void *callback_cpp;  /* CPP callback API too be invoked */
+	void *cookie;        /* user data to be passed back */
+	void *table_;        /* pointer to the table */
+};
+
 /**
  * Get Fixed Function Manager Ctx
  * @param ff_mgr Fixed Function Manager

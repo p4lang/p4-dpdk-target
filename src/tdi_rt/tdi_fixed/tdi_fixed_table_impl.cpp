@@ -28,6 +28,7 @@
 #include <tdi_rt/c_frontend/tdi_rt_attributes.h>
 #include <include/tdi_rt/tdi_rt_attributes.hpp>
 #include <tdi_rt/tdi_common/tdi_table_attributes_impl.hpp>
+#include <tdi_rt/tdi_rt_defs.h>
 namespace tdi {
 namespace pna {
 namespace rt {

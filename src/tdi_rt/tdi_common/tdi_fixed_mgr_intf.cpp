@@ -130,6 +130,20 @@ pipe_status_t FixedFunctionMgrIntf::ffMgrMatSpecToEntHdl(
 	return TDI_NOT_SUPPORTED;
 }
 
+pipe_status_t FixedFunctionMgrIntf::notificationRegister(
+		dev_target_t dev_tgt,
+		const char *table_name,
+		fixed_func_mgr_update_callback cb,
+		tdi_rt_attributes_type_e _attr_type,
+		void *cb_cookie)
+{
+	return fixed_func_mgr_notification_register(dev_tgt,
+                                                    table_name,
+                                                    cb,
+                                                    _attr_type,
+                                                    cb_cookie);
+}
+
 }  // namespace rt
 }  // namespace pna
 }  // namespace tdi

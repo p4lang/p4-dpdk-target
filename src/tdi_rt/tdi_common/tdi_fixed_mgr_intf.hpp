@@ -133,7 +133,16 @@ class IFixedFunctionMgrIntf {
                 tdi_rt_attributes_type_e attr_type,
                 ff_notif_params_t *ff_notif_param) = 0;
 
-  ff_notif_params_t notif_params_;                 
+  virtual pipe_status_t notificationRegister(
+		  dev_target_t dev_tgt,
+		  const char *name,
+		  fixed_func_mgr_update_callback cb,
+		  tdi_rt_attributes_type_e type,
+		  void *cb_cookie) = 0;
+
+  virtual ff_notif_params_t &ffMgrNotifParamsGetObj() = 0;
+
+  ff_notif_params_t notif_params_;
  protected:
   static std::unique_ptr<IFixedFunctionMgrIntf> instance;
   static std::mutex fixed_mgr_intf_mtx;
@@ -239,7 +248,18 @@ class FixedFunctionMgrIntf : public IFixedFunctionMgrIntf{
     notif_params_.cookie = notif_params->cookie;
     return (TDI_SUCCESS);
   }
- 
+
+  ff_notif_params_t &ffMgrNotifParamsGetObj() {
+	  return notif_params_;
+  }
+
+  pipe_status_t notificationRegister(
+		  dev_target_t dev_tgt,
+		  const char *table_name,
+		  fixed_func_mgr_update_callback cb,
+		  tdi_rt_attributes_type_e type,
+		  void *cb_cookie);
+
  private:
   FixedFunctionMgrIntf(const FixedFunctionMgrIntf &src) = delete;
   FixedFunctionMgrIntf &operator=(const FixedFunctionMgrIntf &rhs) = delete;

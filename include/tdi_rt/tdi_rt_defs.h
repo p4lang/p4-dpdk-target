@@ -248,7 +248,7 @@ enum tdi_rt_attributes_ipsec_sadb_expire_table_field_type_e {
   TDI_RT_ATTRIBUTES_IPSEC_SADB_EXPIRE_TABLE_FIELD_TYPE_COOKIE,
 };
 
-typedef tdi_rt_attributes_type_e tdi_rt_attributes_type_e;
+typedef enum tdi_rt_attributes_type_e tdi_rt_attributes_type_e;
 
 enum tdi_rt_operations_type_e {
   /** Update sw value of all counters with the value in hw.
