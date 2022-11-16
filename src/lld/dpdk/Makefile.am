@@ -5,7 +5,7 @@ all:
         (cd dpdk_src && meson -Dprefix=$(prefix) -Dtests=false -Ddefault_library=shared \
 	 -Dexamples='' -Denable_kmods=false -Denable_docs=false -Denable_driver_sdk=false \
 	 -Ddisable_drivers=dma/*,raw/*,compress/*,crypto/*,event/*,baseband/* -Dbuildtype=release build && \
-	cd build && meson compile -j4 && meson install)
+	cd build && ninja -j4 && ninja install)
 	$(MAKE) -C infra install_dir=$(prefix)
 	cp infra/build/dpdk_infra.so $(libdir)/libdpdk_infra.so
 install:
