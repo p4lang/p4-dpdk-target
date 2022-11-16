@@ -96,7 +96,7 @@ std::vector<tdi::ProgramConfig> convertDevProfileToDeviceConfig(
     std::vector<tdi::P4Pipeline> p4_pipelines;
     // If bf-rt.json doesn't exist, then continue the loop
     if (dev_profile->p4_programs[i].bfrt_json_file == nullptr) {
-      LOG_ERROR(
+      LOG_TRACE(
           "%s:%d No TDI json file found for program %s"
           " Not adding TDI Info object for it",
           __func__,
