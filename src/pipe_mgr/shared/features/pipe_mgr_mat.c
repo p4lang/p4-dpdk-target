@@ -397,7 +397,7 @@ int pipe_mgr_mat_ent_add(u32 sess_hdl,
 
 		if (exists) {
 			LOG_ERROR("duplicate entry found in table = %s", tbl->ctx.name);
-			status = BF_UNEXPECTED;
+			status = BF_ALREADY_EXISTS;
 			goto cleanup;
 		}
 	}
@@ -494,7 +494,7 @@ int pipe_mgr_mat_ent_del_by_match_spec(u32 sess_hdl,
 		if (!exists) {
 			LOG_ERROR("entry not found in table = %s",
 					tbl->ctx.name);
-			status = BF_UNEXPECTED;
+			status = BF_OBJECT_NOT_FOUND;
 			goto cleanup;
 		}
 	}
