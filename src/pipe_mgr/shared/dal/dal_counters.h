@@ -109,6 +109,20 @@ dal_cnt_read_flow_indirect_counter_set(bf_dev_target_t dev_tgt,
 				       void *stats);
 
 /*!
+ * Reads DDR to get the flow direct counter pair value.
+ *
+ * @param  dal_data              Pointer to Dal layer data.
+ * @param  res_data              Pointer to res data to be filled with stats.
+ * @param  dev_tgt               device target.
+ * @param  match_spec            Match spec to populate.
+ * @return                       Status of the API call
+ */
+bf_status_t
+dal_cnt_read_flow_direct_counter_set(void *dal_data, void *res_data,
+                                     bf_dev_target_t dev_tgt,
+                                     struct pipe_tbl_match_spec *match_spec);
+
+/*!
  * Write flow counter pair value for a specific index.
  *
  * @param dev_tgt device target

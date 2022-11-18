@@ -24,6 +24,7 @@
 #include "../../pipe_mgr_shared_intf.h"
 #include <pipe_mgr/shared/pipe_mgr_mat.h>
 #include <pipe_mgr/core/pipe_mgr_ctx_json.h>
+#include <pipe_mgr/pipe_mgr_intf.h>
 /*!
  * Initialize the global counter pool.
  *
@@ -253,6 +254,99 @@ dal_cnt_read_flow_indirect_counter_set(bf_dev_target_t dev_tgt,
 			  externs_entry->target_name);
 		return BF_INTERNAL_ERROR;
 	}
+
+	return BF_SUCCESS;
+}
+
+/*!
+ * Reads DDR to get the flow
+ * direct counter pair value.
+ *
+ * @param  dal_data              Pointer to Dal layer data.
+ * @param  res_data              Pointer to res data to be filled with stats.
+ * @param  dev_tgt               device target.
+ * @param  match_spec            Match spec to populate.
+ * @return                       Status of the API call
+ */
+bf_status_t
+dal_cnt_read_flow_direct_counter_set(void *dal_data, void *res_data,
+                                     bf_dev_target_t dev_tgt,
+                                     struct pipe_tbl_match_spec *match_spec)
+{
+        struct pipe_mgr_externs_ctx *externs_entry  = NULL;
+        struct pipe_mgr_p4_pipeline *ctx_obj = NULL;
+        struct pipe_mgr_profile *profile = NULL;
+        bf_status_t status = BF_SUCCESS;
+        struct pipeline *pipe = NULL;
+        uint64_t value = 0;
+        int itr = 0;
+
+	status = pipe_mgr_get_profile(dev_tgt.device_id,
+                                      dev_tgt.dev_pipe_id, &profile);
+        if (status) {
+                LOG_ERROR("profile not found with device_id  %d with \t "
+			  "error %d", dev_tgt.device_id, status);
+                return BF_OBJECT_NOT_FOUND;
+        }
+
+        /* get dpdk pipeline, table and action info */
+        pipe = pipeline_find(profile->pipeline_name);
+        if (!pipe) {
+                LOG_ERROR("dpdk pipeline %s get failed",
+                          profile->pipeline_name);
+                return BF_OBJECT_NOT_FOUND;
+        }
+
+        /* retrieve context json object associated with dev_tgt */
+        status = pipe_mgr_get_profile_ctx(dev_tgt, &ctx_obj);
+        if (status) {
+                LOG_ERROR("context object not found for a \t "
+			  "profile with error %d", status);
+                return BF_OBJECT_NOT_FOUND;
+        }
+
+        /* extract table name which is used as a key in hash map */
+        for (itr = 0; itr < ctx_obj->num_externs_tables; itr++) {
+		externs_entry =
+			bf_hashtbl_search(ctx_obj->bf_externs_htbl,
+					  ctx_obj->externs_tables_name[itr]);
+		if((externs_entry) && externs_entry->externs_attr_table_id ==
+				profile->pipe_ctx.mat_tables->ctx.handle)
+			break;
+        }
+
+        if (!externs_entry) {
+                LOG_ERROR("externs object/entry get for table \"%s\" failed",
+                          ctx_obj->externs_tables_name[itr]);
+                return BF_OBJECT_NOT_FOUND;
+        }
+
+        switch (externs_entry->attr_type) {
+        case EXTERNS_ATTR_TYPE_BYTES:
+        case EXTERNS_ATTR_TYPE_PACKETS:
+
+	/* read counter stats from dpdk pipeline */
+                status = rte_swx_ctl_pipeline_regarray_read_with_key(pipe->p,
+                                      externs_entry->target_name,
+                                      profile->pipe_ctx.mat_tables->ctx.name,
+                                      match_spec->match_value_bits,
+                                      &value);
+                if (status) {
+                        LOG_ERROR("%s:Counter read failed for Name[%s] with \t"
+				  "error %d \n", __func__,
+                                  profile->pipe_ctx.mat_tables->ctx.name, status);
+                        return BF_OBJECT_NOT_FOUND;
+                }
+
+		dal_cnt_set_value(res_data, externs_entry->attr_type, value);
+		((pipe_res_get_data_t *)res_data)->has_counter = true;
+
+		break;
+        default:
+                LOG_ERROR("invalid attribute type for counter table %s",
+                          externs_entry->target_name);
+                return BF_INTERNAL_ERROR;
+        }
 
 	return BF_SUCCESS;
 }

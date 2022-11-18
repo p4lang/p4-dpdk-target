@@ -481,13 +481,14 @@ static bf_status_t ctx_json_parse_externs_entry (
 		cJSON *extern_cjson,
 		struct pipe_mgr_externs_ctx *entry)
 {
-	bf_status_t rc          = BF_SUCCESS;
-	int  err                = 0;
-	char *target_name       = NULL;
-	char *target_type       = NULL;
-	char *extern_attr_type  = NULL;
-	cJSON *extern_attr_cjson  = NULL;
 	char *name = NULL, *externs_name = NULL;
+	cJSON *extern_attr_cjson  = NULL;
+	char *extern_attr_type  = NULL;
+	bf_status_t rc = BF_SUCCESS;
+	char *target_name = NULL;
+	char *target_type = NULL;
+	int table_id = 0;
+	int err = 0;
 
 	err |= bf_cjson_get_string(extern_cjson,
 			CTX_JSON_EXTERN_NAME,
@@ -551,6 +552,11 @@ static bf_status_t ctx_json_parse_externs_entry (
 			LOG_ERROR("unexpected attribute type for extern %s ", name);
 			return BF_UNEXPECTED;
 		}
+		/* Extract table id */
+		err |= bf_cjson_get_int(extern_attr_cjson,
+                                        CTX_JSON_EXTERN_ATTRIBUTE_TABLE_ID,
+                                        &table_id);
+		entry->externs_attr_table_id = table_id;
 	}
 
 	return rc;
@@ -575,6 +581,7 @@ int dal_ctx_json_parse_extern(int dev_id,
 		*externs_entry  = NULL;
 	bf_hashtbl_sts_t htbl_sts = BF_HASHTBL_OK;
 	char key_name[P4_SDE_TABLE_NAME_LEN] = {0};
+	int num_of_externs = 0;
 
 	/* We return SUCCESS if extern does not exist, because its a
 	 * valid use case, externs is not mandatory.
@@ -596,7 +603,6 @@ int dal_ctx_json_parse_extern(int dev_id,
 				P4_SDE_NAME_LEN,
 				sizeof (struct pipe_mgr_externs_ctx),
 				0x98733423);
-
 		if (htbl_sts != BF_HASHTBL_OK) {
 			LOG_ERROR("%s:%d Error in initializing hashtable"
 					"for externs",
@@ -606,14 +612,33 @@ int dal_ctx_json_parse_extern(int dev_id,
 			goto externs_cleanup;
 		}
 
+               num_of_externs = cJSON_GetArraySize(externs_cjson);
+	       ctx->externs_tables_name = P4_SDE_CALLOC (num_of_externs,
+							 sizeof(char*));
+               if (!ctx->externs_tables_name) {
+		       LOG_ERROR("not able to allocate memory for \t "
+				 "externs_tables_name");
+		       rc = BF_NO_SPACE;
+		       goto externs_cleanup;
+	       }
+
 		CTX_JSON_FOR_EACH(extern_cjson, externs_cjson) {
 			externs_entry = P4_SDE_CALLOC (1,
 					sizeof(*externs_entry));
 
-			if (!externs_entry) {
+		        if (!externs_entry) {
 				rc = BF_NO_SYS_RESOURCES;
 				goto externs_cleanup;
 			}
+
+			ctx->externs_tables_name[ctx->num_externs_tables] =
+				P4_SDE_CALLOC (1, P4_SDE_TABLE_NAME_LEN);
+                       if (!ctx->externs_tables_name[ctx->num_externs_tables]) {
+                                LOG_ERROR("not able to allocate memory for \t"
+                                          "externs_tables_name");
+				rc = BF_NO_SPACE;
+				goto externs_cleanup;
+                       }
 
 			rc  = ctx_json_parse_externs_entry(
 					dev_id,
@@ -623,6 +648,8 @@ int dal_ctx_json_parse_extern(int dev_id,
 
 			if (rc) {
 				P4_SDE_FREE(externs_entry);
+				P4_SDE_FREE(ctx->externs_tables_name[
+					    ctx->num_externs_tables]);
 				goto externs_cleanup;
 			}
 
@@ -647,6 +674,10 @@ int dal_ctx_json_parse_extern(int dev_id,
 				P4_SDE_FREE(externs_entry);
 				goto externs_cleanup;
 			}
+
+			strncpy(ctx->externs_tables_name[ctx->num_externs_tables],
+				externs_entry->name, P4_SDE_TABLE_NAME_LEN-1);
+
 			ctx->num_externs_tables++;
 		}
 	}
@@ -654,6 +685,7 @@ int dal_ctx_json_parse_extern(int dev_id,
 	return rc;
 externs_cleanup:
 	pipe_mgr_free_externs_htbl(ctx);
+	pipe_mgr_free_pipe_ctx_ext_table_name(ctx);
 
 	return rc;
 }
