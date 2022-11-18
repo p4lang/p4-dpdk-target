@@ -48,6 +48,28 @@ int dal_table_ent_add(u32 sess_hdl,
 		void **dal_data);
 
 /**
+ * Match-action table default entry add DAL layer API.
+ *
+ * @param  sess_hdl              Session handle.
+ * @param  dev_tgt               Target device.
+ * @param  mat_tbl_hdl		 Table handle.
+ * @param  act_fn_hdl		 Action function handle.
+ * @param  act_data_spec	 pointer to action data spec.
+ * @param  mat_ctx		 Pointer to table context information.
+ * @param  tbl_ent_hdl		 Table entry handle.
+ * @param  dal_data		 Pointer to Dal layer data.
+ * @return                       Status of the API call
+ */
+int dal_table_default_ent_add(u32 sess_hdl,
+			      struct bf_dev_target_t dev_tgt,
+			      u32 mat_tbl_hdl,
+			      u32 act_fn_hdl,
+			      struct pipe_action_spec *act_data_spec,
+			      u32 pipe_api_flags,
+			      struct pipe_mgr_mat_ctx *mat_ctx,
+			      void **dal_data);
+
+/**
  * Match-action table entry delete DAL layer API.
  *
  * @param  sess_hdl              Session handle.
@@ -108,6 +130,16 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 		struct pipe_mgr_mat_ctx *mat_ctx,
 		u32 tbl_ent_hdl,
 		void **dal_data);
+
+int dal_table_adt_default_ent_add(u32 sess_hdl,
+				  struct bf_dev_target_t dev_tgt,
+				  u32 adt_tbl_hdl,
+				  u32 act_fn_hdl,
+				  struct pipe_action_spec *action_spec,
+				  u32 pipe_api_flags,
+				  struct pipe_mgr_mat_ctx *mat_ctx,
+				  u32 tbl_ent_hdl,
+				  void **dal_data);
 
 /**
  * Action table entry DELETE DAL layer API.

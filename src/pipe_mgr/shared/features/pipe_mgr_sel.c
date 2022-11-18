@@ -88,11 +88,6 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 	 * for dpdk (rte_swx_ctl_pipeline_selector_group_add),
 	 * to handle for the pipe_mgr_get_sel_grp_max_size case
  	 */
-	if (grp_hdl ==  0xffffffff && grp_id == 0) {
-		LOG_ERROR("Invalid input arguments for %s", __func__);
-		return BF_INVALID_ARG;
-	}
-
 	if (sel_grp_hdl == NULL && sel_grp_id == NULL && max_size == NULL) {
 		LOG_ERROR("Invalid output arguments for %s", __func__);
 		return BF_INVALID_ARG;
@@ -125,6 +120,11 @@ pipe_status_t pipe_mgr_sel_get_grp_id_hdl_int(bf_dev_target_t dev_tgt,
 		/* Get the entry_handle-entry map */
 		P4_SDE_MAP_GET(&tbl_state->mbr_id_htbl,
 				 key, (void **)&entry);
+	} else {
+		key = (u64)grp_id;
+		/* Get the entry_handle-entry map */
+		P4_SDE_MAP_GET(&tbl_state->mbr_id_htbl,
+			       key, (void **)&entry);
 	}
 
 	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);

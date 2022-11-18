@@ -401,6 +401,21 @@ int pipe_mgr_mat_ent_add
 	  u32 *ent_hdl_p);
 
 /*!
+ * API to install an default entry into a match action table
+ */
+int pipe_mgr_mat_default_ent_add
+	 (u32 sess_hdl,
+	  struct bf_dev_target_t dev_tgt,
+	  u32 mat_tbl_hdl,
+	  struct pipe_tbl_match_spec *match_spec,
+	  u32 act_fn_hdl,
+	  struct pipe_action_spec *act_data_spec,
+	  u32 ttl, /*< TTL value in msecs, 0 for disable */
+	  u32 pipe_api_flags,
+	  /* Specify if the API should be hw synchronous or not. */
+	  u32 *ent_hdl_p);
+
+/*!
  * API function to delete an entry from a match action table using a match spec
  */
 int pipe_mgr_mat_ent_del_by_match_spec
@@ -559,6 +574,12 @@ pipe_status_t pipe_mgr_adt_ent_hdl_get(pipe_sess_hdl_t shdl,
                                        pipe_adt_mbr_id_t mbr_id,
                                        pipe_adt_ent_hdl_t *adt_ent_hdl);
 
+pipe_status_t pipe_mgr_adt_default_ent_hdl_get(pipe_sess_hdl_t shdl,
+					       bf_dev_target_t dev_tgt,
+					       pipe_adt_tbl_hdl_t adt_tbl_hdl,
+					       pipe_adt_mbr_id_t mbr_id,
+					       pipe_adt_ent_hdl_t *adt_ent_hdl);
+
 /**
  * Get entry member id for specified entry handle.
  *
@@ -614,6 +635,14 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 		u32 *adt_ent_hdl_p,
 		uint32_t pipe_api_flags);
 
+int pipe_mgr_adt_default_ent_add(u32 sess_hdl,
+				 struct bf_dev_target_t dev_tgt,
+				 u32 adt_tbl_hdl,
+				 u32 act_fn_hdl,
+				 u32 mbr_id,
+				 struct pipe_action_spec *action_spec,
+				 u32 *adt_ent_hdl_p,
+				 uint32_t pipe_api_flags);
 /**
  * add or delete ADT entry reference count
  *

@@ -142,6 +142,7 @@ class IPipeMgrIntf {
       pipe_sess_hdl_t sess_hdl,
       dev_target_t dev_tgt,
       pipe_mat_tbl_hdl_t mat_tbl_hdl,
+      pipe_mat_ent_hdl_t entry_hdl,
       pipe_action_spec_t *pipe_action_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,
       bool from_hw,
@@ -212,6 +213,15 @@ class IPipeMgrIntf {
                                          pipe_adt_ent_hdl_t *adt_ent_hdl_p,
                                          uint32_t pipe_api_flags) = 0;
 
+  virtual pipe_status_t pipeMgrAdtDefaultEntAdd(pipe_sess_hdl_t sess_hdl,
+                                         dev_target_t dev_tgt,
+                                         pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                         pipe_act_fn_hdl_t act_fn_hdl,
+                                         const pipe_adt_mbr_id_t mbr_id,
+                                         const pipe_action_spec_t *action_spec,
+                                         pipe_adt_ent_hdl_t *adt_ent_hdl_p,
+                                         uint32_t pipe_api_flags) = 0;
+
   virtual pipe_status_t pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
                                          dev_target_t dev_tgt,
                                          pipe_adt_tbl_hdl_t adt_tbl_hdl,
@@ -227,6 +237,13 @@ class IPipeMgrIntf {
                                          uint32_t pipe_api_flags) = 0;
 
   virtual pipe_status_t pipeMgrAdtEntHdlGet(
+      pipe_sess_hdl_t sess_hdl,
+      dev_target_t dev_tgt,
+      pipe_adt_tbl_hdl_t adt_tbl_hdl,
+      pipe_adt_mbr_id_t mbr_id,
+      pipe_adt_ent_hdl_t *adt_ent_hdl) = 0;
+
+  virtual pipe_status_t pipeMgrAdtDefaultEntHdlGet(
       pipe_sess_hdl_t sess_hdl,
       dev_target_t dev_tgt,
       pipe_adt_tbl_hdl_t adt_tbl_hdl,
@@ -1026,6 +1043,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
       pipe_sess_hdl_t sess_hdl,
       dev_target_t dev_tgt,
       pipe_mat_tbl_hdl_t mat_tbl_hdl,
+      pipe_mat_ent_hdl_t entry_hdl,
       pipe_action_spec_t *pipe_action_spec,
       pipe_act_fn_hdl_t *act_fn_hdl,
       bool from_hw,
@@ -1094,6 +1112,15 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  pipe_adt_ent_hdl_t *adt_ent_hdl_p,
                                  uint32_t pipe_api_flags);
 
+  pipe_status_t pipeMgrAdtDefaultEntAdd(pipe_sess_hdl_t sess_hdl,
+                                 dev_target_t dev_tgt,
+                                 pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                 pipe_act_fn_hdl_t act_fn_hdl,
+                                 const pipe_adt_mbr_id_t mbr_id,
+                                 const pipe_action_spec_t *action_spec,
+                                 pipe_adt_ent_hdl_t *adt_ent_hdl_p,
+                                 uint32_t pipe_api_flags);
+
   pipe_status_t pipeMgrAdtEntDel(pipe_sess_hdl_t sess_hdl,
                                  dev_target_t dev_tgt,
                                  pipe_adt_tbl_hdl_t adt_tbl_hdl,
@@ -1109,6 +1136,12 @@ class PipeMgrIntf : public IPipeMgrIntf {
                                  uint32_t pipe_api_flags);
 
   pipe_status_t pipeMgrAdtEntHdlGet(pipe_sess_hdl_t sess_hdl,
+                                    dev_target_t dev_tgt,
+                                    pipe_adt_tbl_hdl_t adt_tbl_hdl,
+                                    pipe_adt_mbr_id_t mbr_id,
+                                    pipe_adt_ent_hdl_t *adt_ent_hdl);
+
+  pipe_status_t pipeMgrAdtDefaultEntHdlGet(pipe_sess_hdl_t sess_hdl,
                                     dev_target_t dev_tgt,
                                     pipe_adt_tbl_hdl_t adt_tbl_hdl,
                                     pipe_adt_mbr_id_t mbr_id,
