@@ -40,6 +40,9 @@ BF_PAL.DEBUG "p4_driver.log", 5M * 5 ;file_format
 BF_PM.ERROR >stdout;console_format
 BF_PM.DEBUG "p4_driver.log", 5M * 5 ;file_format
 
+BF_BFRT.ERROR >stdout;console_format
+BF_BFRT.DEBUG "p4_driver.log", 5M * 5 ;file_format
+
 KRNLMON.ERROR >stdout;console_format
 KRNLMON.DEBUG "krnlmon.log", 5M * 5 ;file_format
 
