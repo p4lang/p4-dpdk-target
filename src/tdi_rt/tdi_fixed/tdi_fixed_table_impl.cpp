@@ -248,7 +248,7 @@ tdi_status_t FixedFunctionConfigTable::attributeAllocate(
 
   *table_attr = std::unique_ptr<tdi::TableAttributes>(
       new TableAttributesImpl(this, attr_type));
-  return BF_SUCCESS;
+  return TDI_SUCCESS;
 }
 
 #ifdef __TDI_FROM_BFRT
@@ -264,7 +264,7 @@ tdi_status_t FixedFunctionConfigTable::attributeReset(
                 __func__,
                 __LINE__,
                 static_cast<int>(type));
-      return BF_INVALID_ARG;
+      return TDI_INVALID_ARG;
   }
   return tbl_attr_impl.resetAttributeType(type);
 }
@@ -299,7 +299,22 @@ tdi_status_t setNotification(FixedFunctionConfigTable &table,
   const auto attr_type = static_cast<tdi_rt_attributes_type_e>(
       tbl_attr_impl.attributeTypeGet());
   ffMgr->ffMgrNotifParamsSet(attr_type, &ff_mgr_notif_params);
-  return BF_SUCCESS;
+
+  // copy notif params info
+  fixed_function_notif_params_t notification_spec = {0};
+  notification_spec.enable = ff_mgr_notif_params.enable;
+  notification_spec.callback_c =
+	  reinterpret_cast<void *> (ff_mgr_notif_params.callback_c);
+  notification_spec.cookie = ff_mgr_notif_params.cookie;
+  notification_spec.table_ = reinterpret_cast <void *> (&table);
+
+  ffMgr->notificationRegister(ff_dev_tgt,
+                              table.tableInfoGet()->nameGet().c_str(),
+                              FixedFunctionMgrInternalCb,
+                              attr_type,
+                              &notification_spec);
+
+  return TDI_SUCCESS;
 }
 
 tdi_status_t FixedFunctionConfigTable::tableAttributesSet(
@@ -319,7 +334,7 @@ tdi_status_t FixedFunctionConfigTable::tableAttributesSet(
               __func__,
               __LINE__,
               static_cast<int>(attr_type));
-    return BF_NOT_SUPPORTED;
+    return TDI_NOT_SUPPORTED;
   }
 
   // Need proper fixed context info: This is need context info populate.
