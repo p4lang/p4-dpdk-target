@@ -69,18 +69,6 @@
             }
         },
         {
-            "dev_port" : 5,
-            "port_name" : "SINK0",
-            "mempool_name" : "MEMPOOL0",
-            "port_dir" : "out",
-            "port_out_id" : 4,
-            "pipe_out" : "pipe1",
-            "port_type" : "sink",
-            "sink_port_attributes" : {
-                "file_name" : "./sink0.pcap"
-            }
-        },
-        {
             "dev_port" : 6,
             "port_name" : "TAP4",
             "mempool_name" : "MEMPOOL0",
@@ -132,18 +120,6 @@
             "port_type" : "tap",
             "tap_port_attributes" : {
                 "mtu" : 1500
-            }
-        },
-        {
-            "dev_port" : 10,
-            "port_name" : "SINK1",
-            "mempool_name" : "MEMPOOL0",
-            "port_dir" : "out",
-            "port_out_id" : 4,
-            "pipe_out" : "pipe2",
-            "port_type" : "sink",
-            "sink_port_attributes" : {
-                "file_name" : "./sink1.pcap"
             }
         }
 	]

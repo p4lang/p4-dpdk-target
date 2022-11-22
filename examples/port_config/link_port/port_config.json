@@ -55,18 +55,6 @@
             "link_port_attributes" : {
                 "pcie_bdf" : "0000:00:07.0"
             }
-        },
-        {
-            "dev_port" : 4,
-            "port_name" : "SINK0",
-            "mempool_name" : "MEMPOOL0",
-            "port_dir" : "out",
-            "port_out_id" : 4,
-            "pipe_out" : "pipe",
-            "port_type" : "sink",
-            "sink_port_attributes" : {
-                "file_name" : "./sink0.pcap"
-            }
         }
 	]
 }

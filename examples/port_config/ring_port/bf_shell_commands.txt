@@ -22,7 +22,7 @@ The Port JSON for this topology is port_config.json.
 	         |				                     |                |
 	TAP3(3)  |				                     | TAP3(3)        |
 	         |				                     |                |
-	         |				                     | SINK0(4)       |
+	         |				                     |
 	         |-----------------------------------|                |
                                                                   |
                                                                   |
@@ -41,7 +41,7 @@ The Port JSON for this topology is port_config.json.
              |                                   |
      TAP7(3) |                                   | TAP7(3)
              |                                   |
-             |                                   | SINK1(4)
+             |                                   |
              |-----------------------------------|
 
 
@@ -69,9 +69,6 @@ add(DEV_PORT=3, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_RX_ONLY", PORT_IN
 add(DEV_PORT=4, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=3, PORT_OUT_ID =3,PIPE_IN="pipe1",
     PIPE_OUT="pipe1", MEMPOOL="MEMPOOL0", PORT_NAME="TAP3", MTU=1500)
 
-add(DEV_PORT=5, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID=4, PIPE_OUT="pipe1",
-    PORT_NAME="SINK0",  FILE_NAME="./sink0.pcap")
-
 
 add(DEV_PORT=6, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=0, PORT_OUT_ID =0, PIPE_IN="pipe2",
     PIPE_OUT="pipe2", MEMPOOL="MEMPOOL0", PORT_NAME="TAP4", MTU=1500)
@@ -85,5 +82,3 @@ add(DEV_PORT=8, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OU
 add(DEV_PORT=9, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN_ID=3, PORT_OUT_ID =3, PIPE_IN="pipe2",
     PIPE_OUT="pipe2", MEMPOOL="MEMPOOL0", PORT_NAME="TAP7", MTU=1500)
 
-add(DEV_PORT=10, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID=4, PIPE_OUT="pipe2",
-    PORT_NAME="SINK1",  FILE_NAME="./sink1.pcap")
