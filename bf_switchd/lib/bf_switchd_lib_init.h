@@ -45,7 +45,7 @@ typedef struct switch_asic_s {
   bool is_virtual_dev_slave;
   bool is_sw_model;
   int iommu_grp_num;
-  int host_id; 
+  int host_id;
   int pf_num;
   switchd_pcie_cfg_t pcie_cfg;
   char bfrt_non_p4_json_dir_path[BF_SWITCHD_MAX_FILE_NAME];
@@ -61,6 +61,8 @@ typedef struct switch_asic_s {
 
 #define BF_SWITCHD_MAX_PIPES 4
 #define BF_SWITCHD_MAX_MEMPOOL_OBJS 2
+#define BF_SWITCHD_MAX_CT_TIMER_PROFILES 8
+#define BF_SWITCHD_MAX_FIXED_FUNCTIONS 2
 #define BF_SWITCHD_MAX_P4_PROGRAMS BF_SWITCHD_MAX_PIPES
 #define BF_SWITCHD_MAX_P4_PIPELINES BF_SWITCHD_MAX_PIPES
 typedef struct p4_pipeline_config_s {
@@ -73,6 +75,8 @@ typedef struct p4_pipeline_config_s {
   int num_pipes_in_scope;
   int pipe_scope[BF_SWITCHD_MAX_PIPES];
   struct mirror_config_s mir_cfg;
+  int num_ct_timer_profiles;
+  int ct_timeout[BF_SWITCHD_MAX_CT_TIMER_PROFILES];
 } p4_pipeline_config_t;
 
 typedef struct p4_programs_s {
@@ -100,6 +104,12 @@ struct mempool_obj_s {
 	int numa_node;
 };
 
+struct fixed_function_s {
+	char *name;
+	char tdi_json[BF_SWITCHD_MAX_FILE_NAME];
+	char ctx_json[BF_SWITCHD_MAX_FILE_NAME];
+};
+
 typedef struct p4_devices_s {
   bool configured;
   bool debug_cli_enable;
@@ -107,6 +117,8 @@ typedef struct p4_devices_s {
   struct mempool_obj_s mempool_objs[BF_SWITCHD_MAX_MEMPOOL_OBJS];
   uint8_t num_p4_programs;
   p4_programs_t p4_programs[BF_SWITCHD_MAX_P4_PROGRAMS];
+  uint8_t num_fixed_functions;
+  struct fixed_function_s fixed_functions[BF_SWITCHD_MAX_FIXED_FUNCTIONS];
   char eal_args[MAX_EAL_LEN];
 } p4_devices_t;
 

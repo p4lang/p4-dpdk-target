@@ -30,12 +30,14 @@
  * @{
  */
 #define MAX_MEMPOOL_OBJS 2
+#define MAX_FIXED_FUNCTIONS 2
 #define MAX_P4_PIPELINES 4
 #define PROG_NAME_LEN 256
 #define MAX_PROGRAMS_PER_DEVICE MAX_P4_PIPELINES
 #define PCIE_DOMAIN_BDF_LEN 16
 #define IOMMU_GRP_NUM_LEN 6
 #define MAX_EAL_LEN 512
+#define MAX_CT_TIMER_PROFILES 8
 
 struct mirror_config_s {
 	/* Number of packet mirroring slots. */
@@ -59,6 +61,8 @@ typedef struct bf_p4_pipeline {
   int num_pipes_in_scope;            // num pipes in scope
   int pipe_scope[MAX_P4_PIPELINES];  // logical pipe list
   struct mirror_config_s mir_cfg;   // dpdk mirror profile cfg.
+  int num_ct_timer_profiles;
+  int bf_ct_timeout[MAX_CT_TIMER_PROFILES];
 } bf_p4_pipeline_t;
 
 typedef struct asic_fw_profile {
@@ -84,12 +88,20 @@ struct bf_mempool_obj_s {
 	int numa_node;     // mempool created on this numa socket
 };
 
+struct bf_fixed_function_s {
+	char name[P4_SDE_NAME_LEN];     		// name of the fixed_function
+	char *tdi_json;		// tdi json file
+	char *ctx_json;		// ctx json file
+};
+
 typedef struct bf_device_profile {
   bool debug_cli_enable;
   uint8_t num_p4_programs;
   bf_p4_program_t p4_programs[MAX_PROGRAMS_PER_DEVICE];
   uint8_t num_mempool_objs;
   struct bf_mempool_obj_s mempool_objs[MAX_MEMPOOL_OBJS];
+  uint8_t num_fixed_functions;
+  struct bf_fixed_function_s fixed_functions[MAX_FIXED_FUNCTIONS];
   asic_fw_profile_t asic_prof;
   char *bfrt_non_p4_json_dir_path;  // bfrt fixed feature info json files path
   char eal_args[MAX_EAL_LEN]; // eal-args required for dpdk model

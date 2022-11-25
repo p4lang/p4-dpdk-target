@@ -132,6 +132,68 @@ static pipe_status_t pipe_mgr_adt_get_mbr_id_hdl_int(
   return BF_SUCCESS;
 }
 
+static pipe_status_t pipe_mgr_adt_default_get_mbr_id_hdl_int (bf_dev_target_t
+							      dev_tgt,
+							      pipe_adt_tbl_hdl_t
+							      adt_tbl_hdl,
+							      pipe_adt_mbr_id_t
+							      mbr_id,
+							      pipe_adt_ent_hdl_t
+							      *adt_ent_hdl,
+							      pipe_adt_mbr_id_t
+							      *adt_mbr_id,
+							      struct pipe_mgr_adt_ent_data
+							      *adt_ent_data)
+{
+	struct pipe_mgr_adt_entry_info *entry;
+	struct pipe_mgr_mat_state *tbl_state;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	struct pipe_mgr_mat *tbl;
+	int status;
+	u64 key;
+
+	if (!adt_ent_hdl && !adt_mbr_id  && !adt_ent_data) {
+		LOG_ERROR("Ivalid output arguments passed");
+		return BF_INVALID_ARG;
+	}
+
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  adt_tbl_hdl);
+		return BF_OBJECT_NOT_FOUND;
+	}
+
+	tbl_state = tbl->state;
+	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  adt_tbl_hdl, status);
+		return BF_UNEXPECTED;
+	}
+
+	key = (u64)mbr_id;
+	map_sts = P4_SDE_MAP_GET(&tbl_state->mbr_id_htbl, key,
+				 (void **)&entry);
+
+	P4_SDE_MUTEX_UNLOCK(&tbl_state->lock);
+
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in getting entry info");
+		return BF_NO_SYS_RESOURCES;
+	}
+
+	if (adt_ent_hdl)
+		*adt_ent_hdl = entry->adt_ent_hdl;
+	if (adt_mbr_id)
+		*adt_mbr_id = entry->mbr_id;
+	if (adt_ent_data)
+		*adt_ent_data = *entry->entry_data;
+
+	return BF_SUCCESS;
+}
+
 /*!
  * Used to get handle for specified entry member index.
  */
@@ -158,6 +220,38 @@ int pipe_mgr_adt_ent_hdl_get(pipe_sess_hdl_t shdl,
 
 	status = pipe_mgr_adt_get_mbr_id_hdl_int(
 		dev_tgt, adt_tbl_hdl, mbr_id, 0, adt_ent_hdl, NULL, NULL);
+	pipe_mgr_api_epilogue(shdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+int pipe_mgr_adt_default_ent_hdl_get(pipe_sess_hdl_t shdl,
+				     bf_dev_target_t dev_tgt,
+				     pipe_adt_tbl_hdl_t adt_tbl_hdl,
+				     pipe_adt_mbr_id_t mbr_id,
+				     pipe_adt_ent_hdl_t *adt_ent_hdl)
+{
+	int status = PIPE_SUCCESS;
+
+	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_api_prologue(shdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_adt_default_get_mbr_id_hdl_int(dev_tgt, adt_tbl_hdl,
+							 mbr_id, adt_ent_hdl,
+							 NULL, NULL);
 	pipe_mgr_api_epilogue(shdl, dev_tgt);
 
 	LOG_TRACE("Exiting %s", __func__);
@@ -414,6 +508,163 @@ int pipe_mgr_adt_ent_add(u32 sess_hdl,
 cleanup_map_add:
 	pipe_mgr_adt_delete_entry_data(entry);
 	if(resources)
+		P4_SDE_FREE(resources);
+
+cleanup_id:
+	P4_SDE_ID_FREE(tbl_state->entry_handle_array, new_ent_hdl);
+
+cleanup_tbl_unlock:
+	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock))
+		LOG_ERROR("Unlock of table %d failed", adt_tbl_hdl);
+
+cleanup:
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+}
+
+int pipe_mgr_adt_default_ent_add(u32 sess_hdl,
+				 struct bf_dev_target_t dev_tgt,
+				 u32 adt_tbl_hdl,
+				 u32 act_fn_hdl,
+				 u32 mbr_id,
+				 struct pipe_action_spec *action_spec,
+				 u32 *adt_ent_hdl_p,
+				 uint32_t pipe_api_flags)
+{
+	struct adt_data_resources_ *resources = NULL;
+	struct pipe_action_data_spec *act_data_spec;
+	struct pipe_mgr_adt_entry_info *entry;
+	struct pipe_mgr_mat_state *tbl_state;
+	p4_sde_map_sts map_sts = BF_MAP_OK;
+	struct pipe_mgr_mat *tbl;
+	u32 new_ent_hdl;
+	int status;
+	u64 key;
+	int i;
+
+	LOG_TRACE("Entering %s", __func__);
+
+	status = pipe_mgr_is_pipe_valid(dev_tgt.device_id, dev_tgt.dev_pipe_id);
+	if (status) {
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_api_prologue(sess_hdl, dev_tgt);
+	if (status) {
+		LOG_ERROR("API prologue failed with err: %d", status);
+		LOG_TRACE("Exiting %s", __func__);
+		return status;
+	}
+
+	status = pipe_mgr_ctx_get_table(dev_tgt, adt_tbl_hdl,
+					PIPE_MGR_TABLE_TYPE_ADT, (void *)&tbl);
+	if (status) {
+		LOG_ERROR("Retrieving context json object for table %d failed",
+			  adt_tbl_hdl);
+		goto cleanup;
+	}
+
+	tbl_state = tbl->state;
+	status = P4_SDE_MUTEX_LOCK(&tbl_state->lock);
+	if (status) {
+		LOG_ERROR("Acquiring lock for table %d failed with err: %d",
+			  adt_tbl_hdl, status);
+		status = BF_UNEXPECTED;
+		goto cleanup;
+	}
+
+	new_ent_hdl = P4_SDE_ID_ALLOC(tbl_state->entry_handle_array);
+	if (new_ent_hdl == ENTRY_HANDLE_ARRAY_SIZE) {
+		LOG_ERROR("entry handle allocator failed");
+		status = BF_NO_SPACE;
+		goto cleanup_tbl_unlock;
+	}
+
+	status = pipe_mgr_adt_pack_entry_data(dev_tgt, act_fn_hdl, action_spec,
+					      new_ent_hdl, tbl, &entry);
+	if (status) {
+		LOG_ERROR("Entry encoding failed");
+		goto cleanup_id;
+	}
+	entry->mbr_id = mbr_id;
+	status = dal_table_adt_default_ent_add(sess_hdl, dev_tgt, adt_tbl_hdl,
+					       act_fn_hdl, action_spec,
+					       pipe_api_flags, &tbl->ctx,
+					       new_ent_hdl, &entry->dal_data);
+	if (status) {
+		LOG_ERROR("dal_table_adt_default_ent_add failed");
+		goto cleanup_map_add;
+	}
+
+	if (action_spec->resource_count) {
+		resources = P4_SDE_CALLOC(action_spec->resource_count,
+					  sizeof(adt_data_resources_t));
+		if (!resources) {
+			LOG_ERROR("%s:%d Malloc failure", __func__, __LINE__);
+			goto cleanup_map_add;
+		}
+		for (i = 0; i < action_spec->resource_count; i++) {
+			resources[i].tbl_hdl = action_spec->resources[i].tbl_hdl;
+			resources[i].tbl_idx = action_spec->resources[i].tbl_idx;
+		}
+	}
+	act_data_spec = &action_spec->act_data;
+	entry->entry_data = make_adt_ent_data(act_data_spec, act_fn_hdl,
+					      action_spec->resource_count,
+					      resources);
+	if (!entry->entry_data) {
+		LOG_ERROR("%s:%d Error in getting adt entry data for entry "
+			  "hdl %d, tbl 0x%x, device id %d",
+			  __func__,
+			  __LINE__,
+			  new_ent_hdl,
+			  adt_tbl_hdl,
+			  dev_tgt.device_id);
+		goto cleanup_map_add;
+	}
+
+	/* allocate entry handle and map the entry*/
+	/* insert the match_key/entry handle mapping in to the hash */
+	key = (u64)new_ent_hdl;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl_state->entry_info_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
+		LOG_ERROR("Error in inserting entry info to entry htbl");
+		status = BF_NO_SYS_RESOURCES;
+		goto cleanup_map_add;
+	}
+	key = (u64)mbr_id;
+	/* Insert into the entry_handle-entry map */
+	map_sts = P4_SDE_MAP_ADD(&tbl_state->mbr_id_htbl, key,
+				 (void *)entry);
+	if (map_sts != BF_MAP_OK) {
+		key = (u64)new_ent_hdl;
+		P4_SDE_MAP_RMV(&tbl_state->entry_info_htbl, key);
+		LOG_ERROR("Error in inserting entry info to mbrid htbl");
+		status = BF_NO_SYS_RESOURCES;
+		goto cleanup_map_add;
+	}
+
+	*adt_ent_hdl_p = new_ent_hdl;
+
+	if (P4_SDE_MUTEX_UNLOCK(&tbl_state->lock)) {
+		LOG_ERROR("Unlock of table %d failed", adt_tbl_hdl);
+		status = BF_UNEXPECTED;
+		goto cleanup_map_add;
+	}
+
+	pipe_mgr_api_epilogue(sess_hdl, dev_tgt);
+
+	LOG_TRACE("Exiting %s", __func__);
+	return status;
+
+cleanup_map_add:
+	pipe_mgr_adt_delete_entry_data(entry);
+	if (resources)
 		P4_SDE_FREE(resources);
 
 cleanup_id:

@@ -142,7 +142,6 @@ static struct rte_eth_conf port_conf_default = {
 	.rxmode = {
 		.mq_mode = RTE_ETH_MQ_RX_NONE,
 		.mtu = 9000 - (RTE_ETHER_HDR_LEN + RTE_ETHER_CRC_LEN), /* Jumbo frame MTU */
-		.split_hdr_size = 0, /* Header split buffer size */
 	},
 	.rx_adv_conf = {
 		.rss_conf = {
@@ -560,11 +559,6 @@ pipeline_create(const char *name, int numa_node)
 		pipeline_find(name))
 		return NULL;
 
-	/* Resource create */
-	status = rte_swx_pipeline_config(&p, numa_node);
-	if (status)
-		goto error;
-
 	/* Node allocation */
 	pipeline = calloc(1, sizeof(struct pipeline));
 	if (pipeline == NULL)
@@ -574,6 +568,7 @@ pipeline_create(const char *name, int numa_node)
 	strlcpy(pipeline->name, name, sizeof(pipeline->name));
 	pipeline->p = p;
 	pipeline->timer_period_ms = 10;
+	pipeline->numa_node = numa_node;
 
 	/* Node add to list */
 	TAILQ_INSERT_TAIL(&obj->pipeline_list, pipeline, node);

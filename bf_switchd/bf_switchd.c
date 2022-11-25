@@ -50,6 +50,7 @@
 #include <lld/bf_dev_if.h>
 #include <lld/lld_err.h>
 #include <port_mgr/bf_port_if.h>
+#include <fixed_function/fixed_function_init.h>
 #include <bf_rt/bf_rt_init.h>
 #include <tdi_rt/c_frontend/tdi_rt_init.h>
 #include <bf_pal/dev_intf.h>
@@ -75,6 +76,8 @@
 *******************************************************************************
 ******************************************************************************/
 #include "bf_switchd.h"
+
+#define BUF_SIZE 64
 
 /* Global defines */
 bool is_skip_p4 = false;
@@ -388,6 +391,21 @@ static bf_status_t bf_switchd_init_device_profile(
 	  }
   }
 
+  dev_profile_p->num_fixed_functions = p4_device->num_fixed_functions;
+  for (j = 0; j < p4_device->num_fixed_functions; j++) {
+	  struct fixed_function_s *fixed_function =
+		  &(p4_device->fixed_functions[j]);
+	  struct bf_fixed_function_s *dev_profile_fixed =
+		  &(dev_profile_p->fixed_functions[j]);
+
+	  snprintf(dev_profile_fixed->name, sizeof(dev_profile_fixed->name),
+			  "%s", fixed_function->name);
+	  dev_profile_fixed->tdi_json = strndup(fixed_function->tdi_json,
+			  BF_SWITCHD_MAX_FILE_NAME);
+	  dev_profile_fixed->ctx_json = strndup(fixed_function->ctx_json,
+			  BF_SWITCHD_MAX_FILE_NAME);
+  }
+
 #ifdef BFRT_ENABLED
   if (switchd_ctx->install_dir != NULL) {
     // set bfrt non p4 json path
@@ -459,6 +477,11 @@ static bf_status_t bf_switchd_init_device_profile(
       for (s = 0; s < p4_pipeline->num_pipes_in_scope; s++) {
         dev_profile_pipeline->pipe_scope[s] = p4_pipeline->pipe_scope[s];
       }
+      // CT timer values
+      dev_profile_pipeline->num_ct_timer_profiles =
+	      p4_pipeline->num_ct_timer_profiles;
+      memcpy(dev_profile_pipeline->bf_ct_timeout, p4_pipeline->ct_timeout,
+		      sizeof(int) * dev_profile_pipeline->num_ct_timer_profiles);
     }
   }
 
@@ -1413,6 +1436,13 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
    * All the mgrs can be skipped using --skip-hld. No need
    * to stub out
    */
+  /* Initialize the Fixed Function Manager (ff_mgr) */
+  ret = fixed_function_init();
+  if (ret != 0) {
+    printf("ERROR: fixed function init failed : %d\n", ret);
+    return ret;
+  }
+
   /* Initialize the Port Mgmt Driver (port_mgr) */
   if (!switchd_ctx->skip_hld.port_mgr) {
     ret = bf_port_mgr_init();
@@ -1655,6 +1685,7 @@ int bf_switchd_lib_init_local(void *ctx_local) {
   int ret = 0;
   bf_dev_id_t dev_id = 0;
   int num_active_devices = 0;
+  char buf[BUF_SIZE];
 
   if (ctx) {
     if ((switchd_ctx = malloc(sizeof(bf_switchd_context_t))) == NULL) {
@@ -1686,6 +1717,13 @@ int bf_switchd_lib_init_local(void *ctx_local) {
     pthread_setname_np(switchd_ctx->dev_sts_t_id, "bf_device_sts");
   }
   #endif
+
+  snprintf(buf, sizeof(buf), "rm %s", IOSPEC_FILE_PATH);
+  ret = system(buf);
+  if (ret) {
+	  printf("%s line:%d Fail to delete %s file\n"
+		 , __func__, __LINE__, IOSPEC_FILE_PATH);
+  }
 
   /* Initialize system services */
   ret = bf_switchd_sys_init();

@@ -26,6 +26,9 @@ extern "C" {
 
 #include "port_mgr/dpdk/bf_dpdk_port_if.h"
 
+#define IOSPEC_FILE_PATH "/tmp/iospec.io"
+int write_to_iospec_file(char *buf);
+
 /**
  * @file bf_port_if.h
  * \brief Details Port-level APIs.

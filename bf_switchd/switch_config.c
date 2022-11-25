@@ -204,13 +204,14 @@ void switch_p4_pipeline_config_each_profile_update(
 static void to_abs_path(char *dest,
                         cJSON *p4_program_obj,
                         const char *key,
-                        const char *install_dir) {
+                        const char *install_dir,
+			uint32_t size) {
   if (strlen(check_and_get_string(p4_program_obj, key))) {
     const char *path = check_and_get_string(p4_program_obj, key);
     if (path[0] != '/')  // absolute path -- don't prepend install_dir
-      sprintf(dest, "%s/%s", install_dir, path);
+      snprintf(dest, size, "%s/%s", install_dir, path);
     else
-      sprintf(dest, "%s", path);
+      snprintf(dest, size, "%s", path);
   }
 }
 
@@ -269,6 +270,35 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
 		}
 	}
 
+	cJSON *fixed_functions_arr =
+		cJSON_GetObjectItem(p4_device_obj, "fixed_functions");
+	if (fixed_functions_arr != NULL) {
+	      assert(cJSON_Array == fixed_functions_arr->type);
+	      p4_device->num_fixed_functions =
+		      cJSON_GetArraySize(fixed_functions_arr);
+	      /* Go over all fixed functions */
+	      for (j = 0; j < cJSON_GetArraySize(fixed_functions_arr); ++j) {
+		      cJSON *fixed_function_obj =
+			      cJSON_GetArrayItem(fixed_functions_arr, j);
+		      struct fixed_function_s *fixed_function =
+			      &p4_device->fixed_functions[j];
+
+		      fixed_function->name =
+			      strndup(get_string(fixed_function_obj, "name"),
+					      P4_SDE_NAME_LEN);
+		      to_abs_path(fixed_function->tdi_json,
+				      fixed_function_obj,
+				      "tdi",
+				      install_dir,
+				      BF_SWITCHD_MAX_FILE_NAME);
+		      to_abs_path(fixed_function->ctx_json,
+				      fixed_function_obj,
+				      "ctx",
+				      install_dir,
+				      BF_SWITCHD_MAX_FILE_NAME);
+	      }
+	}
+
       cJSON *p4_program_arr = cJSON_GetObjectItem(p4_device_obj, "p4_programs");
       assert(p4_program_arr != NULL);
       assert(cJSON_Array == p4_program_arr->type);
@@ -286,15 +316,20 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
             check_and_get_bool(p4_program_obj, "sai_default_init", true);
 
         to_abs_path(
-            p4_program->switchapi, p4_program_obj, "switchapi", install_dir);
-        to_abs_path(p4_program->switchsai, p4_program_obj, "sai", install_dir);
+            p4_program->switchapi, p4_program_obj, "switchapi", install_dir,
+	    BF_SWITCHD_MAX_FILE_NAME);
+        to_abs_path(p4_program->switchsai, p4_program_obj, "sai", install_dir,
+		    BF_SWITCHD_MAX_FILE_NAME);
         to_abs_path(
-            p4_program->switchlink, p4_program_obj, "switchlink", install_dir);
-        to_abs_path(p4_program->diag, p4_program_obj, "diag", install_dir);
+            p4_program->switchlink, p4_program_obj, "switchlink", install_dir,
+	    BF_SWITCHD_MAX_FILE_NAME);
+        to_abs_path(p4_program->diag, p4_program_obj, "diag", install_dir,
+		    BF_SWITCHD_MAX_FILE_NAME);
         to_abs_path(p4_program->accton_diag,
                     p4_program_obj,
                     "accton_diag",
-                    install_dir);
+                    install_dir,
+                    BF_SWITCHD_MAX_FILE_NAME);
         p4_program->add_ports_to_switchapi =
             check_and_get_bool(p4_program_obj, "switchapi_port_add", true);
         // CPU port name (if using ethernet CPU port)
@@ -310,24 +345,28 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
         to_abs_path(p4_program->bfrt_config,
                     p4_program_obj,
                     "bfrt-config",
-                    install_dir);
+                    install_dir,
+                    BF_SWITCHD_MAX_FILE_NAME);
 
 	// Port Config
         to_abs_path(p4_program->port_config,
                     p4_program_obj,
                     "port-config",
-                    install_dir);
+                    install_dir,
+                    BF_SWITCHD_MAX_FILE_NAME);
 
 	// BF-SMI model json
         to_abs_path(p4_program->model_json_path,
                     p4_program_obj,
                     "model_json_path",
-                    install_dir);
+                    install_dir,
+                    BF_SWITCHD_MAX_FILE_NAME);
 
         to_abs_path(self->board_port_map_conf_file,
                     p4_program_obj,
                     "board-port-map",
-                    install_dir);
+                    install_dir,
+                    BF_SWITCHD_MAX_FILE_NAME);
 
         cJSON *p4_pipeline_arr =
             cJSON_GetObjectItem(p4_program_obj, "p4_pipelines");
@@ -377,9 +416,11 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
           to_abs_path(p4_pipeline->table_config,
                       p4_pipeline_obj,
                       "context",
-                      install_dir);
+                      install_dir,
+                      BF_SWITCHD_MAX_FILE_NAME);
           to_abs_path(
-              p4_pipeline->cfg_file, p4_pipeline_obj, "config", install_dir);
+              p4_pipeline->cfg_file, p4_pipeline_obj, "config", install_dir,
+	      BF_SWITCHD_MAX_FILE_NAME);
 
           /* Get the pipe scope */
           cJSON *pipe_scope_arr =
@@ -407,7 +448,15 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
             cJSON *pipe_scope_obj = cJSON_GetArrayItem(pipe_scope_arr, s);
             p4_pipeline->pipe_scope[s] = pipe_scope_obj->valueint;
           }
-        }
+	  cJSON *ct_timeout_arr = cJSON_GetObjectItem(p4_pipeline_obj, "ct_timeout");
+	  if (ct_timeout_arr != NULL) {
+		  p4_pipeline->num_ct_timer_profiles = cJSON_GetArraySize(ct_timeout_arr);
+		  for (j = 0; j < p4_pipeline->num_ct_timer_profiles; ++j) {
+			  cJSON *ct_timeout_obj = cJSON_GetArrayItem(ct_timeout_arr, j);
+			  p4_pipeline->ct_timeout[j] = ct_timeout_obj->valueint;
+		  }
+	  }
+	}
       }
       /* Print config */
       printf("P4 profile for dev_id %d\n", device);
@@ -424,6 +473,14 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
 		printf("  cache_size:   %d\n", mempool->cache_size);
 		printf("  numa_node:    %d\n", mempool->numa_node);
 	}
+      printf("num fixed functions %d\n", p4_device->num_fixed_functions);
+      for (j = 0; j < p4_device->num_fixed_functions;  ++j) {
+	        struct fixed_function_s *fixed_function =
+                                        &p4_device->fixed_functions[j];
+		printf("  fixed function name: %s\n", fixed_function->name);
+		printf("  tdi json: %s\n", fixed_function->tdi_json);
+		printf("  ctx_json: %s\n", fixed_function->ctx_json);
+      }
       printf("num P4 programs %d\n", p4_device->num_p4_programs);
       for (j = 0; j < p4_device->num_p4_programs; ++j) {
         p4_programs_t *p4_program = &(p4_device->p4_programs[j]);
@@ -444,6 +501,11 @@ static void switch_p4_pipeline_config_init(const char *install_dir,
             }
             printf("]\n");
           }
+	  printf("  Timer values [");
+	  for (j = 0; j< p4_pipeline->num_ct_timer_profiles; ++j) {
+		printf("%d ", p4_pipeline->ct_timeout[j]);
+	}
+	  printf("]\n");
 	  printf("  Mirror Config\n");
 	  printf("    n_slots: %u \n", p4_pipeline->mir_cfg.n_slots);
 	  printf("    n_sessions: %u \n", p4_pipeline->mir_cfg.n_sessions);

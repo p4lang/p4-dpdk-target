@@ -43,5 +43,14 @@ BF_PM.DEBUG "p4_driver.log", 5M * 5 ;file_format
 BF_BFRT.ERROR >stdout;console_format
 BF_BFRT.DEBUG "p4_driver.log", 5M * 5 ;file_format
 
+KRNLMON.ERROR >stdout;console_format
+KRNLMON.DEBUG "krnlmon.log", 5M * 5 ;file_format
+
+OVSP4RT.ERROR >stdout;console_format
+OVSP4RT.DEBUG "ovsp4rt.log", 5M * 5 ;file_format
+
+INFRAP4D.ERROR >stdout;console_format
+INFRAP4D.DEBUG "infrap4d.log", 5M * 5 ;file_format
+
 *.ERROR	 >syslog , LOG_USER
 

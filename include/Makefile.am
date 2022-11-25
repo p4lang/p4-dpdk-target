@@ -9,6 +9,7 @@ nobase_libdrivers_include_HEADERS += bf_types/bf_types.h
 nobase_libdrivers_include_HEADERS += dvm/bf_drv_intf.h dvm/bf_drv_profile.h dvm/dvm_intf.h
 nobase_libdrivers_include_HEADERS += lld/lld_err.h lld/bf_dev_if.h lld/bf_lld_if.h lld/python_shell_mutex.h
 nobase_libdrivers_include_HEADERS += port_mgr/bf_port_if.h port_mgr/port_mgr_intf.h port_mgr/dpdk/bf_dpdk_port_if.h
+nobase_libdrivers_include_HEADERS += fixed_function/fixed_function_init.h fixed_function/fixed_function_int.h
 nobase_libdrivers_include_HEADERS += ctx_json/ctx_json_utils.h
 nobase_libdrivers_include_HEADERS += bf_pal/bf_pal_port_intf.h
 nobase_libdrivers_include_HEADERS += bf_pal/dev_intf.h

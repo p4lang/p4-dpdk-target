@@ -47,6 +47,8 @@ typedef enum bf_pm_port_dir_e {
  * P4 DPDK Interface File
  */
 #define PORT_NAME_LEN 64
+#define PORT_TYPE_LEN 16
+#define PORT_DIR_LEN 16
 #define PCIE_BDF_LEN 16
 #define PIPE_NAME_LEN 64
 #define MEMPOOL_NAME_LEN 64
@@ -149,8 +151,64 @@ struct hotplug_attributes_t {
 	char native_socket_path[SOCK_PATH_LEN];
 	bool qemu_hotplug;
 };
+
+/**
+ * Port Mgr Key Field IDs
+ */
+enum port_mgr_key_field_ids {
+        DEV_PORT_ID = 0,
+};
+
+/**
+ * Port Mgr Data Field IDs
+ */
+enum port_mgr_data_field_ids {
+        PORT_NAME_ID = 0,
+        PORT_TYPE_ID,
+        PORT_DIR_ID,
+        MTU_ID,
+        PIPE_IN_ID,
+        PIPE_OUT_ID,
+        PORT_IN_ID,
+        PORT_OUT_ID,
+        MEMPOOL_ID,
+        PCIE_BDF_ID,
+        FILE_NAME_ID,
+        DEV_ARGS_ID,
+        DEV_HOTPLUG_ENABLED_ID,
+        SIZE_ID,
+        NET_PORT_ID,
+};
+
+/**
+ * Port Mgr Key Fields
+ */
+struct port_mgr_key_fields {
+        uint32_t dev_port;
+};
+
+/**
+ * Port Mgr Data Fields
+ */
+struct port_mgr_data_fields {
+	uint32_t mtu;
+	uint32_t port_in_id;
+	uint32_t port_out_id;
+	uint32_t dev_hotplug_enabled;
+	uint32_t size;
+	uint8_t net_port;
+	char port_name[PORT_NAME_LEN];
+	char port_type[PORT_TYPE_LEN];
+	char port_dir[PORT_DIR_LEN];
+	char pipe_in[PIPE_NAME_LEN];
+	char pipe_out[PIPE_NAME_LEN];
+	char mempool_name[MEMPOOL_NAME_LEN];
+	char pcie_domain_bdf[PCIE_BDF_LEN];
+	char file_name[PCAP_FILE_NAME_LEN];
+	char dev_args[DEV_ARGS_LEN];
+};
+
 #ifdef __cplusplus
 }
 #endif /* C++ */
-
 #endif  // BF_DPDK_PORT_IF_H_INCLUDED

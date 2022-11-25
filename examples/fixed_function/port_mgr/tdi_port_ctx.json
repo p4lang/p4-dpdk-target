@@ -1,0 +1,93 @@
+{
+  "tables" : [
+    {
+      "name" : "port",
+      "table_type" : "config",
+      "size" : 65536,
+      "key_fields" : [
+        {
+          "name" : "dev_port",
+          "start_bit" : 0,
+          "bit_width" : 32
+        }
+      ],
+      "data_fields" : [
+        {
+                "name" : "port_name",
+                "start_bit" : 0,
+                "bit_width" : 80
+        },
+        {
+                "name" : "port_type",
+                "start_bit" : 10,
+                "bit_width" : 80
+        },
+        {
+                "name" : "port_dir",
+                "start_bit" : 20,
+                "bit_width" : 80
+        },
+        {
+                "name" : "mtu",
+                "start_bit" : 30,
+                "bit_width" : 32
+        },
+        {
+                "name" : "pipe_in",
+                "start_bit" : 34,
+                "bit_width" : 80
+        },
+        {
+                "name" : "pipe_out",
+                "start_bit" : 44,
+                "bit_width" : 80
+        },
+        {
+                "name" : "port_in_id",
+                "start_bit" : 54,
+                "bit_width" : 32
+        },
+        {
+                "name" : "port_out_id",
+                "start_bit" : 58,
+                "bit_width" : 32
+        },
+        {
+                "name" : "mempool",
+                "start_bit" : 62,
+                "bit_width" : 80
+        },
+        {
+                "name" : "pcie_bdf",
+                "start_bit" : 72,
+                "bit_width" : 160
+        },
+        {
+                "name" : "file_name",
+                "start_bit" : 92,
+                "bit_width" : 80
+        },
+        {
+                "name" : "dev_args",
+                "start_bit" : 102,
+                "bit_width" : 80
+        },
+        {
+                "name" : "dev_hotplug_enable",
+                "start_bit" : 112,
+                "bit_width" : 32
+        },
+        {
+                "name" : "size",
+                "start_bit" : 116,
+                "bit_width" : 32
+        },
+        {
+                "name" : "net_port",
+                "start_bit" : 120,
+                "bit_width" : 8
+        }
+      ]
+    }
+  ]
+}

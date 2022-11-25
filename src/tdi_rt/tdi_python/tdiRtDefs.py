@@ -58,11 +58,11 @@ class FlagsTypeRt(FlagsType):
 # tdi_rt_attributes_type_e in tdi_rt_defs.h and tdi_rt_info.hpp
 class AttributesTypeRt(AttributesType):
     class AttributesEnumRt(Enum):
-        # temperate to keep as starting from CORE now. Need tdi parser to change to populate 
+        # temperate to keep as starting from CORE now. Need tdi parser to change to populate
         # starting with AttributesEnum.TDI_ATTRIBUTES_TYPE_DEVICE.value
         #TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = AttributesEnum.TDI_ATTRIBUTES_TYPE_DEVICE.value
         # Notes: need to finalize support of attributes type and update both here and
-        # include/tdi_rt/tdi_rt_defs.h 
+        # include/tdi_rt/tdi_rt_defs.h
         TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = AttributesEnum.TDI_ATTRIBUTES_TYPE_CORE.value
         TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK = auto()
         TDI_RT_ATTRIBUTES_TYPE_IDLE_TABLE_RUNTIME = auto()
@@ -190,6 +190,7 @@ class TableTypeRt(TableType):
         TDI_RT_TABLE_TYPE_TM_PIPE_CFG = auto()
         TDI_RT_TABLE_TYPE_TM_PIPE_SCHED_CFG = auto()
         TDI_RT_TABLE_TYPE_VALUE_LOOKUP = auto()
+        TDI_RT_TABLE_TYPE_FIXED_FUNC   = auto()
         TDI_RT_TABLE_TYPE_INVALID_TYPE = auto()
 
     table_type_dict = {
@@ -270,6 +271,7 @@ class TableTypeRt(TableType):
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_TM_PIPE_CFG.value					:  "TM_PIPE_CFG",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_TM_PIPE_SCHED_CFG.value			:  "TM_PIPE_SCHED_CFG",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_VALUE_LOOKUP.value            	:  "VALUE_LOOKUP",
+        TableTypeEnumRt.TDI_RT_TABLE_TYPE_FIXED_FUNC.value            	    :  "FIXED_FUNC",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_INVALID_TYPE.value				:  "INVLD"
     }
 

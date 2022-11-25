@@ -155,6 +155,10 @@ int pipe_mgr_set_profile(int dev_id,
 			PIPE_MGR_CFG_FILE_LEN - 1);
 		profile->core_id = p4_pipeline->core_id;
 		profile->fast_clone = p4_pipeline->mir_cfg.fast_clone;
+		profile->num_ct_timer_profiles =
+			p4_pipeline->num_ct_timer_profiles;
+		memcpy(profile->bf_ct_timeout, p4_pipeline->bf_ct_timeout,
+				sizeof(int) * profile->num_ct_timer_profiles);
 	}
 	if (parsed_pipe_ctx)
 		profile->pipe_ctx = *parsed_pipe_ctx;
@@ -524,6 +528,20 @@ void pipe_mgr_free_mat_state(struct pipe_mgr_mat_state *mat_state)
 
 	P4_SDE_FREE(mat_state->key_htbl);
 	P4_SDE_FREE(mat_state);
+}
+
+void pipe_mgr_free_pipe_ctx_ext_table_name(struct pipe_mgr_p4_pipeline *ctx)
+{
+	int itr;
+
+	if (!ctx->externs_tables_name)
+		return;
+
+	for (itr = 0; itr < ctx->num_externs_tables; itr++)
+		P4_SDE_FREE(ctx->externs_tables_name[itr]);
+
+	P4_SDE_FREE(ctx->externs_tables_name);
+	ctx->externs_tables_name = NULL;
 }
 
 void pipe_mgr_free_mat_table(struct pipe_mgr_p4_pipeline *pipe_ctx)

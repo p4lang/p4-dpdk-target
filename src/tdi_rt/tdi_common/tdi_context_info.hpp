@@ -248,6 +248,12 @@ class ContextInfoParser {
       size_t *field_offset,
       size_t *field_byte_size);
 
+  std::unique_ptr<RtTableContextInfo> parseFixedTable(
+      Cjson &table_context,
+      const TableInfo *tdi_table_Info,
+      const tdi_dev_id_t &dev_id,
+      const std::string &prog_name);
+
   bool isParamActionParam(const TableInfo *tdi_table_info,
                           const RtTableContextInfo *table_context_info,
                           tdi_id_t action_handle,

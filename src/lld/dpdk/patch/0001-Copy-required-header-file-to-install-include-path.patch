@@ -1,0 +1,31 @@
+From 6640176f819e729b26f325b89a7a8db1915f86ba Mon Sep 17 00:00:00 2001
+From: Anand Sunkad <anand.sunkad@intel.com>
+Date: Mon, 26 Sep 2022 22:59:41 +1000
+Subject: [PATCH] Copy required header file to install/include path
+
+Adding required header file names in meson.build file
+to copy into $SDE_INSTALL/include path.
+this patch is required only for SDE, no need to push
+this patch to dpdk opensource.
+
+Signed-off-by: Anand Sunkad <anand.sunkad@intel.com>
+---
+ lib/pipeline/meson.build | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/lib/pipeline/meson.build b/lib/pipeline/meson.build
+index 3ca98ed194..658dbba7c2 100644
+--- a/lib/pipeline/meson.build
++++ b/lib/pipeline/meson.build
+@@ -20,6 +20,8 @@ headers = files(
+         'rte_port_in_action.h',
+         'rte_table_action.h',
+         'rte_swx_pipeline.h',
++        'rte_swx_pipeline_spec.h',
++        'rte_swx_pipeline_internal.h',
+         'rte_swx_extern.h',
+         'rte_swx_ctl.h',
+ )
+-- 
+2.21.3
+

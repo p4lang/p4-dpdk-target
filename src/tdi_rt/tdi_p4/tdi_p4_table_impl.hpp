@@ -58,14 +58,14 @@ class MatchActionDirect : public tdi::Table {
                 {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
-#if 0
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_SET,
                  {"dev_id", "pipe_id", "pipe_all"}},
+#if 0
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_RESET,
                  {"dev_id", "pipe_id", "pipe_all"}},
+#endif
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
                  {"dev_id", "pipe_id", "pipe_all"}},
-#endif
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
                  {"dev_id", "pipe_id", "pipe_all"}},
@@ -480,6 +480,10 @@ class ActionProfile : public tdi::Table {
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
                  {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_SET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_NEXT_N,
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_USAGE_GET,
@@ -504,6 +508,17 @@ class ActionProfile : public tdi::Table {
                                 const tdi::Flags &flags,
                                 const tdi::TableKey &key,
                                 const tdi::TableData &data) const override;
+  virtual tdi_status_t defaultEntrySet(
+      const tdi::Session &session,
+      const tdi::Target &dev_tgt,
+      const tdi::Flags &flags,
+      const tdi::TableData &data) const override;
+
+  virtual tdi_status_t defaultEntryGet(const tdi::Session &session,
+                                       const tdi::Target &dev_tgt,
+                                       const tdi::Flags &flags,
+                                       tdi::TableData *data) const override;
+
   virtual tdi_status_t entryDel(const tdi::Session &session,
                                 const tdi::Target &dev_tgt,
                                 const tdi::Flags &flags,
@@ -613,6 +628,10 @@ class Selector : public tdi::Table {
                 {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_SET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
                  {"dev_id", "pipe_id", "pipe_all"}},
@@ -644,6 +663,17 @@ class Selector : public tdi::Table {
                                 const tdi::Target &dev_tgt,
                                 const tdi::Flags &flags,
                                 const tdi::TableKey &key) const override;
+
+  virtual tdi_status_t defaultEntrySet(
+      const tdi::Session &session,
+      const tdi::Target &dev_tgt,
+      const tdi::Flags &flags,
+      const tdi::TableData &data) const override;
+
+  virtual tdi_status_t defaultEntryGet(const tdi::Session &session,
+                                       const tdi::Target &dev_tgt,
+                                       const tdi::Flags &flags,
+                                       tdi::TableData *data) const override;
 
   virtual tdi_status_t clear(const tdi::Session &session,
                              const tdi::Target &dev_tgt,

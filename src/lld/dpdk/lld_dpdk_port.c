@@ -27,7 +27,31 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#define BUF_SIZE 512
 
+int write_to_iospec_file(char *buf)
+{
+	FILE *io_file = NULL;
+	int status;
+
+	io_file = fopen(IOSPEC_FILE_PATH, "a+");
+	if (!io_file) {
+		LOG_ERROR("%s line:%d  Can't open %s file\n"
+			  , __func__, __LINE__, IOSPEC_FILE_PATH);
+		return BF_INTERNAL_ERROR;
+	}
+
+	status = fwrite(buf, 1, strlen(buf), io_file);
+	if (!status) {
+		LOG_ERROR("%s line:%d  Can't write to %s file\n"
+			  , __func__, __LINE__, IOSPEC_FILE_PATH);
+		fclose(io_file);
+		return BF_INTERNAL_ERROR;
+	}
+	fclose(io_file);
+
+	return 0;
+}
 int lld_dpdk_tap_port_create(struct port_attributes_t *port_attrib)
 {
 	if (!tap_create(port_attrib->port_name)) {
@@ -51,7 +75,7 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 	struct ifreq ifr;
 	int sfd = -1;
 	int status;
-
+	char buffer[BUF_SIZE];
 	memset(&params_in, 0, sizeof(params_in));
 	memset(&params_out, 0, sizeof(params_out));
 
@@ -84,15 +108,17 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 			LOG_ERROR("ioctl SIOCSIFMTU Failed...\n");
 		close(sfd);
 
-		status = rte_swx_pipeline_port_in_config(pipe_in->p,
-							port_attrib->port_in_id,
-							"fd",
-							&params_in);
-
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer),
+			 "port in %d fd %d mtu %d mempool %s bsz %d\n",
+			 port_attrib->port_in_id, params_in.fd,
+			 params_in.mtu, params_in.mempool->name,
+			 params_in.burst_size);
+		status = write_to_iospec_file(buffer);
 		if (status) {
-			LOG_ERROR("Port in Error for Tap Port %s\n",
-				  port_attrib->port_name);
-			return BF_INVALID_ARG;
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
 		}
 	}
 
@@ -101,15 +127,15 @@ int lld_dpdk_pipeline_tap_port_add(bf_dev_port_t dev_port,
 		params_out.fd = tap->fd;
 		params_out.burst_size = PORT_OUT_BURST_SIZE;
 
-		status = rte_swx_pipeline_port_out_config(pipe_out->p,
-						port_attrib->port_out_id,
-						"fd",
-						&params_out);
-
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer), "port out %d fd %d bsz %d\n",
+			 port_attrib->port_out_id,  params_out.fd,
+			 params_out.burst_size);
+		status = write_to_iospec_file(buffer);
 		if (status) {
-			LOG_ERROR("Port out Error for Tap Port %s\n",
-				  port_attrib->port_name);
-			return BF_INVALID_ARG;
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
 		}
 	}
 
@@ -167,6 +193,7 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 	struct rte_swx_port_ethdev_writer_params params_out;
 	struct link *link = NULL;
 	int status;
+	char buffer[BUF_SIZE];
 
 	memset(&params_in, 0, sizeof(params_in));
 	memset(&params_out, 0, sizeof(params_out));
@@ -183,15 +210,16 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 		params_in.queue_id = 0;
 		params_in.burst_size = PORT_IN_BURST_SIZE;
 
-		status = rte_swx_pipeline_port_in_config(pipe_in->p,
-						 port_attrib->port_in_id,
-						 "ethdev",
-						 &params_in);
-
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer),
+			"port in %d ethdev %s rxq %d bsz %d\n",
+			port_attrib->port_in_id, params_in.dev_name,
+			params_in.queue_id, params_in.burst_size);
+		status = write_to_iospec_file(buffer);
 		if (status) {
-			LOG_ERROR("Port in Error for Link Port %s\n",
-				  port_attrib->port_name);
-			return BF_INVALID_ARG;
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
 		}
 	}
 
@@ -201,15 +229,16 @@ int lld_dpdk_pipeline_link_port_add(bf_dev_port_t dev_port,
 		params_out.queue_id = 0;
 		params_out.burst_size = PORT_OUT_BURST_SIZE;
 
-		status = rte_swx_pipeline_port_out_config(pipe_out->p,
-						  port_attrib->port_out_id,
-						  "ethdev",
-						  &params_out);
-
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer),
+			"port out %d ethdev %s txq %d bsz %d\n",
+			port_attrib->port_out_id, params_out.dev_name,
+			params_out.queue_id, params_out.burst_size);
+		status = write_to_iospec_file(buffer);
 		if (status) {
-			LOG_ERROR("Port out Error for Link Port %s\n",
-				  port_attrib->port_name);
-			return BF_INVALID_ARG;
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
 		}
 	}
 
@@ -238,23 +267,24 @@ int lld_dpdk_source_port_add(bf_dev_port_t dev_port,
 {
 	struct rte_swx_port_source_params params;
 	int status;
+	char buffer[BUF_SIZE];
 
 	memset(&params, 0, sizeof(params));
 
 	params.pool = mp->m;
 	params.file_name = port_attrib->source.file_name;
 
-	status = rte_swx_pipeline_port_in_config(pipe_in->p,
-						port_attrib->port_in_id,
-						"source",
-						&params);
-
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer),
+		 "port in %d source mempool %s file %s loop %ld packets %d\n"
+		 , port_attrib->port_in_id, params.pool->name,
+		 params.file_name, params.n_loops, params.n_pkts_max);
+	status = write_to_iospec_file(buffer);
 	if (status) {
-		LOG_ERROR("Creation of Source Port %s failed\n",
-			  port_attrib->port_name);
-		return BF_INVALID_ARG;
+		LOG_ERROR("%s line:%d fail to write to %s file\n"
+			  , __func__, __LINE__, IOSPEC_FILE_PATH);
+		return BF_INTERNAL_ERROR;
 	}
-
 	return BF_SUCCESS;
 }
 
@@ -264,6 +294,7 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
 {
 	struct rte_swx_port_sink_params params;
 	int status;
+	char buffer[BUF_SIZE];
 
 	memset(&params, 0, sizeof(params));
 
@@ -272,17 +303,15 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
 	else
 		params.file_name = port_attrib->sink.file_name;
 
-	status = rte_swx_pipeline_port_out_config(pipe_out->p,
-						  port_attrib->port_out_id,
-						  "sink",
-						  &params);
-
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer), "port out %d sink file %s\n",
+		 port_attrib->port_out_id, params.file_name);
+	status = write_to_iospec_file(buffer);
 	if (status) {
-		LOG_ERROR("Creation of Sink Port %s failed\n",
-			  port_attrib->port_name);
-		return BF_INVALID_ARG;
+		LOG_ERROR("%s line:%d fail to write to %s file\n"
+			  , __func__, __LINE__, IOSPEC_FILE_PATH);
+		return BF_INTERNAL_ERROR;
 	}
-
 	return BF_SUCCESS;
 }
 
@@ -313,6 +342,7 @@ int lld_dpdk_pipeline_ring_port_add(bf_dev_port_t dev_port,
 	struct rte_swx_port_ring_writer_params params_out;
 	struct ring *ring = NULL;
 	int status;
+	char buffer[BUF_SIZE];
 
         memset(&params_in, 0, sizeof(params_in));
         memset(&params_out, 0, sizeof(params_out));
@@ -328,16 +358,16 @@ int lld_dpdk_pipeline_ring_port_add(bf_dev_port_t dev_port,
                 params_in.name = ring->name;
                 params_in.burst_size = PORT_IN_BURST_SIZE;
 
-                status = rte_swx_pipeline_port_in_config(pipe_in->p,
-                                                 port_attrib->port_in_id,
-                                                 "ring",
-                                                 &params_in);
-
-                if (status) {
-                        LOG_ERROR("Port in Error for Ring Port %s\n",
-                                  port_attrib->port_name);
-                        return BF_INVALID_ARG;
-                }
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer), "port in %d ring %s bsz %d\n",
+			 port_attrib->port_in_id, params_in.name,
+			 params_in.burst_size);
+		status = write_to_iospec_file(buffer);
+		if (status) {
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
+		}
         }
 
         if ((port_attrib->port_dir == PM_PORT_DIR_DEFAULT) ||
@@ -345,17 +375,17 @@ int lld_dpdk_pipeline_ring_port_add(bf_dev_port_t dev_port,
                 params_out.name = ring->name;
                 params_out.burst_size = PORT_OUT_BURST_SIZE;
 
-                status = rte_swx_pipeline_port_out_config(pipe_out->p,
-                                                  port_attrib->port_out_id,
-                                                  "ring",
-                                                  &params_out);
-
-                if (status) {
-                        LOG_ERROR("Port out Error for Ring Port %s\n",
-                                  port_attrib->port_name);
-                        return BF_INVALID_ARG;
-                }
-        }
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer), "port out %d ring %s bsz %d\n"
+			 ,port_attrib->port_out_id, params_out.name,
+			 params_out.burst_size);
+		status = write_to_iospec_file(buffer);
+		if (status) {
+			LOG_ERROR("%s line:%d fail to write to %s file\n"
+				  , __func__, __LINE__, IOSPEC_FILE_PATH);
+			return BF_INTERNAL_ERROR;
+		}
+	}
 
 
 	return BF_SUCCESS;

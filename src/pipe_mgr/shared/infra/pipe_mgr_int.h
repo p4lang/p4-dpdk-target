@@ -296,6 +296,7 @@ struct pipe_mgr_externs_ctx {
 	char target_name[P4_SDE_TABLE_NAME_LEN];
 	enum externs_type type;
 	enum externs_attr_type attr_type;
+	unsigned int externs_attr_table_id;
 };
 
 struct pipe_mgr_externs {
@@ -361,7 +362,7 @@ struct pipe_mgr_p4_pipeline {
 	int num_mat_tables;
 	/* Number of externs as per context json. */
 	int num_externs_tables;
-
+	char **externs_tables_name;
 	/* Array containing Match-Action Tables information for this P4
 	 * pipeline.
 	 */
@@ -402,6 +403,8 @@ struct pipe_mgr_profile {
 	int schema_version[P4_SDE_VERSION_LEN];
 
 	/* Currently mod_addr action has 24 bit to specify */
+        int num_ct_timer_profiles;
+        int bf_ct_timeout[MAX_CT_TIMER_PROFILES];
 };
 
 struct pipe_mgr_dev {
