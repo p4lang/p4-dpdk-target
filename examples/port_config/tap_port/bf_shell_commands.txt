@@ -22,7 +22,7 @@ The Port JSON for this topology is port_config.json.
 	                       |				                   |
 	              TAP3(3)  |				                   | TAP3(3)
 	                       |				                   |
-	                       |				                   | SINK0(4)
+	                       |				                   |
 	                       |-----------------------------------|
 
 
@@ -50,5 +50,3 @@ add(DEV_PORT=3, PORT_TYPE="BF_DPDK_TAP", PORT_DIR="PM_PORT_DIR_DEFAULT", PORT_IN
     PORT_OUT_ID =3,PIPE_IN="pipe", PIPE_OUT="pipe",  MEMPOOL="MEMPOOL0", PORT_NAME="TAP3",
     MTU=1500)
 
-add(DEV_PORT=4, PORT_TYPE="BF_DPDK_SINK", PORT_DIR="PM_PORT_DIR_TX_ONLY", PORT_OUT_ID=4,
-    PIPE_OUT="pipe", PORT_NAME="SINK0",  FILE_NAME="./sink0.pcap")
