@@ -1476,7 +1476,7 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
         printf("ERROR: bf_rt_init failed : %d\n", ret);
         return ret;
       }
-      ret = tdi_module_init(NULL, 0);
+      ret = tdi_module_init(NULL);
       if (ret != 0) {
         printf("ERROR: tdi_init failed : %d\n", ret);
         return ret;
@@ -1498,7 +1498,7 @@ static int bf_switchd_driver_init(bool kernel_pkt_proc) {
             printf("ERROR: bf_rt_init failed : %d\n", ret);
             return ret;
           }
-          ret = tdi_module_init(NULL, 0);
+          ret = tdi_module_init(NULL);
           if (ret != 0) {
             printf("ERROR: tdi_init failed : %d\n", ret);
             return ret;

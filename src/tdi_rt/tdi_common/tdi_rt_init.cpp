@@ -174,6 +174,8 @@ tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
   // Fixed tdi json files would be present in both fixed tdi info obj and
   // p4 tdi info obj
   std::vector<std::string> tdi_fixed_json_path_vec;
+  // Figure out a way to get mgr_list through the dev_add cb
+  std::vector<tdi_mgr_type_e> mgr_list ={};
   if (dev_profile->bfrt_non_p4_json_dir_path != NULL) {
     tdi_fixed_json_path_vec = tdiFixedJsonFilePathsGet(
         dev_family, dev_profile->bfrt_non_p4_json_dir_path);
@@ -183,7 +185,7 @@ tdi_status_t tdi_device_add(bf_dev_id_t dev_id,
       TDI_ARCH_TYPE_PNA,
       convertDevProfileToDeviceConfig(
           dev_id, dev_profile, tdi_fixed_json_path_vec),
-      {},  // Figure out a way to get mgr_list through the dev_add cb
+      &mgr_list,
       nullptr);
 }
 
@@ -192,8 +194,7 @@ tdi_status_t tdi_device_remove(bf_dev_id_t dev_id) {
   return dev_mgr_obj.deviceRemove(dev_id);
 }
 
-tdi_status_t Init::tdiModuleInit(
-    const std::vector<tdi_mgr_type_e> /*mgr_type_list*/) {
+tdi_status_t Init::tdiModuleInit(void * /*target_options*/) {
   tdi_status_t sts = TDI_SUCCESS;
   bf_drv_client_callbacks_t callbacks = {0};
 

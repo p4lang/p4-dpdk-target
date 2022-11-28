@@ -170,6 +170,21 @@ class FixedFunctionConfigTable : public tdi::Table {
   virtual tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
                                  const tdi_id_t &action_id,
                                  tdi::TableData *data) const override;
+  tdi_status_t attributeAllocate(
+    const tdi_attributes_type_e &attr_type,
+    std::unique_ptr<tdi::TableAttributes> *table_attr) const override;
+
+  tdi_status_t tableAttributesSet(
+    const tdi::Session & /*session*/,
+    const tdi::Target &dev_tgt,
+    const tdi::Flags & /*flags*/,
+    const tdi::TableAttributes &tableAttributes) const override;
+
+  tdi_status_t tableAttributesGet(
+    const tdi::Session & /*session*/,
+    const tdi::Target &dev_tgt,
+    const tdi::Flags & /*flags*/,
+    tdi::TableAttributes *tableAttributes) const override;
 
  private:
   tdi_status_t dataAllocate_internal(tdi_id_t action_id,

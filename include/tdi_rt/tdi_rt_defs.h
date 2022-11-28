@@ -206,7 +206,7 @@ enum tdi_rt_target_e {
 enum tdi_rt_attributes_type_e {
   /** Pipe scope of all entries. Applicable to all Match Action
        Tables(MAT) */
-  TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = TDI_ATTRIBUTES_FIELD_BEGIN,
+  TDI_RT_ATTRIBUTES_TYPE_ENTRY_SCOPE = TDI_ATTRIBUTES_TYPE_DEVICE,
   /** Dynamic key mask on MATs if applicable*/
   TDI_RT_ATTRIBUTES_TYPE_DYNAMIC_KEY_MASK,
   /** Idle table on MATs if applicable*/
@@ -225,9 +225,30 @@ enum tdi_rt_attributes_type_e {
   /** PRE device config. Applicable to PRE tables*/
   TDI_RT_ATTRIBUTES_TYPE_PRE_DEVICE_CONFIG,
   /** Selector update CB*/
-  TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK
+  TDI_RT_ATTRIBUTES_TYPE_SELECTOR_UPDATE_CALLBACK,
+  /** Ipsec expire notif cb set attribute. Applicable to Ipsec table - crypto_hw_notif_cb*/
+  TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF,
 };
-//typedef tdi_rt_attributes_type_e tdi_rt_attributes_type_e;
+
+enum tdi_rt_attributes_idle_table_field_type_e {
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_MODE = TDI_ATTRIBUTES_FIELD_BEGIN,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_ENABLE,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_CALLBACK_CPP,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_CALLBACK_C,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_TTL_QUERY_INTVL,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_MAX_TTL,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_MIN_TTL,
+  TDI_RT_ATTRIBUTES_IDLE_TABLE_FIELD_TYPE_COOKIE,
+};
+
+enum tdi_rt_attributes_ipsec_sadb_expire_table_field_type_e {
+  TDI_RT_ATTRIBUTES_IPSEC_SADB_EXPIRE_TABLE_FIELD_TYPE_ENABLE = TDI_ATTRIBUTES_FIELD_BEGIN,
+  TDI_RT_ATTRIBUTES_IPSEC_SADB_EXPIRE_TABLE_FIELD_TYPE_CALLBACK_CPP,
+  TDI_RT_ATTRIBUTES_IPSEC_SADB_EXPIRE_TABLE_FIELD_TYPE_CALLBACK_C,
+  TDI_RT_ATTRIBUTES_IPSEC_SADB_EXPIRE_TABLE_FIELD_TYPE_COOKIE,
+};
+
+typedef enum tdi_rt_attributes_type_e tdi_rt_attributes_type_e;
 
 enum tdi_rt_operations_type_e {
   /** Update sw value of all counters with the value in hw.

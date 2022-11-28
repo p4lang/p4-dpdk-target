@@ -277,5 +277,6 @@ AC_CONFIG_FILES([Makefile
 		 src/lld/dpdk/Makefile
 		 third-party/grpc/Makefile
 		 third-party/Makefile
+                 bf_switchd/tdi_examples/Makefile
                  unit-test/Makefile])
 AC_OUTPUT

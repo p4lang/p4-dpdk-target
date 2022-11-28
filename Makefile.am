@@ -17,6 +17,7 @@ SUBDIRS += include src doc bf_switchd
 if IS_UT_ENABLED
 SUBDIRS += unit-test
 endif
+SUBDIRS += bf_switchd/tdi_examples
 
 target_sysdir = $(datadir)/target_sys
 dist_target_sys_DATA = \

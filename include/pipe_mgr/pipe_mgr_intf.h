@@ -326,6 +326,11 @@ typedef struct fixed_function_key_spec fixed_function_key_spec_t;
  */
 typedef struct fixed_function_data_spec fixed_function_data_spec_t;
 
+/*!
+ * fixed function notification that encodes all types of data refs
+ */
+typedef struct fixed_function_notif_params fixed_function_notif_params_t;
+
 #define IS_ACTION_SPEC_ACT_DATA(act_spec) \
   ((act_spec)->pipe_action_datatype_bmap & PIPE_ACTION_DATA_TYPE)
 #define IS_ACTION_SPEC_ACT_DATA_HDL(act_spec) \

@@ -62,7 +62,7 @@ class Device : public tdi::pna::Device {
   Device(const tdi_dev_id_t &device_id,
          const tdi_arch_type_e &arch_type,
          const std::vector<tdi::ProgramConfig> &device_config,
-         const std::vector<tdi_mgr_type_e> mgr_type_list,
+         void *target_options,
          void *cookie);
 
   tdi_status_t createSession(
@@ -74,6 +74,8 @@ class Device : public tdi::pna::Device {
       std::unique_ptr<tdi::Flags> * /*flags*/) const override final {
     return TDI_SUCCESS;
   }
+  private:
+  std::vector<tdi_mgr_type_e> mgr_type_list_;
 };
 
 /**
