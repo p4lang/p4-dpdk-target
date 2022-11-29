@@ -111,7 +111,7 @@ control ingress(
 )
 {
     action send(PortId_t port) {
-        ostd.egress_port = (PortId_t) port;
+	send_to_port(ostd, port);
     }
 
     action drop() {
@@ -121,7 +121,7 @@ control ingress(
 	action set_port_and_src_mac( PortId_t port,
                                  ethernet_addr_t src_mac,
                                  ethernet_addr_t dst_mac) {
-        ostd.egress_port = port;
+	send_to_port(ostd, port);
         hdr.ethernet.src_addr = src_mac;
         hdr.ethernet.dst_addr = dst_mac;
     }
