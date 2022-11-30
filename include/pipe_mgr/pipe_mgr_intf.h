@@ -1176,7 +1176,7 @@ pipe_status_t pipe_mgr_stat_table_reset(pipe_sess_hdl_t sess_hdl,
                                         pipe_stat_tbl_hdl_t stat_tbl_hdl,
                                         pipe_stat_data_t *stat_data);
 
-/* API function to query a stats entry */
+/* API function to query a stats entry **/
 pipe_status_t pipe_mgr_stat_ent_query(pipe_sess_hdl_t sess_hdl,
                                       dev_target_t dev_target,
                                       const char *table_name,
