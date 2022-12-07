@@ -304,8 +304,13 @@ int lld_dpdk_sink_port_add(bf_dev_port_t dev_port,
 		params.file_name = port_attrib->sink.file_name;
 
 	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer), "port out %d sink file %s\n",
-		 port_attrib->port_out_id, params.file_name);
+	if(params.file_name)
+		snprintf(buffer, sizeof(buffer), "port out %d sink file %s\n",
+			 port_attrib->port_out_id, params.file_name);
+	else
+		snprintf(buffer, sizeof(buffer), "port out %d sink file NULL\n",
+			 port_attrib->port_out_id);
+
 	status = write_to_iospec_file(buffer);
 	if (status) {
 		LOG_ERROR("%s line:%d fail to write to %s file\n"

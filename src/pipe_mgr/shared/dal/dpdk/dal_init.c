@@ -150,10 +150,10 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		fclose(fd);
 	}
 
+	rte_swx_ctl_pipeline_info_get(pipe->p, &pipeline);
 	if (strncmp(profile->pipe_ctx.arch_name, "pna", 3))
 		goto create_pipeline;
 
-	rte_swx_ctl_pipeline_info_get(pipe->p, &pipeline);
 	n_ports = pipeline.n_ports_in > pipeline.n_ports_out ?
 		pipeline.n_ports_in : pipeline.n_ports_out;
 	for (i = 0; i < n_ports; i++) {
