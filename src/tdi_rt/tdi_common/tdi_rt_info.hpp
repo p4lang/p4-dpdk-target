@@ -87,6 +87,7 @@ const std::map<std::string, tdi_rt_table_type_e> rt_table_type_map = {
     {"DevConfigure", TDI_RT_TABLE_TYPE_DEV_CFG},
     {"MatchValueLookupTable", TDI_RT_TABLE_TYPE_VALUE_LOOKUP},
     {"FixedFunctionConfig", TDI_RT_TABLE_TYPE_FIXED_FUNC},
+    {"FixedFunctionState", TDI_RT_TABLE_TYPE_FIXED_FUNC_STATE}
 };
 }
 namespace pna {
@@ -151,6 +152,8 @@ class TableFactory : public tdi::pna::TableFactory {
         return std::unique_ptr<tdi::Table>(new MatchValueLookupTable(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_FIXED_FUNC:
         return std::unique_ptr<tdi::Table>(new FixedFunctionConfigTable(tdi_info, table_info));
+      case TDI_RT_TABLE_TYPE_FIXED_FUNC_STATE:
+        return std::unique_ptr<tdi::Table>(new FixedFunctionStateTable(tdi_info, table_info));
       default:
         LOG_DBG("%s:%d table info received for other", __func__, __LINE__);
 	return nullptr;

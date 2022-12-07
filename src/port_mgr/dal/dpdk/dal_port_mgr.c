@@ -315,3 +315,57 @@ bf_status_t dal_port_cfg_table_add(bf_dev_id_t dev_id,
 
 	return BF_SUCCESS;
 }
+
+/**
+ * API to encode port statistics in data spec
+ */
+bf_status_t port_mgr_encode_data_fields(struct fixed_function_data_spec *data,
+					u64 *stats,
+					struct fixed_function_table_ctx *tbl_ctx)
+{
+	struct fixed_function_data_fields *ff_data_fields = NULL;
+	int i = 0;
+
+	ff_data_fields = tbl_ctx->data_fields;
+
+	for (i = 0; i < BF_PORT_NUM_COUNTERS; i++) {
+		if (fixed_function_encode_data_spec(data,
+                                                    ff_data_fields[i].start_bit,
+                                                    ff_data_fields[i].bit_width,
+                                                    (u8 *)&stats[i]) != BF_SUCCESS)
+			return BF_INVALID_ARG;
+	}
+
+	return BF_SUCCESS;
+}
+
+/**
+ * API to retrieve port statistics and encode in data spec
+ */
+bf_status_t dal_port_stats_get(bf_dev_id_t dev_id,
+                               struct fixed_function_key_spec *key,
+                               struct fixed_function_data_spec *data,
+                               struct fixed_function_table_ctx *tbl_ctx)
+{
+	struct port_mgr_key_fields key_fields;
+	uint64_t stats[BF_PORT_NUM_COUNTERS];
+	bf_status_t status;
+
+	memset(stats, 0, BF_PORT_NUM_COUNTERS * sizeof(uint64_t));
+
+	status = port_mgr_decode_key_fields(key, &key_fields, tbl_ctx);
+	if (status != BF_SUCCESS)
+		return status;
+
+	/* retrieve port statistic */
+	status = port_mgr_port_all_stats_get(dev_id, key_fields.dev_port, stats);
+
+	if (status != BF_SUCCESS)
+		return status;
+
+	status = port_mgr_encode_data_fields(data, stats, tbl_ctx);
+	if (status != BF_SUCCESS)
+		return status;
+
+	return status;
+}

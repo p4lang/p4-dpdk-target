@@ -86,6 +86,13 @@ class IFixedFunctionMgrIntf {
 		  const char *table_name,
 		  struct fixed_function_data_spec *data_spec) = 0;
 
+  virtual pipe_status_t ffMgrMatEntStatsGet(
+		  pipe_sess_hdl_t sess_hdl,
+		  dev_target_t dev_tgt,
+		  const char *table_name,
+		  struct fixed_function_key_spec  *key_spec,
+		  struct fixed_function_data_spec *data_spec) = 0;
+
   virtual pipe_status_t ffMgrMatEntGetFirst(
 		  pipe_sess_hdl_t sess_hdl,
 		  dev_target_t dev_tgt,
@@ -192,6 +199,12 @@ class FixedFunctionMgrIntf : public IFixedFunctionMgrIntf{
                                            dev_target_t dev_tgt,
                                            const char *table_name,
                                            struct fixed_function_data_spec *data_spec);
+
+  pipe_status_t ffMgrMatEntStatsGet(pipe_sess_hdl_t sess_hdl,
+                                    dev_target_t dev_tgt,
+                                    const char *table_name,
+                                    struct fixed_function_key_spec  *key_spec,
+                                    struct fixed_function_data_spec *data_spec);
 
   pipe_status_t ffMgrMatEntGetFirst(pipe_sess_hdl_t sess_hdl,
                                     dev_target_t dev_tgt,

@@ -144,7 +144,9 @@ tdi_status_t ContextInfoParser::parseContextJson(
     if (kv.second.first && !kv.second.second) {
 	    tdi_rt_table_type_e table_type =
 		    static_cast<tdi_rt_table_type_e>(kv.second.first->tableTypeGet());
-	    if (table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC || table_type == TDI_RT_TABLE_TYPE_REGISTER) {
+	    if ((table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC) || 
+                (table_type == TDI_RT_TABLE_TYPE_REGISTER) ||
+	        (table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC_STATE)) {
 		    auto rt_table_context_info =
 			    contextInfoParser.parseFixedTable(*(kv.second.second),
 					    kv.second.first,

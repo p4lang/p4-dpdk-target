@@ -24,4 +24,17 @@ bf_status_t dal_port_cfg_table_add(bf_dev_id_t dev_id,
                                    struct fixed_function_data_spec *data,
                                    struct fixed_function_table_ctx *tbl_ctx);
 
+/**
+ * API to retrieve port statistics
+ *
+ * @param  dev_id       Device id.
+ * @param  key          key  spec
+ * @param  data         data spec
+ * @param  tbl_ctx      table context
+ * @return              Status of the API call
+ */
+bf_status_t dal_port_stats_get(bf_dev_id_t dev_id,
+                               struct fixed_function_key_spec *key,
+                               struct fixed_function_data_spec *data,
+                               struct fixed_function_table_ctx *tbl_ctx);
 #endif /* __DAL_PORT_MGR_H__ */

@@ -41,13 +41,14 @@ typedef pipe_status_t (*fixed_func_mgr_update_callback)(
  * @param  dev_tgt      Device target.
  * @param  table_name   table name
  * @param  key_spec     key spec
+ * @param  data_spec    data spec
  * @return              Status of the API call
  */
-int ff_mgr_ent_add(u32 sess_hdl,
-                   struct bf_dev_target_t dev_tgt,
-                   const char *table_name,
-                   struct fixed_function_key_spec  *key_spec,
-                   struct fixed_function_data_spec *data_spec);
+int fixed_func_mgr_ent_add(u32 sess_hdl,
+                           struct bf_dev_target_t dev_tgt,
+                           const char *table_name,
+                           struct fixed_function_key_spec  *key_spec,
+                           struct fixed_function_data_spec *data_spec);
 
 /**
  * API to delete an entry
@@ -58,10 +59,10 @@ int ff_mgr_ent_add(u32 sess_hdl,
  * @param  key_spec     key spec
  * @return              Status of the API call
  */
-int ff_mgr_ent_del(u32 sess_hdl,
-                   struct bf_dev_target_t dev_tgt,
-                   const char *table_name,
-                   struct fixed_function_key_spec  *key_spec);
+int fixed_func_mgr_ent_del(u32 sess_hdl,
+                           struct bf_dev_target_t dev_tgt,
+                           const char *table_name,
+                           struct fixed_function_key_spec  *key_spec);
 
 /**
  * API to get default entry for key less table
@@ -72,10 +73,10 @@ int ff_mgr_ent_del(u32 sess_hdl,
  * @param  data_spec    data spec to fill in return value
  * @return              Status of the API call
  */
-int ff_mgr_ent_get_default_entry(u32 sess_hdl,
-                                 struct bf_dev_target_t dev_tgt,
-                                 const char *table_name,
-                                 struct fixed_function_data_spec *data_spec);
+int fixed_func_mgr_get_default_entry(u32 sess_hdl,
+                                     struct bf_dev_target_t dev_tgt,
+                                     const char *table_name,
+                                     struct fixed_function_data_spec *data_spec);
 
 
 /**
@@ -94,4 +95,19 @@ int fixed_func_mgr_notification_register(struct bf_dev_target_t dev_tgt,
                                          tdi_rt_attributes_type_e _attr_type,
                                          void *cb_cookie);
 
+/**
+ * API to retrive statistics or state information
+ *
+ * @param  sess_hdl     Session handle.
+ * @param  dev_tgt      Device target.
+ * @param  table_name   table name
+ * @param  key_spec     key spec
+ * @param  data_spec    data spec
+ * @return              Status of the API call
+ */
+int fixed_func_mgr_get_stats(u32 sess_hdl,
+                             struct bf_dev_target_t dev_tgt,
+                             const char *table_name,
+                             struct fixed_function_key_spec  *key_spec,
+                             struct fixed_function_data_spec *data_spec);
 #endif /* __FF_MGR_FUNCT_H__ */

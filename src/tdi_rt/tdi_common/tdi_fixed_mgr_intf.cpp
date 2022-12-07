@@ -34,11 +34,11 @@ pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntAdd(
 		struct fixed_function_key_spec  *key_spec,
 		struct fixed_function_data_spec *data_spec)
 {
-        return ff_mgr_ent_add(sess_hdl,
-                              dev_tgt,
-			      table_name,
-			      key_spec,
-			      data_spec);
+        return fixed_func_mgr_ent_add(sess_hdl,
+                                      dev_tgt,
+			              table_name,
+			              key_spec,
+			              data_spec);
 }
 
 pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntDel(
@@ -47,10 +47,10 @@ pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntDel(
 		const char *table_name,
 		struct fixed_function_key_spec *key_spec)
 {
-        return ff_mgr_ent_del(sess_hdl,
-                              dev_tgt,
-                              table_name,
-                              key_spec);
+        return fixed_func_mgr_ent_del(sess_hdl,
+                                      dev_tgt,
+                                      table_name,
+                                      key_spec);
 }
 
 pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntGetDefaultEntry(
@@ -59,10 +59,10 @@ pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntGetDefaultEntry(
 		const char *table_name,
 		struct fixed_function_data_spec *data_spec)
 {
-	return ff_mgr_ent_get_default_entry(sess_hdl,
-			                    dev_tgt,
-			                    table_name,
-			                    data_spec);
+	return fixed_func_mgr_get_default_entry(sess_hdl,
+			                        dev_tgt,
+			                        table_name,
+			                        data_spec);
 }
 
 pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntGet(
@@ -142,6 +142,20 @@ pipe_status_t FixedFunctionMgrIntf::notificationRegister(
                                                     cb,
                                                     _attr_type,
                                                     cb_cookie);
+}
+
+pipe_status_t FixedFunctionMgrIntf::ffMgrMatEntStatsGet(
+		pipe_sess_hdl_t sess_hdl,
+		dev_target_t dev_tgt,
+		const char *table_name,
+		struct fixed_function_key_spec  *key_spec,
+		struct fixed_function_data_spec *data_spec)
+{
+	return fixed_func_mgr_get_stats(sess_hdl,
+                                        dev_tgt,
+                                        table_name,
+                                        key_spec,
+                                        data_spec);
 }
 
 }  // namespace rt

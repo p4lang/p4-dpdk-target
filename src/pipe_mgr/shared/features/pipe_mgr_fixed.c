@@ -76,11 +76,14 @@ static int get_fixed_func_mgr_from_table(const char *table_name,
 	return BF_SUCCESS;
 }
 
-int ff_mgr_ent_add(u32 sess_hdl,
-		   bf_dev_target_t dev_tgt,
-		   const char *table_name,
-		   struct fixed_function_key_spec  *key_spec,
-		   struct fixed_function_data_spec *data_spec)
+/**
+ * API to add an entry
+ */
+int fixed_func_mgr_ent_add(u32 sess_hdl,
+		           bf_dev_target_t dev_tgt,
+		           const char *table_name,
+		           struct fixed_function_key_spec  *key_spec,
+		           struct fixed_function_data_spec *data_spec)
 {
 	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
 	int status = BF_SUCCESS;
@@ -107,7 +110,7 @@ int ff_mgr_ent_add(u32 sess_hdl,
 			break;
 		case FF_MGR_INVALID:
 		default:
-			LOG_ERROR("%s: invalid fixed function manager",
+			LOG_ERROR("%s: unsupported fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
 	}
@@ -117,10 +120,13 @@ exit:
 	return status;
 }
 
-int ff_mgr_ent_del(u32 sess_hdl,
-                   struct bf_dev_target_t dev_tgt,
-		   const char *table_name,
-		   struct fixed_function_key_spec  *key_spec)
+/**
+ * API to delete an entry
+ */
+int fixed_func_mgr_ent_del(u32 sess_hdl,
+                           struct bf_dev_target_t dev_tgt,
+                           const char *table_name,
+                           struct fixed_function_key_spec  *key_spec)
 {
 	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
 	int  status = BF_SUCCESS;
@@ -145,7 +151,7 @@ int ff_mgr_ent_del(u32 sess_hdl,
 			break;
 		case FF_MGR_INVALID:
 		default:
-			LOG_ERROR("%s: invalid fixed function manager",
+			LOG_ERROR("%s: unsupported fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
 	}
@@ -157,10 +163,10 @@ exit:
 /**
  * API to get default entry for key less table
  */
-int ff_mgr_ent_get_default_entry(u32 sess_hdl,
-                                 bf_dev_target_t dev_tgt,
-                                 const char *table_name,
-                                 struct fixed_function_data_spec *data_spec)
+int fixed_func_mgr_get_default_entry(u32 sess_hdl,
+                                     bf_dev_target_t dev_tgt,
+                                     const char *table_name,
+                                     struct fixed_function_data_spec *data_spec)
 {
 	enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
 	int  status = BF_SUCCESS;
@@ -184,7 +190,7 @@ int ff_mgr_ent_get_default_entry(u32 sess_hdl,
 			break;
 		case FF_MGR_INVALID:
 		default:
-			LOG_ERROR("%s: invalid fixed function manager",
+			LOG_ERROR("%s: unsupported fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
 	}
@@ -224,11 +230,54 @@ int fixed_func_mgr_notification_register(struct bf_dev_target_t dev_tgt,
 			break;
 		case FF_MGR_INVALID:
 		default:
-			LOG_ERROR("%s: invalid fixed function manager",
+			LOG_ERROR("%s: unsupported fixed function manager",
 					__func__);
 			status = BF_INVALID_ARG;
 	}
 exit:
+       LOG_TRACE("Exiting %s", __func__);
+       return status;
+}
+
+/**
+ * API to retrieve stats/state info
+ */
+int fixed_func_mgr_get_stats(u32 sess_hdl,
+                             struct bf_dev_target_t dev_tgt,
+                             const char *table_name,
+                             struct fixed_function_key_spec  *key_spec,
+                             struct fixed_function_data_spec *data_spec)
+{
+       enum fixed_function_mgr ff_mgr = FF_MGR_INVALID;
+       int  status = BF_SUCCESS;
+
+       LOG_TRACE("Entering %s", __func__);
+
+       status = get_fixed_func_mgr_from_table(table_name, &ff_mgr);
+
+       if (status)
+	       goto ff_exit;
+
+	switch (ff_mgr)
+	{
+		case FF_MGR_PORT:
+			status = port_all_stats_get(dev_tgt.device_id,
+                                                    key_spec,
+                                                    data_spec);
+		        break;
+		case FF_MGR_VPORT:
+			status = BF_NOT_SUPPORTED;
+		        break;
+		case FF_MGR_CRYPTO:
+			status = BF_NOT_SUPPORTED;
+			break;
+		case FF_MGR_INVALID:
+		default:
+			LOG_ERROR("%s: unsupported fixed function manager",
+					__func__);
+			status = BF_INVALID_ARG;
+	}
+ff_exit:
        LOG_TRACE("Exiting %s", __func__);
        return status;
 }

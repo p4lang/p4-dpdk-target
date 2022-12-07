@@ -42,13 +42,13 @@ class FixedFunctionConfigTable : public tdi::Table {
                 {TDI_TABLE_API_TYPE_DELETE, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_DEFAULT_ENTRY_GET,
                  {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_USAGE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
                 /*{TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_FIRST,
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_GET_NEXT_N,
-                 {"dev_id", "pipe_id", "pipe_all"}},
-                {TDI_TABLE_API_TYPE_USAGE_GET,
                  {"dev_id", "pipe_id", "pipe_all"}},
                 {TDI_TABLE_API_TYPE_SIZE_GET,
                  {"dev_id", "pipe_id", "pipe_all"}},
@@ -186,6 +186,72 @@ class FixedFunctionConfigTable : public tdi::Table {
     const tdi::Flags & /*flags*/,
     tdi::TableAttributes *tableAttributes) const override;
 
+ private:
+  tdi_status_t dataAllocate_internal(tdi_id_t action_id,
+                                     std::unique_ptr<tdi::TableData> *data_ret,
+                                     const std::vector<tdi_id_t> &fields) const;
+
+  tdi_status_t entryGet_internal(const tdi::Session &session,
+                                 const tdi::Target &dev_tgt,
+                                 const tdi::Flags &flags,
+                                 fixed_function_key_spec_t *pipe_match_spec,
+                                 tdi::TableData *data) const;
+};
+
+/*
+ * FixedFunctionStateTable
+ */
+class FixedFunctionStateTable: public tdi::Table {
+ public:
+  FixedFunctionStateTable(const tdi::TdiInfo *tdi_info,
+                    const tdi::TableInfo *table_info)
+      : tdi::Table(
+            tdi_info,
+            tdi::SupportedApis({
+                {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
+                {TDI_TABLE_API_TYPE_USAGE_GET,
+                 {"dev_id", "pipe_id", "pipe_all"}},
+            }),
+            table_info) {
+    LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
+  }
+
+  virtual tdi_status_t entryGet(const tdi::Session &session,
+                                const tdi::Target &dev_tgt,
+                                const tdi::Flags &flags,
+                                const tdi::TableKey &key,
+                                tdi::TableData *data) const override;
+  virtual tdi_status_t usageGet(const tdi::Session &session,
+                                const tdi::Target &dev_tgt,
+                                const tdi::Flags &flags,
+                                uint32_t *count) const override;
+
+  virtual tdi_status_t keyAllocate(
+      std::unique_ptr<tdi::TableKey> *key_ret) const override;
+
+  virtual tdi_status_t dataAllocate(
+      std::unique_ptr<tdi::TableData> *data_ret) const override;
+  virtual tdi_status_t dataAllocate(
+      const tdi_id_t &action_id,
+      std::unique_ptr<tdi::TableData> *data_ret) const override;
+  virtual tdi_status_t dataAllocate(
+      const std::vector<tdi_id_t> &fields,
+      std::unique_ptr<tdi::TableData> *data_ret) const override;
+  virtual tdi_status_t dataAllocate(
+      const std::vector<tdi_id_t> &fields,
+      const tdi_id_t &action_id,
+      std::unique_ptr<tdi::TableData> *data_ret) const override;
+
+  virtual tdi_status_t keyReset(tdi::TableKey *key) const override;
+
+  virtual tdi_status_t dataReset(tdi::TableData *data) const override;
+  virtual tdi_status_t dataReset(const tdi_id_t &action_id,
+                                 tdi::TableData *data) const override;
+  virtual tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
+                                 tdi::TableData *data) const override;
+  virtual tdi_status_t dataReset(const std::vector<tdi_id_t> &fields,
+                                 const tdi_id_t &action_id,
+                                 tdi::TableData *data) const override;
  private:
   tdi_status_t dataAllocate_internal(tdi_id_t action_id,
                                      std::unique_ptr<tdi::TableData> *data_ret,

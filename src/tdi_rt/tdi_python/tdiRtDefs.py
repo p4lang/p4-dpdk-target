@@ -206,6 +206,7 @@ class TableTypeRt(TableType):
         TDI_RT_TABLE_TYPE_TM_PIPE_SCHED_CFG = auto()
         TDI_RT_TABLE_TYPE_VALUE_LOOKUP = auto()
         TDI_RT_TABLE_TYPE_FIXED_FUNC   = auto()
+        TDI_RT_TABLE_TYPE_FIXED_FUNC_STATE   = auto()
         TDI_RT_TABLE_TYPE_INVALID_TYPE = auto()
 
     table_type_dict = {
@@ -287,6 +288,7 @@ class TableTypeRt(TableType):
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_TM_PIPE_SCHED_CFG.value			:  "TM_PIPE_SCHED_CFG",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_VALUE_LOOKUP.value            	:  "VALUE_LOOKUP",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_FIXED_FUNC.value            	    :  "FIXED_FUNC",
+        TableTypeEnumRt.TDI_RT_TABLE_TYPE_FIXED_FUNC_STATE.value            :  "FIXED_FUNC_STATE",
         TableTypeEnumRt.TDI_RT_TABLE_TYPE_INVALID_TYPE.value				:  "INVLD"
     }
 

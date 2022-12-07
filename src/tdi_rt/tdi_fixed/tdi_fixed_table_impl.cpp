@@ -26,7 +26,7 @@
 #include <tdi_fixed/tdi_fixed_table_data_impl.hpp>
 #include <tdi_rt/c_frontend/tdi_rt_attributes.h>
 #include <tdi_rt/c_frontend/tdi_rt_attributes.h>
-#include <include/tdi_rt/tdi_rt_attributes.hpp>
+#include <tdi_rt/tdi_rt_attributes.hpp>
 #include <tdi_rt/tdi_common/tdi_table_attributes_impl.hpp>
 #include <tdi_rt/tdi_rt_defs.h>
 namespace tdi {
@@ -84,6 +84,16 @@ tdi_status_t commonAttributesGet(const T *table,
                                                          notif_params.cookie);
   return TDI_SUCCESS;
 }
+
+template <typename T>
+tdi_status_t getTableUsage(const tdi::Session &session,
+                           const tdi::Target &dev_tgt,
+                           const tdi::Flags &flags,
+                           const T &table,
+                           uint32_t *count) {
+  return TDI_SUCCESS;
+}
+
 // FixedFunctionConfigTable ******************
 tdi_status_t FixedFunctionConfigTable::defaultEntryGet(
 		const tdi::Session &session,
@@ -363,7 +373,7 @@ tdi_status_t FixedFunctionConfigTable::usageGet(
 		const tdi::Target &dev_tgt,
 		const tdi::Flags &flags,
 		uint32_t *count) const {
-	return TDI_SUCCESS;
+	return getTableUsage(session, dev_tgt, flags, *(this), count);
 }
 
 tdi_status_t FixedFunctionConfigTable::dataAllocate_internal(
@@ -482,8 +492,8 @@ tdi_status_t FixedFunctionConfigTable::entryGet_internal(
 			&data_spec);
 
 	    if (status != TDI_SUCCESS) {
-	        LOG_TRACE(
-	        "%s:%d %s ERROR getting defualt entry for fixed function, "
+	        LOG_ERROR(
+	        "%s:%d %s getting defualt entry for fixed function, "
 		"err %d",
 		__func__,
 		__LINE__,
@@ -537,6 +547,177 @@ tdi_status_t FixedFunctionConfigTable::entryGetNextN(
     tdi::Table::keyDataPairs *key_data_pairs,
     uint32_t *num_returned) const {
   return TDI_NOT_SUPPORTED;
+}
+
+//fixed function state APIs
+tdi_status_t FixedFunctionStateTable::entryGet_internal(
+		const tdi::Session &session,
+		const tdi::Target &dev_tgt,
+		const tdi::Flags &flags,
+		fixed_function_key_spec_t *pipe_match_spec,
+                tdi::TableData *data) const {
+    auto *fixedFuncMgr  = FixedFunctionMgrIntf::getInstance();
+    tdi_status_t status = TDI_NOT_SUPPORTED;
+    fixed_function_data_spec_t data_spec;
+    std::vector<tdi_id_t> dataFields;
+    dev_target_t fixed_dev_tgt;
+
+    /* TODO - add default key-less table support as required */
+    if (!pipe_match_spec) {
+	    LOG_ERROR("%s:%d %s key-less default table get not supported",
+			    __func__,
+			    __LINE__,
+			    tableInfoGet()->nameGet().c_str());
+	    return status;
+    }
+
+    auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+    dev_target->getTargetVals(&fixed_dev_tgt, nullptr);
+
+    FixedFunctionTableData *match_data =
+	    static_cast<FixedFunctionTableData *>(data);
+
+    bool all_fields_set = match_data->allFieldsSetGet();
+    // reset the data object and all fields
+    match_data->TableData::reset();
+
+    match_data->getFixedFunctionTableDataSpecObj().
+	    getFixedFunctionData(&data_spec,
+			         &match_data->fixed_spec_data_->fixed_spec_data);
+
+    status = fixedFuncMgr->ffMgrMatEntStatsGet(
+		    session.handleGet(
+			    static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		    fixed_dev_tgt,
+		    tableInfoGet()->nameGet().c_str(),
+		    pipe_match_spec,
+		    &data_spec);
+
+    if (all_fields_set) {
+	    dataFields = tableInfoGet()->dataFieldIdListGet();
+	    if (dataFields.empty()) {
+		    LOG_ERROR("%s:%d %s getting data Fields, err %d",
+				    __func__,
+				    __LINE__,
+				    tableInfoGet()->nameGet().c_str(),
+				    status);
+		    return status;
+	    }
+	    match_data->activeFieldsSet({});
+    } else {
+	    dataFields = tableInfoGet()->dataFieldIdListGet();
+	    match_data->activeFieldsSet(dataFields);
+    }
+
+    return status;
+}
+
+tdi_status_t FixedFunctionStateTable::entryGet(
+		const tdi::Session &session,
+		const tdi::Target &dev_tgt,
+		const tdi::Flags &flags,
+		const tdi::TableKey &key,
+		tdi::TableData *data) const {
+
+	const FixedFunctionTableKey &match_key =
+		static_cast<const FixedFunctionTableKey &>(key);
+
+	auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+	fixed_function_key_spec_t fixed_match_spec = {0};
+	dev_target_t fixed_dev_tgt;
+
+	match_key.populate_fixed_fun_key_spec(&fixed_match_spec);
+	dev_target->getTargetVals(&fixed_dev_tgt, nullptr);
+
+	return entryGet_internal(session,dev_tgt, flags, &fixed_match_spec, data);
+}
+
+tdi_status_t FixedFunctionStateTable::dataAllocate_internal(
+		tdi_id_t action_id,
+		std::unique_ptr<tdi::TableData> *data_ret,
+		const std::vector<tdi_id_t> &fields) const {
+
+  *data_ret = std::unique_ptr<tdi::TableData>(
+      new FixedFunctionTableData(this, action_id, fields));
+
+  if (*data_ret == nullptr) {
+    return TDI_NO_SYS_RESOURCES;
+  }
+
+  return TDI_SUCCESS;
+}
+
+tdi_status_t FixedFunctionStateTable::dataAllocate(
+    std::unique_ptr<tdi::TableData> *data_ret) const {
+  std::vector<tdi_id_t> fields;
+  return dataAllocate_internal(0, data_ret, fields);
+}
+
+tdi_status_t FixedFunctionStateTable::dataAllocate(
+    const tdi_id_t &action_id,
+    std::unique_ptr<tdi::TableData> *data_ret) const {
+  // Create a empty vector to indicate all fields are needed
+  std::vector<tdi_id_t> fields;
+  return dataAllocate_internal(action_id, data_ret, fields);
+}
+
+tdi_status_t FixedFunctionStateTable::dataAllocate(
+    const std::vector<tdi_id_t> &fields,
+    std::unique_ptr<tdi::TableData> *data_ret) const {
+  return dataAllocate_internal(0, data_ret, fields);
+}
+
+tdi_status_t FixedFunctionStateTable::dataAllocate(
+    const std::vector<tdi_id_t> &fields,
+    const tdi_id_t &action_id,
+    std::unique_ptr<tdi::TableData> *data_ret) const {
+  return dataAllocate_internal(action_id, data_ret, fields);
+}
+
+tdi_status_t FixedFunctionStateTable::keyAllocate(
+    std::unique_ptr<TableKey> *key_ret) const {
+  *key_ret = std::unique_ptr<TableKey>(new FixedFunctionTableKey(this));
+  if (*key_ret == nullptr) {
+    return TDI_NO_SYS_RESOURCES;
+  }
+  return TDI_SUCCESS;
+}
+
+tdi_status_t FixedFunctionStateTable::dataReset(tdi::TableData *data) const {
+  std::vector<tdi_id_t> fields;
+  return fixed_dataReset_internal(*this, 0, fields, data);
+}
+
+tdi_status_t FixedFunctionStateTable::dataReset(const tdi_id_t &action_id,
+                                                 tdi::TableData *data) const {
+  std::vector<tdi_id_t> fields;
+  return fixed_dataReset_internal(*this, action_id, fields, data);
+}
+
+tdi_status_t FixedFunctionStateTable::dataReset(
+                const std::vector<tdi_id_t> &fields,
+                tdi::TableData *data) const {
+  return fixed_dataReset_internal(*this, 0, fields, data);
+}
+
+tdi_status_t FixedFunctionStateTable::dataReset(
+                const std::vector<tdi_id_t> &fields,
+                const tdi_id_t &action_id,
+                tdi::TableData *data) const {
+  return fixed_dataReset_internal(*this, action_id, fields, data);
+}
+
+tdi_status_t FixedFunctionStateTable::usageGet(const tdi::Session &session,
+                                               const tdi::Target &dev_tgt,
+                                               const tdi::Flags &flags,
+                                               uint32_t *count) const {
+  return getTableUsage(session, dev_tgt, flags, *(this), count);
+}
+
+tdi_status_t FixedFunctionStateTable::keyReset(TableKey *key) const {
+  FixedFunctionTableKey *match_key = static_cast<FixedFunctionTableKey *>(key);
+  return key_reset<FixedFunctionStateTable, FixedFunctionTableKey>(*this,
+			match_key);
 }
 
 }  // namespace rt

@@ -1,0 +1,81 @@
+README file for PORT configuration with fixed function tdi/context JSON files.
+
+Addition of PORT json files in bf_switchd config file
+=======================================================
+The bf_switchd configuration file should have a fixed function section.
+This fixed function section can be used to enable fixed function TDI functionality
+like port managers.
+
+An example for bf_switchd configuration files can be found in port_mgr section 
+"fixed_function.conf".
+
+Following example can be considered to enable PORT related functionality.
+
+Example
+=========
+
+"fixed_functions" : [
+                 {
+                     "name": "port",
+		     "tdi": "share/tdi_port.json",
+		     "ctx": "share/tdi_port_ctx.json"
+                 }
+             ],
+ 
+
+bf_switchd Commands to run the program:
+====================================================================================
+
+tdi_python
+tdi.fixed.port.port
+
+Rule to Create TAP port
+=======================
+add(DEV_PORT=0, PORT_TYPE="tap", PORT_DIR="default", PORT_IN_ID=0, PORT_OUT_ID =0, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP0", MTU=1500)
+add(DEV_PORT=1, PORT_TYPE="tap", PORT_DIR="default", PORT_IN_ID=1, PORT_OUT_ID =1, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP1", MTU=1500)
+add(DEV_PORT=2, PORT_TYPE="tap", PORT_DIR="default", PORT_IN_ID=2, PORT_OUT_ID =2, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP2", MTU=1500)
+add(DEV_PORT=3, PORT_TYPE="tap", PORT_DIR="default", PORT_IN_ID=3, PORT_OUT_ID =3, PIPE_IN="pipe", PIPE_OUT="pipe", MEMPOOL="MEMPOOL0", PORT_NAME="TAP3", MTU=1500)
+
+Verify creation of TAP ports on host with command "ip a".
+
+Statistics ouput for TAP port "2"
+==================================
+# enable pipeline before retrieving stats
+  tdi.fixed.port.enable
+
+# TAP PORT "2" stats output
+
+tdi.fixed.port> tdi.fixed.port.port_stat.get(DEV_PORT=2)
+[Thread 0x7fffd05bf640 (LWP 2282424) exited]
+Entry 0:
+Entry key:
+    $DEV_PORT                      : 0x00000002
+Entry data:
+    $RX_BYTES                      : 0x0000000000000312
+    $RX_PACKETS                    : 0x0000000000000009
+    $RX_UNICAST                    : 0x0000000000000000
+    $RX_MULTICAST                  : 0x0000000000000000
+    $RX_BROADCAST                  : 0x0000000000000000
+    $RX_DISCARDS                   : 0x0000000000000000
+    $RX_ERRORS                     : 0x0000000000000000
+    $RX_EMPTY_POLLS                : 0x0000000000000000
+    $TX_BYTES                      : 0x0000000000000000
+    $TX_PACKETS                    : 0x0000000000000000
+    $TX_UNICAST                    : 0x0000000000000000
+    $TX_MULTICAST                  : 0x0000000000000000
+    $TX_BROADCAST                  : 0x0000000000000000
+    $TX_DISCARDS                   : 0x0000000000000000
+    $TX_ERRORS                     : 0x0000000000000000
+
+Out[9]: Entry for fixed.port.port_stat table.
+
+ip a (output from host)
+========================
+106: TAP0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 6a:dd:2d:05:36:1c brd ff:ff:ff:ff:ff:ff
+107: TAP1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether fe:73:6d:8e:56:36 brd ff:ff:ff:ff:ff:ff
+108: TAP2: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 22:a6:b9:02:27:6a brd ff:ff:ff:ff:ff:ff
+109: TAP3: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether ce:b5:ee:c9:80:8d brd ff:ff:ff:ff:ff:ff

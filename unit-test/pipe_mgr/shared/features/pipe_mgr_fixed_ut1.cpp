@@ -34,7 +34,7 @@ using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;
 
-/* ff_mgr_ent_add */
+/* fixed_func_mgr_ent_add */
 TEST(fixedFunctionConfigTable, case1) {
 	const char *table_name =   "ipsec_offload.ipsec-offload.sad.sad-entry.ipsec-sa-config";
 	const char *table_name_1 = "ipsec-offload.ipsec-offload.sad.sad-entry.ipsec-sa-config";
@@ -64,7 +64,7 @@ TEST(fixedFunctionConfigTable, case2) {
 		.Times(1).
 		WillOnce(Return(BF_SUCCESS));
 
-        a_res = ff_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
+        a_res = fixed_func_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
 
 	ASSERT_EQ(a_res, e_res);
 }
@@ -77,7 +77,7 @@ TEST(fixedFunctionConfigTable, case2) {
         uint32_t sess_hdl = 0;
         int a_res, e_res = 0;
 
-        a_res = ff_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
+        a_res = fixed_func_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
 
 	ASSERT_EQ(a_res, e_res);
 }
@@ -92,15 +92,15 @@ TEST(fixedFunctionConfigTable, case4) {
         uint32_t sess_hdl = 0;
         int a_res, e_res = BF_INVALID_ARG;
 
-        a_res = ff_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
+        a_res = fixed_func_mgr_ent_add(sess_hdl, dev_tgt, table_name, &key_spec, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
-        a_res = ff_mgr_ent_add(sess_hdl, dev_tgt, table_name_1, &key_spec, &data_spec);
+        a_res = fixed_func_mgr_ent_add(sess_hdl, dev_tgt, table_name_1, &key_spec, &data_spec);
 	EXPECT_EQ(a_res, e_res);
 }
 
-/* ff_mgr_ent_del */
+/* fixed_func_mgr_ent_del */
 /* case5 - test ipsec-offload/crypto manager */
 TEST(fixedFunctionConfigTable, case5) {
 	const char *table_name =   "ipsec_offload.ipsec-offload.sad.sad-entry.ipsec-sa-config";
@@ -126,7 +126,7 @@ TEST(fixedFunctionConfigTable, case6) {
         uint32_t sess_hdl = 0;
         int a_res, e_res = 0;
 
-        a_res = ff_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
+        a_res = fixed_func_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
 
 	ASSERT_EQ(a_res, e_res);
 }
@@ -139,7 +139,7 @@ TEST(fixedFunctionConfigTable, case7) {
         uint32_t sess_hdl = 0;
         int a_res, e_res = 0;
 
-        a_res = ff_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
+        a_res = fixed_func_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
 
 	ASSERT_EQ(a_res, e_res);
 }
@@ -152,15 +152,15 @@ TEST(fixedFunctionConfigTable, case8) {
         int a_res, e_res = BF_INVALID_ARG;
         uint32_t sess_hdl = 0;
 
-        a_res = ff_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
+        a_res = fixed_func_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
-        a_res = ff_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
+        a_res = fixed_func_mgr_ent_del(sess_hdl, dev_tgt, table_name, &key_spec);
 	EXPECT_EQ(a_res, e_res);
 }
 
-/* ff_mgr_ent_get_default_entry */
+/* fixed_func_mgr_get_default_entry */
 TEST(fixedFunctionConfigTable, case9) {
 	const char *table_name_1 = "ipsec-offload.ipsec-offload.sad.sad-entry.ipsec-sa-config";
 	const char *table_name   = "ipsec_offload.ipsec-offload.sad.sad-entry.ipsec-sa-config";
@@ -177,7 +177,7 @@ TEST(fixedFunctionConfigTable, case9) {
 		.Times(1).
 		WillOnce(Return(BF_SUCCESS));
 
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
@@ -185,7 +185,7 @@ TEST(fixedFunctionConfigTable, case9) {
 		.Times(1).
 		WillOnce(Return(BF_SUCCESS));
 
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name_1, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name_1, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
@@ -195,25 +195,25 @@ TEST(fixedFunctionConfigTable, case9) {
 		WillOnce(Return(BF_INTERNAL_ERROR));
 
 	e_res = BF_INTERNAL_ERROR;
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name_1, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name_1, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
 	/* test for port manager which is not supported */
 	e_res = BF_NOT_SUPPORTED;
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name_port, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name_port, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
 	/* test for vort manager which is not supported */
 	e_res = BF_NOT_SUPPORTED;
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name_vport, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name_vport, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 
 	/* test for invalid backend manager */
 	e_res = BF_INVALID_ARG;
-        a_res = ff_mgr_ent_get_default_entry(sess_hdl, dev_tgt, table_name_invalid, &data_spec);
+        a_res = fixed_func_mgr_get_default_entry(sess_hdl, dev_tgt, table_name_invalid, &data_spec);
 
 	EXPECT_EQ(a_res, e_res);
 }
@@ -249,4 +249,76 @@ TEST(fixedFunctionConfigTable, case10) {
 	e_res = BF_INVALID_ARG;
         a_res = fixed_func_mgr_notification_register(dev_tgt, table_name_invalid, cb, _attr_type,cb_cookie);
 	EXPECT_EQ(a_res, e_res);
+}
+
+/* fixed_func_mgr_get_stats */
+TEST(fixedFunctionConfigTable, case11) {
+	tdi_rt_attributes_type_e _attr_type = TDI_RT_ATTRIBUTES_TYPE_IPSEC_SADB_EXPIRE_NOTIF;
+	const char *table_name_invalid   = "invalid_table";
+	const char *table_name_vport = "vport.port";
+	const char *table_name   = "ipsec_offload";
+	const char *table_name_port = "port.port";
+	fixed_func_mgr_update_callback cb = NULL;
+        struct bf_dev_target_t dev_tgt = {0};
+	void *cb_cookie = NULL;
+        int a_res, e_res = 0;
+
+	/* test for crypto manager */
+	EXPECT_GLOBAL_CALL(crypto_mgr_register_auto_config_notify, crypto_mgr_register_auto_config_notify(_,_,_,_,_))
+		.Times(1).
+		WillOnce(Return(BF_SUCCESS));
+
+        a_res = fixed_func_mgr_notification_register(dev_tgt, table_name, cb, _attr_type,cb_cookie);
+	EXPECT_EQ(a_res, e_res);
+
+	/* test for port manager which is not supported */
+	e_res = BF_NOT_SUPPORTED;
+        a_res = fixed_func_mgr_notification_register(dev_tgt, table_name_port, cb, _attr_type,cb_cookie);
+	EXPECT_EQ(a_res, e_res);
+
+	/* test for vort manager which is not supported */
+	e_res = BF_NOT_SUPPORTED;
+        a_res = fixed_func_mgr_notification_register(dev_tgt, table_name_vport, cb, _attr_type,cb_cookie);
+	EXPECT_EQ(a_res, e_res);
+
+	/* test for invalid backend manager */
+	e_res = BF_INVALID_ARG;
+        a_res = fixed_func_mgr_notification_register(dev_tgt, table_name_invalid, cb, _attr_type,cb_cookie);
+	EXPECT_EQ(a_res, e_res);
+}
+
+TEST(fixedFunctionStatTable, case1) {
+	const char *table_name_invalid   = "invalid_table";
+	const char *table_name_ipsec   = "ipsec_offload";
+        struct fixed_function_data_spec data_spec = {0};
+        struct fixed_function_key_spec  key_spec  = {0};
+	const char *table_name_vport = "vport.port";
+	const char *table_name_port  = "port.port_stat";
+        struct bf_dev_target_t dev_tgt = {0};
+        uint32_t sess_hdl = 0;
+        int a_res, e_res = 0;
+
+	//port statistics
+	EXPECT_GLOBAL_CALL(port_all_stats_get, port_all_stats_get(_,_,_))
+		.Times(1).
+		WillOnce(Return(BF_SUCCESS));
+
+        a_res = fixed_func_mgr_get_stats(sess_hdl, dev_tgt, table_name_port, &key_spec, &data_spec);
+
+	ASSERT_EQ(a_res, e_res);
+
+	//vport statistics (currently not supported)
+	e_res = BF_NOT_SUPPORTED;
+        a_res = fixed_func_mgr_get_stats(sess_hdl, dev_tgt, table_name_vport, &key_spec, &data_spec);
+	ASSERT_EQ(a_res, e_res);
+
+	//ipsec statistics (currently not supported)
+	e_res = BF_NOT_SUPPORTED;
+        a_res = fixed_func_mgr_get_stats(sess_hdl, dev_tgt, table_name_ipsec, &key_spec, &data_spec);
+	ASSERT_EQ(a_res, e_res);
+
+	//invalid
+	e_res = BF_INVALID_ARG;
+        a_res = fixed_func_mgr_get_stats(sess_hdl, dev_tgt, table_name_invalid, &key_spec, &data_spec);
+	ASSERT_EQ(a_res, e_res);
 }
