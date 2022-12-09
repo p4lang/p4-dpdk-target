@@ -627,6 +627,7 @@ class IPipeMgrIntf {
   // API for Stateful Memory Table Manipulation
   virtual pipe_status_t pipeStfulEntSet(pipe_sess_hdl_t sess_hdl,
                                         dev_target_t dev_target,
+					const char *name,
                                         pipe_stful_tbl_hdl_t stful_tbl_hdl,
                                         pipe_stful_mem_idx_t stful_ent_idx,
                                         pipe_stful_mem_spec_t *stful_spec,
@@ -661,6 +662,7 @@ class IPipeMgrIntf {
   virtual pipe_status_t pipeStfulEntQuery(pipe_sess_hdl_t sess_hdl,
                                           dev_target_t dev_tgt,
                                           pipe_stful_tbl_hdl_t stful_tbl_hdl,
+					  const char *name,
                                           pipe_stful_mem_idx_t stful_ent_idx,
                                           pipe_stful_mem_query_t *stful_query,
                                           uint32_t pipe_api_flags) = 0;
@@ -1503,6 +1505,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
   // API for Stateful Memory Table Manipulation
   pipe_status_t pipeStfulEntSet(pipe_sess_hdl_t sess_hdl,
                                 dev_target_t dev_target,
+				const char *name,
                                 pipe_stful_tbl_hdl_t stful_tbl_hdl,
                                 pipe_stful_mem_idx_t stful_ent_idx,
                                 pipe_stful_mem_spec_t *stful_spec,
@@ -1534,6 +1537,7 @@ class PipeMgrIntf : public IPipeMgrIntf {
   pipe_status_t pipeStfulEntQuery(pipe_sess_hdl_t sess_hdl,
                                   dev_target_t dev_tgt,
                                   pipe_stful_tbl_hdl_t stful_tbl_hdl,
+				  const char *name,
                                   pipe_stful_mem_idx_t stful_ent_idx,
                                   pipe_stful_mem_query_t *stful_query,
                                   uint32_t pipe_api_flags);

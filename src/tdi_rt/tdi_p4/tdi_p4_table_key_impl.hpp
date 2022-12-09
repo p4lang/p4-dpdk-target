@@ -336,24 +336,30 @@ class TdiMeterTableKey : public TdiTableKeyObj {
  private:
   uint32_t meter_id;
 };
+#endif
 
-class TdiRegisterTableKey : public TdiTableKeyObj {
+class RegisterTableKey : public tdi::TableKey {
  public:
-  TdiRegisterTableKey(const TdiTableObj *tbl_obj)
-      : TdiTableKeyObj(tbl_obj), register_id(){};
-  ~TdiRegisterTableKey() = default;
+  RegisterTableKey(const tdi::Table *table)
+      : tdi::TableKey(table), register_id(){};
+  ~RegisterTableKey() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
+  virtual tdi_status_t setValue(const tdi_id_t &field_id,
+		                const tdi::KeyFieldValue &field_value) override;
+  virtual tdi_status_t getValue(const tdi_id_t &field_id,
+		                tdi::KeyFieldValue *value) const override;
 
-  tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field, const uint64_t &value);
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
+  tdi_status_t setValue(const tdi::KeyFieldInfo *key_field,
+			const uint8_t *value,
+			const size_t &size);
 
-  tdi_status_t getValue(const tdi_id_t &field_id,
-                       const size_t &size,
-                       uint8_t *value) const;
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field, uint64_t *value) const;
+
+  tdi_status_t getValue(const tdi::KeyFieldInfo *key_field,
+			const size_t &size,
+			uint8_t *value) const;
 
   void setIdxKey(uint32_t idx) { register_id = idx; }
 
@@ -368,6 +374,7 @@ class TdiRegisterTableKey : public TdiTableKeyObj {
   uint32_t register_id;
 };
 
+#if 0
 class TdiSelectorGetMemberTableKey : public TdiTableKeyObj {
  public:
   TdiSelectorGetMemberTableKey(const TdiTableObj *tbl_obj)

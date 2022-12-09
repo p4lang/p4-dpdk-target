@@ -144,7 +144,7 @@ tdi_status_t ContextInfoParser::parseContextJson(
     if (kv.second.first && !kv.second.second) {
 	    tdi_rt_table_type_e table_type =
 		    static_cast<tdi_rt_table_type_e>(kv.second.first->tableTypeGet());
-	    if (table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC) {
+	    if (table_type == TDI_RT_TABLE_TYPE_FIXED_FUNC || table_type == TDI_RT_TABLE_TYPE_REGISTER) {
 		    auto rt_table_context_info =
 			    contextInfoParser.parseFixedTable(*(kv.second.second),
 					    kv.second.first,
@@ -1667,6 +1667,12 @@ DataFieldType getDataFieldTypeFrmName(std::string data_name,
     return DataFieldType::COUNTER_SPEC_PACKETS;
   } else if (data_name == "REGISTER_INDEX") {
     return DataFieldType::REGISTER_INDEX;
+  } else if (data_name == "REGISTER_SPEC") {
+    return DataFieldType::REGISTER_SPEC;
+  } else if (data_name == "REGISTER_SPEC_LO") {
+    return DataFieldType::REGISTER_SPEC_LO;
+  } else if (data_name == "REGISTER_SPEC_HI") {
+    return DataFieldType::REGISTER_SPEC_HI;
   } else if (data_name == "METER_SPEC_CIR_PPS") {
     return DataFieldType::METER_SPEC_CIR_PPS;
   } else if (data_name == "METER_SPEC_PIR_PPS") {

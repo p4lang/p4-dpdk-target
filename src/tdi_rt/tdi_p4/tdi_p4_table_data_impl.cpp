@@ -227,6 +227,9 @@ bool initialization_required(const DataFieldType &type) {
     case DataFieldType::REGISTER_INDEX:
     case DataFieldType::COUNTER_SPEC_BYTES:
     case DataFieldType::COUNTER_SPEC_PACKETS:
+    case DataFieldType::REGISTER_SPEC_HI:
+    case DataFieldType::REGISTER_SPEC_LO:
+    case DataFieldType::REGISTER_SPEC:
     case DataFieldType::METER_SPEC_CIR_PPS:
     case DataFieldType::METER_SPEC_PIR_PPS:
     case DataFieldType::METER_SPEC_CBS_PKTS:
@@ -2151,12 +2154,13 @@ tdi_status_t TdiMeterTableData::resetDerived() {
   return TDI_SUCCESS;
 }
 
+#endif
 // REGISTER TABLE DATA
-tdi_status_t TdiRegisterTableData::setValueInternal(const tdi_id_t &field_id,
-                                                    const size_t &size,
-                                                    const uint64_t &value,
-                                                    const uint8_t *value_ptr) {
-  uint64_t val = 0;
+tdi_status_t RegisterTableData::setValueInternal(const tdi_id_t &field_id,
+						 const size_t &size,
+						 const uint64_t &value,
+						 const uint8_t *value_ptr) {
+	uint64_t val = 0;
   DataFieldType field_type;
   // Here we pass an empty set because this can be used for any field type
   // under reggister table
@@ -2178,36 +2182,65 @@ tdi_status_t TdiRegisterTableData::setValueInternal(const tdi_id_t &field_id,
     return sts;
   }
 
-  const tdi::DataFieldInfo *tableDataField = nullptr;
-  this->table_->getDataField(field_id, &tableDataField);
+  const auto &action_id = this->actionIdGet();
+  const tdi::DataFieldInfo *tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
   getRegisterSpecObj().setFirstRegister(*tableDataField, val);
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiRegisterTableData::setValue(const tdi_id_t &field_id,
-                                            const uint64_t &value) {
+tdi_status_t RegisterTableData::getValueInternal(const tdi_id_t &field_id,
+						 const size_t &size,
+						 uint64_t *value,
+						 uint8_t *value_ptr) const{
+	uint64_t val = 0;
+	DataFieldType field_type;
+
+	std::set<DataFieldType> allowed_field_types;
+	auto sts = indirectResourceGetValueHelper(*table_,
+			                          field_id,
+						  allowed_field_types,
+						  size,
+						  value,
+						  value_ptr,
+						  &field_type);
+	if (sts != TDI_SUCCESS) {
+		LOG_ERROR("%s:%d %s ERROR : Set value failed for field_id %d",
+				__func__,
+				__LINE__,
+				this->table_->tableInfoGet()->nameGet().c_str(),
+				field_id);
+		return sts;
+	}
+	const auto &action_id = this->actionIdGet();
+	const tdi::DataFieldInfo *tableDataField =
+		this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
+	const auto &register_obj = getRegisterSpecObj();
+	const auto &tdi_registers = register_obj.getRegisterVec();
+	for (const auto &tdi_register_data : tdi_registers) {
+		val = tdi_register_data.getData(*tableDataField);
+		setInputValToOutputVal(*table_, field_id, val, value, value_ptr);
+	}
+	return TDI_SUCCESS;
+
+
+}
+tdi_status_t RegisterTableData::setValue(const tdi_id_t &field_id,
+					 const uint64_t &value) {
   return this->setValueInternal(field_id, 0, value, nullptr);
 }
 
-tdi_status_t TdiRegisterTableData::setValue(const tdi_id_t &field_id,
+tdi_status_t RegisterTableData::setValue(const tdi_id_t &field_id,
                                             const uint8_t *value_ptr,
                                             const size_t &size) {
   return this->setValueInternal(field_id, size, 0, value_ptr);
 }
 
-tdi_status_t TdiRegisterTableData::getValue(
+tdi_status_t RegisterTableData::getValue(
     const tdi_id_t &field_id, std::vector<uint64_t> *value) const {
-  // Get the data_field from the table
-  const tdi::DataFieldInfo *tableDataField = nullptr;
-  auto status = this->table_->getDataField(field_id, &tableDataField);
-  if (status != TDI_SUCCESS) {
-    LOG_ERROR("%s:%d %s ERROR : Data field id %d not found",
-              __func__,
-              __LINE__,
-              this->table_->tableInfoGet()->nameGet().c_str(),
-              field_id);
-    return TDI_OBJECT_NOT_FOUND;
-  }
+  const auto &action_id = this->actionIdGet();
+  const tdi::DataFieldInfo *tableDataField =
+      this->table_->tableInfoGet()->dataFieldGet(field_id, action_id);
   const auto &register_obj = getRegisterSpecObj();
   const auto &tdi_registers = register_obj.getRegisterVec();
   for (const auto &tdi_register_data : tdi_registers) {
@@ -2216,12 +2249,17 @@ tdi_status_t TdiRegisterTableData::getValue(
   return TDI_SUCCESS;
 }
 
-tdi_status_t TdiRegisterTableData::resetDerived() {
+tdi_status_t RegisterTableData::getValue(const tdi_id_t &field_id,
+		                         const size_t &size,
+					 uint8_t *value_ptr) const {
+  return this->getValueInternal(field_id, size, nullptr, value_ptr);
+}
+tdi_status_t RegisterTableData::resetDerived() {
   register_spec_.reset();
   //TableData::this->reset();
   return TDI_SUCCESS;
 }
-
+#if 0
 // RegisterParam
 tdi_status_t TdiRegisterParamTableData::resetDerived() {
   this->value = 0;

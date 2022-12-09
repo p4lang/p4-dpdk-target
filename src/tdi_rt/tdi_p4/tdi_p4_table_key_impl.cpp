@@ -1328,42 +1328,37 @@ tdi_status_t MeterTableKey::setValue(const tdi_id_t &field_id,
   meter_id = val;
   return TDI_SUCCESS;
 }
-
+#endif
 tdi_status_t RegisterTableKey::getValue(const tdi_id_t &field_id,
-                                           uint64_t *value) const {
-  return getKeyIdxValue<RegisterTableKey>(*this, *table_, field_id, value);
+					tdi::KeyFieldValue *value) const {
+	return getValueHelper<RegisterTableKey>(this, field_id, value);
+}
+tdi_status_t RegisterTableKey::getValue(const tdi::KeyFieldInfo *key_field,
+					uint64_t *value) const {
+  return getKeyIdxValue<RegisterTableKey>(*this, *table_, key_field, value);
 }
 
-tdi_status_t RegisterTableKey::getValue(const tdi_id_t &field_id,
-                                           const size_t &size,
-                                           uint8_t *value) const {
+tdi_status_t RegisterTableKey::getValue(const tdi::KeyFieldInfo *key_field,
+					const size_t &size,
+					uint8_t *value) const {
   return getKeyIdxValue<RegisterTableKey>(
-      *this, *table_, field_id, value, size);
+      					  *this, *table_, key_field, value, size);
 }
 
 tdi_status_t RegisterTableKey::setValue(const tdi_id_t &field_id,
-                                           const uint64_t &value) {
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
+					const tdi::KeyFieldValue &field_value) {
+	return setValueHelper<RegisterTableKey>(this, field_id, field_value);
+}
+
+tdi_status_t RegisterTableKey::setValue(const tdi::KeyFieldInfo *key_field,
+					const uint64_t &value) {
   register_id = value;
   return TDI_SUCCESS;
 }
 
-tdi_status_t RegisterTableKey::setValue(const tdi_id_t &field_id,
-                                           const uint8_t *value,
-                                           const size_t &size) {
-  // Get the key_field from the table
-  const KeyFieldInfo *key_field;
-  auto status = utils::TableFieldUtils::getKeyFieldSafe(
-      field_id, &key_field, static_cast<tdi_match_type_e>(TDI_MATCH_TYPE_EXACT), table_);
-  if (status != TDI_SUCCESS) {
-    return status;
-  }
+tdi_status_t RegisterTableKey::setValue(const tdi::KeyFieldInfo *key_field,
+					const uint8_t *value,
+					const size_t &size) {
   if (size != sizeof(uint32_t)) {
     LOG_ERROR(
         "%s:%d %s ERROR Array size of %zd is not equal to the field size %zd "
@@ -1373,7 +1368,7 @@ tdi_status_t RegisterTableKey::setValue(const tdi_id_t &field_id,
         table_->tableInfoGet()->nameGet().c_str(),
         size,
         sizeof(uint32_t),
-        field_id);
+        key_field->idGet());
     return TDI_INVALID_ARG;
   }
   uint32_t val = *(reinterpret_cast<const uint32_t *>(value));
@@ -1381,7 +1376,7 @@ tdi_status_t RegisterTableKey::setValue(const tdi_id_t &field_id,
   register_id = val;
   return TDI_SUCCESS;
 }
-
+#if 0
 tdi_status_t SelectorGetMemberTableKey::setValue(const tdi_id_t &field_id,
                                                     const uint64_t &value) {
   return this->setValueInternal(field_id, value, nullptr, 0);

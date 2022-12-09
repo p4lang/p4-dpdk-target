@@ -153,6 +153,7 @@ tdi_status_t entryModInternal(const tdi::Table &table,
         RtDataFieldContextInfo::getDataFieldDestination(fieldTypes);
     switch (field_destination) {
       case fieldDestination::DIRECT_METER:
+      case fieldDestination::DIRECT_REGISTER:
         direct_resource_found = true;
         break;
 
@@ -1130,6 +1131,9 @@ tdi_status_t MatchActionDirect::defaultEntrySet(
       auto dest =
           RtDataFieldContextInfo::getDataFieldDestination(fieldTypes);
       switch (dest) {
+	case fieldDestination::DIRECT_REGISTER:
+	  direct_reg = true;
+	  break;
         case fieldDestination::DIRECT_COUNTER:
           direct_cntr = true;
           break;
@@ -2286,6 +2290,9 @@ tdi_status_t MatchActionDirect::entryGet_internal(
         case fieldDestination::DIRECT_METER:
           res_get_flags |= PIPE_RES_GET_FLAG_METER;
           break;
+	case fieldDestination::DIRECT_REGISTER:
+	  res_get_flags |= PIPE_RES_GET_FLAG_STFUL;
+	  break;
         case fieldDestination::ACTION_SPEC:
           res_get_flags |= PIPE_RES_GET_FLAG_ENTRY;
           break;
@@ -3701,6 +3708,7 @@ tdi_status_t MatchActionIndirect::entryGet_internal(
   pipe_res_get_data_t res_data;
 
   uint32_t res_get_flags = 0;
+  bool stful_fetched = false;
   res_data.stful.data = nullptr;
 
   MatchActionIndirectTableData *match_data =
@@ -3728,6 +3736,9 @@ tdi_status_t MatchActionIndirect::entryGet_internal(
         case fieldDestination::DIRECT_METER:
           res_get_flags |= PIPE_RES_GET_FLAG_METER;
           break;
+	case fieldDestination::DIRECT_REGISTER:
+	  res_get_flags |= PIPE_RES_GET_FLAG_STFUL;
+	  break;
         case fieldDestination::ACTION_SPEC:
           res_get_flags |= PIPE_RES_GET_FLAG_ENTRY;
           break;
@@ -3813,6 +3824,16 @@ tdi_status_t MatchActionIndirect::entryGet_internal(
               res_data.counter);
         }
         break;
+      case fieldDestination::DIRECT_REGISTER:
+	if (res_data.has_stful && !stful_fetched) {
+		std::vector<pipe_stful_mem_spec_t> register_pipe_data(
+				res_data.stful.data,
+				res_data.stful.data + res_data.stful.pipe_count);
+		match_data->getPipeActionSpecObj().setValueRegisterSpec(
+				register_pipe_data);
+		stful_fetched = true;
+	}
+	break;
       case fieldDestination::ACTION_SPEC: {
         // If its the action member ID or the selector group ID, populate the
         // right member of the data object
@@ -6417,21 +6438,22 @@ tdi_status_t MeterTable::tableAttributesGet(
   }
   return TDI_SUCCESS;
 }
-
+#endif
 // REGISTER TABLE
-tdi_status_t RegisterTable::entryAdd(const tdi::Session &session,
-                                             const tdi::Target &dev_tgt,
-                                             const tdi::Flags & /*flags*/,
-                                             const tdi::TableKey &key,
-                                             const tdi::TableData &data) const {
+tdi_status_t RegisterTable::entryMod(const tdi::Session &session,
+				     const tdi::Target &dev_tgt,
+				     const tdi::Flags &flags,
+				     const tdi::TableKey &key,
+				     const tdi::TableData &data) const {
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
   const RegisterTableKey &register_key =
       static_cast<const RegisterTableKey &>(key);
   const RegisterTableData &register_data =
       static_cast<const RegisterTableData &>(data);
   dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
   pipe_stful_mem_idx_t register_idx = register_key.getIdxKey();
 
   if (!verify_key_for_idx_tbls(session, dev_tgt, *this, register_idx)) {
@@ -6441,29 +6463,17 @@ tdi_status_t RegisterTable::entryAdd(const tdi::Session &session,
   pipe_stful_mem_spec_t stful_spec;
   std::memset(&stful_spec, 0, sizeof(stful_spec));
 
-  std::vector<tdi_id_t> dataFields;
-  tdi_status_t status = dataFieldIdListGet(&dataFields);
-  TDI_ASSERT(status == TDI_SUCCESS);
   const auto &register_spec_data = register_data.getRegisterSpecObj();
-  const tdi::DataFieldInfo *tableDataField;
-  status = dataFieldGet(dataFields[0], &tableDataField);
-  TDI_ASSERT(status == TDI_SUCCESS);
   register_spec_data.populateStfulSpecFromData(&stful_spec);
+  return pipeMgr->pipeStfulEntSet(session.handleGet(
+			  	  static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+		  		  pipe_dev_tgt,
+		  		  tableInfoGet()->nameGet().c_str(),
+		  		  pipe_tbl_hdl,
+		  		  register_idx,
+		  		  &stful_spec,
+		  		  0 /* Pipe API flags */);
 
-  return pipeMgr->pipeStfulEntSet(session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
-                                  pipe_dev_tgt,
-                                  pipe_tbl_hdl,
-                                  register_idx,
-                                  &stful_spec,
-                                  0 /* Pipe API flags */);
-}
-
-tdi_status_t RegisterTable::entryMod(const tdi::Session &session,
-                                             const tdi::Target &dev_tgt,
-                                             const tdi::Flags &flags,
-                                             const tdi::TableKey &key,
-                                             const tdi::TableData &data) const {
-  return entryAdd(session, dev_tgt, flags, key, data);
 }
 
 tdi_status_t RegisterTable::entryGet(const tdi::Session &session,
@@ -6472,21 +6482,21 @@ tdi_status_t RegisterTable::entryGet(const tdi::Session &session,
                                              const tdi::TableKey &key,
                                              tdi::TableData *data) const {
   tdi_status_t status = TDI_SUCCESS;
+  pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
+
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
   const RegisterTableKey &register_key =
       static_cast<const RegisterTableKey &>(key);
   dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
 
   pipe_stful_mem_spec_t stful_spec;
   std::memset(&stful_spec, 0, sizeof(stful_spec));
 
   // Query number of pipes to get possible number of results.
-  int num_pipes = 0;
-  status = pipeMgr->pipeStfulQueryGetSizes(
-      session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)), dev_tgt.dev_id, pipe_tbl_hdl, &num_pipes);
-
+  uint32_t num_pipes = 0;
+  status = pipeMgr->pipeMgrGetNumPipelines(pipe_dev_tgt.device_id, &num_pipes);
   // Use vectors to populate pipe mgr stful query data structure.
   // One vector to hold all possible pipe data.
   std::vector<pipe_stful_mem_spec_t> register_pipe_data(num_pipes);
@@ -6494,36 +6504,45 @@ tdi_status_t RegisterTable::entryGet(const tdi::Session &session,
   stful_query.data = register_pipe_data.data();
   stful_query.pipe_count = num_pipes;
 
-  uint32_t pipe_api_flags = 0;
-  if (TDI_FLAG_IS_SET(flags, TDI_FROM_HW)) {
-    pipe_api_flags = PIPE_FLAG_SYNC_REQ;
-  }
   pipe_stful_mem_idx_t register_idx = register_key.getIdxKey();
 
   if (!verify_key_for_idx_tbls(session, dev_tgt, *this, register_idx)) {
     return TDI_INVALID_ARG;
   }
+  bool read_from_hw = false;
+  flags.getValue(static_cast<tdi_flags_e>(TDI_RT_FLAGS_FROM_HW),
+		  &read_from_hw);
+  if(read_from_hw) {
+	  status = pipeMgr->pipeStfulDatabaseSync(
+			  session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
+			  pipe_dev_tgt,
+			  pipe_tbl_hdl,
+			  nullptr, /* to do :cback_fn*/
+			  nullptr);
+	  if (status != TDI_SUCCESS) {
+		  LOG_TRACE("%s:%d %s ERROR in reading register value for register idx %d, err %d",
+			    __func__, __LINE__, tableInfoGet()->nameGet().c_str(), register_idx,
+			    status);
+		  return status;
+	  }
+  }
+
+  uint32_t pipe_api_flags = 0;
 
   status = pipeMgr->pipeStfulEntQuery(session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)),
                                       pipe_dev_tgt,
                                       pipe_tbl_hdl,
+				      tableInfoGet()->nameGet().c_str(),
                                       register_idx,
                                       &stful_query,
                                       pipe_api_flags);
 
   if (status == TDI_SUCCESS) {
-    std::vector<tdi_id_t> dataFields;
-    status = dataFieldIdListGet(&dataFields);
-    TDI_ASSERT(status == TDI_SUCCESS);
-    // Down cast to RegisterTableData
+    // pipe_count is returned upon successful query,
+    // hence use it instead of vector size.
     RegisterTableData *register_data =
         static_cast<RegisterTableData *>(data);
     auto &register_spec_data = register_data->getRegisterSpecObj();
-    const tdi::DataFieldInfo *tableDataField;
-    status = dataFieldGet(dataFields[0], &tableDataField);
-    TDI_ASSERT(status == TDI_SUCCESS);
-    // pipe_count is returned upon successful query,
-    // hence use it instead of vector size.
     register_spec_data.populateDataFromStfulSpec(
         register_pipe_data, static_cast<uint32_t>(stful_query.pipe_count));
   }
@@ -6577,7 +6596,7 @@ tdi_status_t RegisterTable::entryGetFirst(const tdi::Session &session,
       *this, session, dev_tgt, flags, register_key, data);
 }
 
-tdi_status_t RegisterTable::entryGetNext_n(
+tdi_status_t RegisterTable::entryGetNextN(
     const tdi::Session &session,
     const tdi::Target &dev_tgt,
     const tdi::Flags &flags,
@@ -6602,10 +6621,10 @@ tdi_status_t RegisterTable::clear(const tdi::Session &session,
                                           const tdi::Target &dev_tgt,
                                           const tdi::Flags & /*flags*/) const {
   auto *pipeMgr = PipeMgrIntf::getInstance(session);
-
+   pipe_stat_tbl_hdl_t pipe_tbl_hdl = 0;
   dev_target_t pipe_dev_tgt;
-  pipe_dev_tgt.device_id = dev_tgt.dev_id;
-  pipe_dev_tgt.dev_pipe_id = dev_tgt.pipe_id;
+  auto dev_target = static_cast<const tdi::pna::rt::Target *>(&dev_tgt);
+  dev_target->getTargetVals(&pipe_dev_tgt, nullptr);
 
   tdi_status_t status = pipeMgr->pipeStfulTableReset(
       session.handleGet(static_cast<tdi_mgr_type_e>(TDI_RT_MGR_TYPE_PIPE_MGR)), pipe_dev_tgt, pipe_tbl_hdl, nullptr);
@@ -6655,6 +6674,7 @@ tdi_status_t RegisterTable::dataAllocate(
 tdi_status_t RegisterTable::dataReset(tdi::TableData *data) const {
   RegisterTableData *register_data =
       static_cast<RegisterTableData *>(data);
+#if 0 // TODO
   if (!this->validateTable_from_dataObj(*register_data)) {
     LOG_TRACE("%s:%d %s ERROR : Data object is not associated with the table",
               __func__,
@@ -6662,11 +6682,12 @@ tdi_status_t RegisterTable::dataReset(tdi::TableData *data) const {
               tableInfoGet()->nameGet().c_str());
     return TDI_INVALID_ARG;
   }
+#endif
   return register_data->reset();
 }
-
+#if 0
 tdi_status_t RegisterTable::attributeAllocate(
-    const TableAttributesType &type,
+    const tdi_attributes_type_e &type,
     std::unique_ptr<TableAttributes> *attr) const {
   std::set<TableAttributesType> attribute_type_set;
   auto status = tableAttributesSupported(&attribute_type_set);
@@ -6685,7 +6706,7 @@ tdi_status_t RegisterTable::attributeAllocate(
 }
 
 tdi_status_t RegisterTable::attributeReset(
-    const TableAttributesType &type,
+    const tdi_attributes_type_e &type,
     std::unique_ptr<TableAttributes> *attr) const {
   auto &tbl_attr_impl = static_cast<TableAttributesImpl &>(*(attr->get()));
   std::set<TableAttributesType> attribute_type_set;
@@ -6837,12 +6858,15 @@ tdi_status_t RegisterTable::tableAttributesGet(
   return TDI_SUCCESS;
 }
 
+/*
 tdi_status_t RegisterTable::ghostTableHandleSet(
     const pipe_tbl_hdl_t &pipe_hdl) {
   ghost_pipe_tbl_hdl_ = pipe_hdl;
   return TDI_SUCCESS;
 }
-
+*/
+#endif
+#if 0
 // SelectorGetMemberTable****************
 tdi_status_t SelectorGetMemberTable::getRef(
     pipe_sel_tbl_hdl_t *sel_tbl_hdl,

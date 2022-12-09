@@ -808,36 +808,47 @@ class MeterTableData : public tdi::TableData {
   MeterSpecData meter_spec_;
 };
 
+#endif
 class RegisterTableData : public tdi::TableData {
  public:
   RegisterTableData(const tdi::Table *tbl_obj)
       : tdi::TableData(tbl_obj){};
   ~RegisterTableData() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
+  tdi_status_t setValue(const tdi_id_t &field_id,
+		        const uint64_t &value) override;
 
   tdi_status_t setValue(const tdi_id_t &field_id,
-                       const uint8_t *value,
-                       const size_t &size);
+                        const uint8_t *value,
+                        const size_t &size) override;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
-                       std::vector<uint64_t> *value) const;
+                        std::vector<uint64_t> *value) const override;
+
+  tdi_status_t getValue(const tdi_id_t &field_id,
+                        const size_t &size,
+                        uint8_t *value) const override;
 
   // Unexposed APIs
   const RegisterSpecData &getRegisterSpecObj() const { return register_spec_; }
   RegisterSpecData &getRegisterSpecObj() { return register_spec_; }
 
-  tdi_status_t reset() override final;
+  tdi_status_t resetDerived() override;
 
  private:
   tdi_status_t setValueInternal(const tdi_id_t &field_id,
-                               const size_t &size,
-                               const uint64_t &value,
-                               const uint8_t *value_ptr);
+                                const size_t &size,
+                                const uint64_t &value,
+                                const uint8_t *value_ptr);
+  tdi_status_t getValueInternal(const tdi_id_t &field_id,
+                                const size_t &size,
+                                uint64_t *value,
+                                uint8_t *value_ptr) const;
 
   RegisterSpecData register_spec_;
 };
 
+#if 0
 class EmptyTableData : public tdi::TableData {
  public:
   EmptyTableData(const tdi::Table *tbl_obj) : tdi::TableData(tbl_obj){};

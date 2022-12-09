@@ -186,6 +186,8 @@ pipe_mgr/shared/infra/pipe_mgr_session.h \
 pipe_mgr/shared/features/pipe_mgr_value_lookup.c \
 pipe_mgr/shared/features/pipe_mgr_counters.c \
 pipe_mgr/shared/features/pipe_mgr_counters.h \
+pipe_mgr/shared/features/pipe_mgr_registers.c \
+pipe_mgr/shared/features/pipe_mgr_registers.h \
 pipe_mgr/shared/features/pipe_mgr_mirror.c \
 pipe_mgr/shared/features/pipe_mgr_mirror.h \
 pipe_mgr/shared/features/pipe_mgr_mat.c \
@@ -196,6 +198,7 @@ pipe_mgr/stubs/pipe_mgr_intf.c \
 pipe_mgr/shared/dal/dal_init.h \
 pipe_mgr/shared/dal/dal_value_lookup.h \
 pipe_mgr/shared/dal/dal_counters.h \
+pipe_mgr/shared/dal/dal_registers.h \
 pipe_mgr/shared/dal/dal_mirror.h   \
 pipe_mgr/shared/features/pipe_mgr_fixed.c \
 pipe_mgr/shared/features/pipe_mgr_fixed.h
@@ -209,6 +212,7 @@ pipe_mgr/shared/dal/dpdk/dal_tbl.c \
 pipe_mgr/shared/dal/dpdk/dal_init.c \
 pipe_mgr/shared/dal/dpdk/dal_mirror.c \
 pipe_mgr/shared/dal/dpdk/dal_counters.c \
+pipe_mgr/shared/dal/dpdk/dal_registers.c \
 pipe_mgr/shared/dal/dpdk/dal_value_lookup.c \
 pipe_mgr/shared/dal/dpdk/pipe_mgr_dpdk_ctx_util.h \
 pipe_mgr/shared/dal/dpdk/pipe_mgr_dpdk_ctx_util.c \

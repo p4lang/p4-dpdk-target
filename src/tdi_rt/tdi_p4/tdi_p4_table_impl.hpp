@@ -1312,37 +1312,31 @@ class MeterTable : public tdi::Table {
       TableAttributes *tableAttributes) const override;
 };
 
+#endif
 class RegisterTable : public tdi::Table {
  public:
-  RegisterTable(const std::string &program_name,
-                    const tdi_id_t &id,
-                    const std::string &name,
-                    const size_t &size,
-                    const pipe_tbl_hdl_t &pipe_hdl)
-      : tdi::Table(program_name,
-                     id,
-                     name,
-                     size,
-                     TableType::REGISTER,
-                     std::set<TableApi>{
-                         TableApi::ADD,
-                         TableApi::MODIFY,
-                         TableApi::GET,
-                         TableApi::GET_FIRST,
-                         TableApi::GET_NEXT_N,
-                         TableApi::CLEAR,
-                         TableApi::GET_BY_HANDLE,
-                         TableApi::HANDLE_GET,
-                         TableApi::KEY_GET,
-                     },
-                     pipe_hdl),
-        ghost_pipe_tbl_hdl_(){};
-  tdi_status_t entryAdd(const tdi::Session &session,
-                            const tdi::Target &dev_tgt,
-                            const tdi::Flags &flags,
-                            const tdi::TableKey &key,
-                            const tdi::TableData &data) const override;
-
+  RegisterTable(const tdi::TdiInfo *tdi_info,
+		  const tdi::TableInfo *table_info)
+      : tdi::Table(
+            tdi_info,
+	    tdi::SupportedApis({
+		    {TDI_TABLE_API_TYPE_GET, {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_GET_FIRST,
+		    {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_GET_NEXT_N,
+		    {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_MODIFY, {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_CLEAR, {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_GET_BY_HANDLE,
+		    {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_KEY_GET, {"dev_id", "pipe_id", "pipe_all"}},
+		    {TDI_TABLE_API_TYPE_HANDLE_GET,
+		    {"dev_id", "pipe_id", "pipe_all"}},
+		    }),
+	    table_info) {
+	      LOG_DBG("Creating table for %s", table_info->nameGet().c_str());
+      };
+      //ghost_pipe_tbl_hdl_(){};
   tdi_status_t entryMod(const tdi::Session &session,
                             const tdi::Target &dev_tgt,
                             const tdi::Flags &flags,
@@ -1381,7 +1375,7 @@ class RegisterTable : public tdi::Table {
                                  tdi::TableKey *key,
                                  tdi::TableData *data) const override;
 
-  tdi_status_t entryGetNext_n(const tdi::Session &session,
+  tdi_status_t entryGetNextN(const tdi::Session &session,
                                   const tdi::Target &dev_tgt,
                                   const tdi::Flags &flags,
                                   const tdi::TableKey &key,
@@ -1389,7 +1383,7 @@ class RegisterTable : public tdi::Table {
                                   keyDataPairs *key_data_pairs,
                                   uint32_t *num_returned) const override;
 
-  tdi_status_t tableClear(const tdi::Session &session,
+  tdi_status_t clear(const tdi::Session &session,
                          const tdi::Target &dev_tgt,
                          const tdi::Flags &flags) const override;
 
@@ -1403,11 +1397,12 @@ class RegisterTable : public tdi::Table {
   tdi_status_t dataReset(tdi::TableData *data) const override;
 
   // Attribute APIs
+ #if 0
   tdi_status_t attributeAllocate(
-      const TableAttributesType &type,
+      const tdi_attributes_type_e &type,
       std::unique_ptr<TableAttributes> *attr) const override;
   tdi_status_t attributeReset(
-      const TableAttributesType &type,
+      const tdi_attributes_type_e &type,
       std::unique_ptr<TableAttributes> *attr) const override;
   tdi_status_t tableAttributesSet(
       const tdi::Session &session,
@@ -1419,14 +1414,14 @@ class RegisterTable : public tdi::Table {
       const tdi::Target &dev_tgt,
       const tdi::Flags &flags,
       TableAttributes *tableAttributes) const override;
-
   tdi_status_t ghostTableHandleSet(const pipe_tbl_hdl_t &pipe_hdl) override;
-
+#endif
  private:
   // Ghost table handle
   pipe_tbl_hdl_t ghost_pipe_tbl_hdl_;
 };
 
+#if 0
 class RegisterParamTable : public tdi::Table {
  public:
   RegisterParamTable(const std::string &program_name,
