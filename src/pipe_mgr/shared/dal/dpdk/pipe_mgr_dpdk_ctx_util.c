@@ -37,6 +37,7 @@ int pipe_mgr_dpdk_encode_match_key_and_mask(
 	struct pipe_mgr_dpdk_stage_table *stage_table;
 	struct pipe_mgr_match_key_fields *match_fields;
 	struct dal_dpdk_table_metadata *meta;
+	uint64_t mask = (uint64_t)-1;
 	int status = BF_SUCCESS;
 	uint32_t offset;
 	int match_bytes;
@@ -103,7 +104,11 @@ int pipe_mgr_dpdk_encode_match_key_and_mask(
 			/* Copy to entry. */
 			memcpy(&entry->key_mask[offset], (uint8_t *)&val,
 					match_bytes);
+		} else if (entry->key_mask) {
+			memcpy(&entry->key_mask[offset], (uint8_t *)&mask,
+			       match_bytes);
 		}
+
 		match_fields = match_fields->next;
 		index_2 += match_bytes;
 	}
