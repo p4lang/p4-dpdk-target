@@ -613,6 +613,12 @@ int dal_ctx_json_parse_extern(int dev_id,
 		}
 
                num_of_externs = cJSON_GetArraySize(externs_cjson);
+
+		if (num_of_externs == 0) {
+			rc = BF_SUCCESS;
+			goto externs_cleanup;
+		}
+
 	       ctx->externs_tables_name = P4_SDE_CALLOC (num_of_externs,
 							 sizeof(char*));
                if (!ctx->externs_tables_name) {

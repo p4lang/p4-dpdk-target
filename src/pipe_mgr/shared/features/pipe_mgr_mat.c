@@ -145,7 +145,8 @@ static int pipe_mgr_mat_unpack_entry_data(struct bf_dev_target_t dev_tgt,
 					  u32 ent_hdl,
 					  struct pipe_mgr_mat *tbl,
 					  struct pipe_mgr_mat_entry_info *entry,
-					  void *res_data)
+					  void *res_data,
+					  uint32_t res_get_flags)
 {
 	int status;
 	if (ent_hdl != entry->mat_ent_hdl) {
@@ -169,11 +170,13 @@ static int pipe_mgr_mat_unpack_entry_data(struct bf_dev_target_t dev_tgt,
 		return status;
 	}
 
-	status = dal_unpack_dal_data(entry->dal_data, res_data,
-			             dev_tgt, entry->match_spec);
-	if (status) {
-		LOG_ERROR("dal_data unpack failed");
-		return status;
+	if (res_get_flags & PIPE_RES_GET_FLAG_CNTR) {
+		status = dal_unpack_dal_data(entry->dal_data, res_data,
+				             dev_tgt, entry->match_spec);
+		if (status) {
+			LOG_ERROR("dal_data unpack failed");
+			return status;
+		}
 	}
 	return BF_SUCCESS;
 }
@@ -334,7 +337,8 @@ int pipe_mgr_get_entry(u32 sess_hdl,
 
 	status = pipe_mgr_mat_unpack_entry_data(dev_tgt, match_spec,
 						act_fn_hdl, act_data_spec,
-						entry_hdl, tbl, entry, res_data);
+						entry_hdl, tbl, entry, res_data,
+						res_get_flags);
 
 	if (status)
 		LOG_ERROR("Unpacking enty data failed for entry hdl %d\n",
