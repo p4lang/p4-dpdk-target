@@ -305,6 +305,11 @@ dal_cnt_read_flow_direct_counter_set(void *dal_data, void *res_data,
                 return BF_OBJECT_NOT_FOUND;
         }
 
+        if (ctx_obj->num_externs_tables == 0) {
+                LOG_ERROR("[%s]:externs object/entry table empty", __func__);
+                return BF_SUCCESS;
+        }
+
         /* extract table name which is used as a key in hash map */
         for (itr = 0; itr < ctx_obj->num_externs_tables; itr++) {
 		externs_entry =

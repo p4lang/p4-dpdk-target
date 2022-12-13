@@ -85,6 +85,21 @@ enum pipe_hdl_type {
 #define PIPE_GET_HDL_PIPE(hdl) (((hdl) >> 30) & 0x3)
 #define PIPE_GET_HDL_VAL(hdl) ((hdl) & 0x00FFFFFF)
 
+/* When set fetch match and action specs. */
+#define PIPE_RES_GET_FLAG_ENTRY (1 << 0)
+/* When set fetch stats. */
+#define PIPE_RES_GET_FLAG_CNTR (1 << 1)
+/* When set fetch the meter/lpf/wred spec. */
+#define PIPE_RES_GET_FLAG_METER (1 << 2)
+/* When set fetch the stateful spec. */
+#define PIPE_RES_GET_FLAG_STFUL (1 << 3)
+/* When set fetch the idle information (hit-state or TTL). */
+#define PIPE_RES_GET_FLAG_IDLE (1 << 4)
+/* When all flags set. */
+#define PIPE_RES_GET_FLAG_ALL                         \
+  (PIPE_RES_GET_FLAG_ENTRY | PIPE_RES_GET_FLAG_CNTR | \
+   PIPE_RES_GET_FLAG_METER | PIPE_RES_GET_FLAG_IDLE | PIPE_RES_GET_FLAG_STFUL)
+
 /*!
  * Flags that can be used in conjunction with API calls
  */
