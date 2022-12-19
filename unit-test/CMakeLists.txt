@@ -13,7 +13,7 @@ link_directories(${CMAKE_INSTALL_PREFIX}/lib
                  ${CMAKE_INSTALL_PREFIX}/lib64)
 
 #Adding unit test folders
-set(DIRS "bf_rt" "pipe_mgr" "lld")
+set(DIRS "bf_rt" "pipe_mgr" "lld" "tdi_rt")
 
 if(CMAKE_ARGV0 STREQUAL "")
 foreach(dir ${DIRS})

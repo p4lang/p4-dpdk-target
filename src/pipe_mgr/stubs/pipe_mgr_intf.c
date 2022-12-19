@@ -439,12 +439,6 @@ pipe_status_t pipe_mgr_mat_ent_get_idle_ttl(pipe_sess_hdl_t sess_hdl, bf_dev_id_
     return PIPE_SUCCESS;
 }
 
-pipe_status_t pipe_stful_ent_set(pipe_sess_hdl_t sess_hdl, dev_target_t dev_target, pipe_stful_tbl_hdl_t stful_tbl_hdl, pipe_stful_mem_idx_t stful_ent_idx, pipe_stful_mem_spec_t* stful_spec, uint32_t pipe_api_flags)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
-}
-
 pipe_status_t pipe_stful_database_sync(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_stful_tbl_hdl_t stful_tbl_hdl, pipe_stful_tbl_sync_cback_fn cback_fn, void* cookie)
 {
     LOG_TRACE("STUB:%s\n",__func__);
@@ -464,12 +458,6 @@ pipe_status_t pipe_stful_query_get_sizes(pipe_sess_hdl_t sess_hdl, bf_dev_id_t d
 }
 
 pipe_status_t pipe_stful_direct_query_get_sizes(pipe_sess_hdl_t sess_hdl, bf_dev_id_t device_id, pipe_mat_tbl_hdl_t mat_tbl_hdl, int* num_pipes)
-{
-    LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
-}
-
-pipe_status_t pipe_stful_ent_query(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_stful_tbl_hdl_t stful_tbl_hdl, pipe_stful_mem_idx_t stful_ent_idx, pipe_stful_mem_query_t* stful_query, uint32_t pipe_api_flags)
 {
     LOG_TRACE("STUB:%s\n",__func__);
     return PIPE_SUCCESS;

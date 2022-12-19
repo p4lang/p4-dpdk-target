@@ -139,6 +139,8 @@ class TableFactory : public tdi::pna::TableFactory {
         return std::unique_ptr<tdi::Table>(new Selector(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_COUNTER:
         return std::unique_ptr<tdi::Table>(new CounterIndirect(tdi_info, table_info));
+      case TDI_RT_TABLE_TYPE_REGISTER:
+	return std::unique_ptr<tdi::Table>(new RegisterTable(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_METER:
         return std::unique_ptr<tdi::Table>(new MeterIndirect(tdi_info, table_info));
       case TDI_RT_TABLE_TYPE_PORT_CFG:

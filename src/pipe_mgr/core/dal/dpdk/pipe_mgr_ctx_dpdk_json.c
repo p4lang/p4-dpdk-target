@@ -523,8 +523,12 @@ static bf_status_t ctx_json_parse_externs_entry (
 	}
 
 	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_COUNTER,
-				sizeof(CTX_JSON_EXTERN_TYPE_COUNTER))) {
+		     sizeof(CTX_JSON_EXTERN_TYPE_COUNTER))) {
 		entry->type = EXTERNS_COUNTER;
+	}
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_REGISTER,
+		     sizeof(CTX_JSON_EXTERN_TYPE_REGISTER))) {
+		entry->type = EXTERNS_REGISTER;
 	}
 
 	if (entry->type == EXTERNS_COUNTER) {

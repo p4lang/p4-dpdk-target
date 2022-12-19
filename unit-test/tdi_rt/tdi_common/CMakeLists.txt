@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.6)
+
+include_directories(${CMAKE_SOURCE_DIR}/../src/tdi_rt/tdi_common
+                    ${CMAKE_SOURCE_DIR}/../src/tdi_rt/tdi_port/dpdk
+                    ${CMAKE_SOURCE_DIR}/../src/bf_rt
+                    ${CMAKE_SOURCE_DIR}/../src/tdi_rt
+                    ${CMAKE_SOURCE_DIR}/../include)
+
+#Adding library link directories
+link_directories(${CMAKE_SOURCE_DIR}/../src/.libs)
+
+set(CMAKE_EXE_LINKER_FLAGS_UT1 "-lgtest -ldriver -lcjson -ltarget_sys -ltdi -ltdi_json_parser -Wl,--warn-unresolved-symbols -Wl,--no-export-dynamic")
+add_executable(tdi_context_info_ut_out test_main.cpp tdi_context_info_ut.cpp)
+target_link_libraries(tdi_context_info_ut_out ${CMAKE_EXE_LINKER_FLAGS_UT1})
+
+set(FILES "tdi_context_info_ut_out")
+
+foreach(file ${FILES})
+add_custom_command(
+    TARGET ${file} POST_BUILD
+    COMMAND cp
+    ${CMAKE_CURRENT_BINARY_DIR}/${file}
+    ${CMAKE_INSTALL_PREFIX}/unit_test_result/${file})
+endforeach()
+
