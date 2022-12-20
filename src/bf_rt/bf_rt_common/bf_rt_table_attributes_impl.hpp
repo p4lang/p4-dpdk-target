@@ -29,6 +29,7 @@ extern "C" {
 #include <vector>
 #include <map>
 #include <memory>
+#include <array>
 #include <unordered_map>
 #include <functional>
 
