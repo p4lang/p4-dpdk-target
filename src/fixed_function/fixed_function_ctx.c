@@ -363,7 +363,7 @@ struct fixed_function_mgr_ctx *parse_fixed_function_json(int dev_id, char *ctx_f
         rc = ctx_json_parse_tables_json(root, ctx);
         if (rc)
                 goto table_parse_err;
-
+	fclose(file);
 	return ctx;
 
 table_parse_err:

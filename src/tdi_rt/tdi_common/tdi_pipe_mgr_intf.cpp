@@ -188,7 +188,13 @@ pipe_status_t PipeMgrIntf::pipeMgrMatDefaultEntrySet(
     match_spec.match_value_bits = (uint8_t *) malloc(4);
     match_spec.match_mask_bits = (uint8_t *) malloc(4);
     if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
-	    return -1;
+    {
+	if (match_spec.match_value_bits)
+		free(match_spec.match_value_bits);
+	if (match_spec.match_mask_bits)
+		free(match_spec.match_mask_bits);
+	return -1;
+    }
     memset(match_spec.match_value_bits, 0, 4);
     memset(match_spec.match_mask_bits, 0, 4);
 
@@ -223,7 +229,13 @@ pipe_status_t PipeMgrIntf::pipeMgrTableGetDefaultEntry(
     match_spec.match_value_bits = (uint8_t *) malloc(4);
     match_spec.match_mask_bits = (uint8_t *) malloc(4);
     if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
-                   return -1;
+    {
+	if (match_spec.match_value_bits)
+		free(match_spec.match_value_bits);
+	if (match_spec.match_mask_bits)
+		free(match_spec.match_mask_bits);
+	return -1;
+    }
     memset(match_spec.match_value_bits, 0, 4);
     memset(match_spec.match_mask_bits, 0, 4);
     status = pipe_mgr_get_entry(sess_hdl,
@@ -252,7 +264,13 @@ pipe_status_t PipeMgrIntf::pipeMgrTableGetDefaultEntryHandle(
 	match_spec.match_value_bits = (uint8_t *) malloc(4);
 	match_spec.match_mask_bits = (uint8_t *) malloc(4);
 	if(!match_spec.match_value_bits || !match_spec.match_mask_bits)
+	{
+		if (match_spec.match_value_bits)
+			free(match_spec.match_value_bits);
+		if (match_spec.match_mask_bits)
+			free(match_spec.match_mask_bits);
 		return -1;
+	}
 	memset(match_spec.match_value_bits, 0, 4);
 	memset(match_spec.match_mask_bits, 0, 4);
 	status = pipe_mgr_match_spec_to_ent_hdl(
