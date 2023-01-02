@@ -26,3 +26,11 @@ bf_status_t dal_port_cfg_table_add(bf_dev_id_t dev_id,
 	return BF_SUCCESS;
 }
 
+bf_status_t dal_port_stats_get(bf_dev_id_t dev_id,
+                               struct fixed_function_key_spec *key,
+                               struct fixed_function_data_spec *data,
+                               struct fixed_function_table_ctx *tbl_ctx)
+{
+	port_mgr_log_trace("STUB: %s", __func__);
+	return BF_SUCCESS;
+}

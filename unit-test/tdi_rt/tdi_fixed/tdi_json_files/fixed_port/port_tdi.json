@@ -1,14 +1,14 @@
 {
   "tables" : [
     {
-      "name" : "port.$PORT",
+      "name" : "port.PORT",
       "id" : 4278255617,
       "table_type" : "FixedFunctionConfig",
       "size" : 256,
       "key" : [
         {
           "id" : 1,
-          "name" : "$DEV_PORT",
+          "name" : "DEV_PORT",
           "repeated" : false,
           "annotations" : [],
           "mandatory" : true,
@@ -25,7 +25,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 1,
-            "name" : "$PORT_NAME",
+            "name" : "PORT_NAME",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -39,7 +39,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 2,
-            "name" : "$PORT_TYPE",
+            "name" : "PORT_TYPE",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -58,7 +58,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 3,
-            "name" : "$PORT_DIR",
+            "name" : "PORT_DIR",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -75,7 +75,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 4,
-            "name" : "$MTU",
+            "name" : "MTU",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -89,7 +89,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 5,
-            "name" : "$PIPE_IN",
+            "name" : "PIPE_IN",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -103,7 +103,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 6,
-            "name" : "$PIPE_OUT",
+            "name" : "PIPE_OUT",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -117,7 +117,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 7,
-            "name" : "$PORT_IN_ID",
+            "name" : "PORT_IN_ID",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -131,7 +131,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 8,
-            "name" : "$PORT_OUT_ID",
+            "name" : "PORT_OUT_ID",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -145,7 +145,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 9,
-            "name" : "$MEMPOOL",
+            "name" : "MEMPOOL",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -159,7 +159,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 10,
-            "name" : "$PCIE_BDF",
+            "name" : "PCIE_BDF",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -173,7 +173,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 11,
-            "name" : "$FILE_NAME",
+            "name" : "FILE_NAME",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -187,7 +187,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 12,
-            "name" : "$DEV_ARGS",
+            "name" : "DEV_ARGS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -201,7 +201,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 13,
-            "name" : "$DEV_HOTPLUG_ENABLED",
+            "name" : "DEV_HOTPLUG_ENABLED",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -215,7 +215,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 14,
-            "name" : "$SIZE",
+            "name" : "SIZE",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -229,7 +229,7 @@
           "read_only" : false,
           "singleton" : {
             "id" : 15,
-            "name" : "$NET_PORT",
+            "name" : "NET_PORT",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -243,18 +243,18 @@
       "attributes" : ["port_status_notif_cb"]
     },
     {
-      "name" : "port.$PORT_STAT",
+      "name" : "port.PORT_STAT",
       "id" : 4278255618,
       "table_type" : "FixedFunctionState",
       "size" : 256,
       "key" : [
         {
           "id" : 1,
-          "name" : "$DEV_PORT",
+          "name" : "DEV_PORT",
           "repeated" : false,
           "annotations" : [
             {
-              "name" : "$bfrt_port_type_class",
+              "name" : "bfrt_port_type_class",
               "value" : "dev_port"
             }
           ],
@@ -271,7 +271,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 1,
-            "name" : "$RX_BYTES",
+            "name" : "RX_BYTES",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -285,7 +285,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 2,
-            "name" : "$RX_PACKETS",
+            "name" : "RX_PACKETS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -299,7 +299,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 3,
-            "name" : "$RX_UNICAST",
+            "name" : "RX_UNICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -313,7 +313,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 4,
-            "name" : "$RX_MULTICAST",
+            "name" : "RX_MULTICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -327,7 +327,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 5,
-            "name" : "$RX_BROADCAST",
+            "name" : "RX_BROADCAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -341,7 +341,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 6,
-            "name" : "$RX_DISCARDS",
+            "name" : "RX_DISCARDS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -355,7 +355,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 7,
-            "name" : "$RX_ERRORS",
+            "name" : "RX_ERRORS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -369,7 +369,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 8,
-            "name" : "$RX_EMPTY_POLLS",
+            "name" : "RX_EMPTY_POLLS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -383,7 +383,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 9,
-            "name" : "$TX_BYTES",
+            "name" : "TX_BYTES",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -397,7 +397,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 10,
-            "name" : "$TX_PACKETS",
+            "name" : "TX_PACKETS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -411,7 +411,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 11,
-            "name" : "$TX_UNICAST",
+            "name" : "TX_UNICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -425,7 +425,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 12,
-            "name" : "$TX_MULTICAST",
+            "name" : "TX_MULTICAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -439,7 +439,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 13,
-            "name" : "$TX_BROADCAST",
+            "name" : "TX_BROADCAST",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -453,7 +453,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 14,
-            "name" : "$TX_DISCARDS",
+            "name" : "TX_DISCARDS",
             "repeated" : false,
             "annotations" : [],
             "type" : {
@@ -467,7 +467,7 @@
           "read_only" : true,
           "singleton" : {
             "id" : 15,
-            "name" : "$TX_ERRORS",
+            "name" : "TX_ERRORS",
             "repeated" : false,
             "annotations" : [],
             "type" : {

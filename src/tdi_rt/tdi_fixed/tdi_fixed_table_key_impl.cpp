@@ -25,6 +25,10 @@
 namespace tdi {
 namespace pna {
 namespace rt {
+#define BITS_PER_BYTE     8
+#define MIN_BITS_TO_CONV  7
+/* Macro to convert bits to bytes */
+#define CONV_BITS_TO_BYTES(_bits) ((_bits+MIN_BITS_TO_CONV) / BITS_PER_BYTE)
 
 // FixedFunctionTableKey *****************
 tdi_status_t FixedFunctionTableKey::setValue(const tdi_id_t &field_id,
@@ -58,7 +62,34 @@ tdi_status_t FixedFunctionTableKey::setValue(const tdi_id_t &field_id,
 tdi_status_t FixedFunctionTableKey::getValue(
 		const tdi_id_t &field_id,
 		tdi::KeyFieldValue *field_value) const {
-  //TODO - need to add support for getvalue
+
+  const KeyFieldInfo *key_field;
+
+  if (!field_value) {
+    LOG_ERROR("%s:%d %s input param passed null for key field_id %d, ",
+              __func__,
+              __LINE__,
+              this->table_->tableInfoGet()->nameGet().c_str(),
+              field_id);
+    return TDI_OBJECT_NOT_FOUND;
+  }
+
+  auto status = utils::TableFieldUtils::keyFieldSafeGet(
+      field_id, &key_field, field_value, table_);
+
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+
+  if (field_value->is_pointer()) {
+	  auto e_fv =
+		  static_cast<tdi::KeyFieldValueExact<uint8_t *> *>(field_value);
+	  return this->getValue(key_field, e_fv->size_, e_fv->value_);
+  } else {
+	  auto e_fv = static_cast<tdi::KeyFieldValueExact<uint64_t> *>(field_value);
+	  return this->getValue(key_field, &e_fv->value_);
+  }
+
   return TDI_NOT_SUPPORTED;
 }
 
@@ -71,7 +102,7 @@ tdi_status_t FixedFunctionTableKey::setValue(const tdi::KeyFieldInfo *key_field,
     return status;
   }
 
-  auto size_bytes = (key_field->sizeGet() + 7) / 8;
+  auto size_bytes = CONV_BITS_TO_BYTES(key_field->sizeGet());
   auto new_value = (value);
 
   uint8_t *val_ptr = ((uint8_t *)&new_value);
@@ -88,7 +119,7 @@ tdi_status_t FixedFunctionTableKey::setValue(const tdi::KeyFieldInfo *key_field,
   if (status != TDI_SUCCESS) {
     return status;
   }
-  size_t size_bytes = (key_field->sizeGet() + 7) / 8;
+  auto size_bytes = CONV_BITS_TO_BYTES(key_field->sizeGet());
   this->setValueInternal(*key_field, value, size_bytes);
 
   return TDI_SUCCESS;
@@ -96,13 +127,44 @@ tdi_status_t FixedFunctionTableKey::setValue(const tdi::KeyFieldInfo *key_field,
 
 tdi_status_t FixedFunctionTableKey::getValue(const tdi::KeyFieldInfo *key_field,
                                              uint64_t *value) const {
-  return TDI_NOT_SUPPORTED;
+  if (key_field->isPtrGet()) {
+    LOG_ERROR(
+        "%s:%d %s ERROR : Field type is ptr. This API not supported for field "
+        "%s",
+        __func__,
+        __LINE__,
+        table_->tableInfoGet()->nameGet().c_str(),
+        key_field->nameGet().c_str());
+    return TDI_NOT_SUPPORTED;
+  }
+  auto status = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
+      *table_, *key_field, value, nullptr, 0);
+  if (status != TDI_SUCCESS) {
+    return status;
+  }
+  // Zero out the out param
+  *value = 0;
+  auto size_bytes = CONV_BITS_TO_BYTES(key_field->sizeGet());
+  uint8_t *temp_ptr = reinterpret_cast<uint8_t *>(value);
+
+  this->getValueInternal(*key_field, temp_ptr, size_bytes);
+  return TDI_SUCCESS;
 }
 
 tdi_status_t FixedFunctionTableKey::getValue(const tdi::KeyFieldInfo *key_field,
                                              const size_t &size,
                                              uint8_t *value) const {
-  return TDI_NOT_SUPPORTED;
+	// ceil the size and convert bits to bytes
+	auto size_bytes = CONV_BITS_TO_BYTES(key_field->sizeGet());
+	auto status = utils::TableFieldUtils::fieldTypeCompatibilityCheck(
+			*table_, *key_field, nullptr, value, size);
+	if (status != TDI_SUCCESS) {
+		return status;
+	}
+
+	this->getValueInternal(*key_field, value, size_bytes);
+
+	return TDI_SUCCESS;
 }
 
 
