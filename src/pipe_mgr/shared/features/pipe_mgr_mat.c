@@ -36,6 +36,7 @@ int pipe_mgr_mat_unpack_act_spec(
 	act_data_spec->pipe_action_datatype_bmap =
 		ads->pipe_action_datatype_bmap;
 	act_data_spec->adt_ent_hdl = ads->adt_ent_hdl;
+        act_data_spec->sel_grp_hdl = ads->sel_grp_hdl;
 	act_data_spec->act_data.num_valid_action_data_bits =
 		ads->act_data.num_valid_action_data_bits;
 	act_data_spec->act_data.num_action_data_bytes =
@@ -58,6 +59,7 @@ int pipe_mgr_mat_pack_act_spec(
 	act_data_spec->pipe_action_datatype_bmap =
 		ads->pipe_action_datatype_bmap;
 	act_data_spec->adt_ent_hdl = ads->adt_ent_hdl;
+        act_data_spec->sel_grp_hdl = ads->sel_grp_hdl;
 	act_data_spec->act_data.num_valid_action_data_bits =
 		ads->act_data.num_valid_action_data_bits;
 	act_data_spec->act_data.num_action_data_bytes =
