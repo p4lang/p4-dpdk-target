@@ -63,6 +63,7 @@ typedef enum bf_pm_port_dir_e {
 #define PORT_IN_BURST_SIZE 32
 #define PORT_OUT_BURST_SIZE 1
 #define PORT_MTU_MAX 65535
+#define ETH_HDR 14
 
 /**
  * DPDK Port Types
