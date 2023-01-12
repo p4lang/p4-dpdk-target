@@ -91,6 +91,7 @@ tdi_status_t getTableUsage(const tdi::Session &session,
                            const tdi::Flags &flags,
                            const T &table,
                            uint32_t *count) {
+  *count = table.tableInfoGet()->sizeGet();
   return TDI_SUCCESS;
 }
 

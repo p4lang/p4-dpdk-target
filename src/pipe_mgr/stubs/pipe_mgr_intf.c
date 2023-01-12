@@ -538,7 +538,7 @@ pipe_status_t pipe_mgr_get_word_llp_active_members(pipe_sess_hdl_t sess_hdl, dev
 pipe_status_t pipe_mgr_get_entry_count(pipe_sess_hdl_t sess_hdl, dev_target_t dev_tgt, pipe_mat_tbl_hdl_t tbl_hdl, bool read_from_hw, uint32_t* count)
 {
     LOG_TRACE("STUB:%s\n",__func__);
-    return PIPE_SUCCESS;
+    return PIPE_NOT_SUPPORTED;
 }
 
 pipe_status_t pipe_mgr_tbl_set_property(pipe_sess_hdl_t sess_hdl, bf_dev_id_t dev_id, pipe_mat_tbl_hdl_t tbl_hdl, pipe_mgr_tbl_prop_type_t property, pipe_mgr_tbl_prop_value_t value, pipe_mgr_tbl_prop_args_t args)
