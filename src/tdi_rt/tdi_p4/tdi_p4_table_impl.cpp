@@ -346,6 +346,7 @@ tdi_status_t getTableUsage(const tdi::Session &session,
               table.tableInfoGet()->nameGet().c_str(),
               status,
               bf_err_str(status));
+    *count = table.tableInfoGet()->sizeGet();
   }
   return status;
 }
