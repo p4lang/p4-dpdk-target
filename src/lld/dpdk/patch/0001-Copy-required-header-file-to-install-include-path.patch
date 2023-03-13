@@ -1,6 +1,6 @@
-From 6640176f819e729b26f325b89a7a8db1915f86ba Mon Sep 17 00:00:00 2001
-From: Anand Sunkad <anand.sunkad@intel.com>
-Date: Mon, 26 Sep 2022 22:59:41 +1000
+From 788286ae56f40b3da2b9214d032cd8bbc92600b8 Mon Sep 17 00:00:00 2001
+From: Venkata Suresh Kumar P <venkata.suresh.kumar.p@intel.com>
+Date: Mon, 13 Mar 2023 11:00:52 +0000
 Subject: [PATCH] Copy required header file to install/include path
 
 Adding required header file names in meson.build file
@@ -14,18 +14,18 @@ Signed-off-by: Anand Sunkad <anand.sunkad@intel.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/lib/pipeline/meson.build b/lib/pipeline/meson.build
-index 3ca98ed194..658dbba7c2 100644
+index fd5e0dc6bb..33061802db 100644
 --- a/lib/pipeline/meson.build
 +++ b/lib/pipeline/meson.build
 @@ -20,6 +20,8 @@ headers = files(
+         'rte_pipeline.h',
          'rte_port_in_action.h',
          'rte_table_action.h',
-         'rte_swx_pipeline.h',
 +        'rte_swx_pipeline_spec.h',
 +        'rte_swx_pipeline_internal.h',
+         'rte_swx_ipsec.h',
+         'rte_swx_pipeline.h',
          'rte_swx_extern.h',
-         'rte_swx_ctl.h',
- )
 -- 
-2.21.3
+2.25.1
 
