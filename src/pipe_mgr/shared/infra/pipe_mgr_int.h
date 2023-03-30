@@ -288,7 +288,12 @@ enum externs_attr_type {
 enum externs_type {
 	/* externs type counter */
 	EXTERNS_COUNTER = 0,
-	EXTERNS_REGISTER = 1
+	EXTERNS_REGISTER = 1,
+	EXTERNS_DIRECT_COUNTER = 2,
+	EXTERNS_METER = 3,
+	EXTERNS_DIRECT_METER = 4,
+	EXTERNS_HASH = 5,
+	EXTERNS_INTERNET_CHECK_SUM = 6
 };
 
 /* externs json information of the table. */
