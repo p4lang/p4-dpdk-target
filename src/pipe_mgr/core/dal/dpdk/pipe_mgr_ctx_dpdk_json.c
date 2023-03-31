@@ -531,6 +531,31 @@ static bf_status_t ctx_json_parse_externs_entry (
 		entry->type = EXTERNS_REGISTER;
 	}
 
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_DIRECT_COUNTER,
+		     sizeof(CTX_JSON_EXTERN_TYPE_DIRECT_COUNTER))) {
+		entry->type = EXTERNS_DIRECT_COUNTER;
+	}
+
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_METER,
+		     sizeof(CTX_JSON_EXTERN_TYPE_METER))) {
+		entry->type = EXTERNS_METER;
+	}
+
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_DIRECT_METER,
+		     sizeof(CTX_JSON_EXTERN_TYPE_DIRECT_METER))) {
+		entry->type = EXTERNS_DIRECT_METER;
+	}
+
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_HASH,
+		     sizeof(CTX_JSON_EXTERN_TYPE_HASH))) {
+		entry->type = EXTERNS_HASH;
+	}
+
+	if (!strncmp(target_type, CTX_JSON_EXTERN_TYPE_INTERNET_CHECK_SUM,
+		     sizeof(CTX_JSON_EXTERN_TYPE_INTERNET_CHECK_SUM))) {
+		entry->type = EXTERNS_INTERNET_CHECK_SUM;
+	}
+
 	if (entry->type == EXTERNS_COUNTER) {
 		err |= bf_cjson_get_string(extern_attr_cjson,
 				CTX_JSON_EXTERN_ATTRIBUTE_TYPE,

@@ -860,6 +860,11 @@
 #define CTX_JSON_EXTERN_ATTRIBUTE_TABLE_ID   "table_id"
 #define CTX_JSON_EXTERN_TYPE_COUNTER      "Counter"
 #define CTX_JSON_EXTERN_TYPE_REGISTER      "Register"
+#define CTX_JSON_EXTERN_TYPE_DIRECT_COUNTER         "DirectCounter"
+#define CTX_JSON_EXTERN_TYPE_METER                  "Meter"
+#define CTX_JSON_EXTERN_TYPE_DIRECT_METER           "DirectMeter"
+#define CTX_JSON_EXTERN_TYPE_HASH                   "Hash"
+#define CTX_JSON_EXTERN_TYPE_INTERNET_CHECK_SUM     "InternetCheckSum"
 
 #define CTX_JSON_EXTERN_ATTR_TYPE_BYTES               "bytes"
 #define CTX_JSON_EXTERN_ATTR_TYPE_PACKETS             "packets"
