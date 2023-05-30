@@ -1,0 +1,9 @@
+**/.git**
+**/Dockerfile
+**/README
+**/*.md
+
+.github
+docker*
+e2e-test
+examples
