@@ -22,22 +22,21 @@
             ],
             "p4_programs": [
                 {
-                    "program-name": "simple_l2_forwarding",
-                    "bfrt-config": "share/e2e-test/pna/simple_l2_forwarding/pipe/tdi.json",
+                    "program-name": "main",
+                    "bfrt-config": "$bfrt_config",
                     "p4_pipelines": [
                         {
                             "p4_pipeline_name": "pipe",
                             "core_id": 1,
                             "numa_node": 0,
-                            "context": "share/e2e-test/pna/simple_l2_forwarding/pipe/context.json",
-                            "config": "share/e2e-test/pna/simple_l2_forwarding/pipe/config.spec",
+                            "context": "$context",
+                            "config": "$config",
                             "pipe_scope": [
                                 0,
                                 1,
                                 2,
                                 3
-                            ],
-                            "path": "share/e2e-test/pna/simple_l2_forwarding"
+                            ]
                         }
                     ]
                 }
