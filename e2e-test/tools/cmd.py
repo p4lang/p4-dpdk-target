@@ -14,6 +14,7 @@ THIS_DIR = Path(__file__).resolve().parent
 
 SUITE_MAIN_P4 = "main.p4"
 SUITE_BF_SWITCHD_CONF = "bf_switchd_conf.json"
+SUITE_BFSHELL_CMDS = "bfshell_cmds.py"
 
 SUITE_P4C_GEN = "p4c_gen"
 SUITE_P4INFO = SUITE_P4C_GEN + "/p4info.txt"
@@ -36,6 +37,7 @@ def main():
 
     add_parser_for_compile(subparsers)
     add_parser_for_bf_switchd(subparsers)
+    add_parser_for_bfshell(subparsers)
     add_parser_for_clean(subparsers)
 
     args = parser.parse_args()
@@ -128,6 +130,32 @@ def bf_switchd(args):
     cmd += ["--conf-file", conf_path.resolve().as_posix()]
     util.log_cmd(cmd)
     run(cmd, cwd=log_dir, env=sde_env, check=True)
+
+
+# The bfshell command
+
+
+def add_parser_for_bfshell(subparsers):
+    parser = subparsers.add_parser("bfshell")
+    parser.add_argument("test_dir", type=Path)
+    parser.set_defaults(func=bfshell)
+
+
+def bfshell(args):
+    test_dir = args.test_dir
+
+    # Make sure test dir exists
+    assert test_dir.exists(), f"{test_dir} doesn't exist"
+
+    # Run bfshell
+    # Have to switch to the SDE environment.
+    sde_env = util.get_sde_env()
+    sde_install = sde_env["SDE_INSTALL"]
+    bin = f"{sde_install}/bin/bfshell"
+    assert Path(bin).exists(), f"Required binary {bin} doesn't exist"
+    cmd = [bin]
+    cmd += ["-f", (test_dir / SUITE_BFSHELL_CMDS).resolve().as_posix()]
+    run(cmd, env=sde_env, check=True)
 
 
 # The clean command

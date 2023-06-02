@@ -15,6 +15,8 @@ suites/
             P4 compiler outputs generated from main.p4.
         (generated) bf_switchd_config.json:
             Config file needed by the bf_switchd binary.
+        bfshell_cmds.py:
+            Commands to run with bfshell.
         main.p4:
             The P4 pipeline code.
 
@@ -44,6 +46,14 @@ The following paths will be generated:
 
 - `suites/pna/simple_l2_forwarding/log/bf_switchd/`
 - `suites/pna/simple_l2_forwarding/bf_switchd_conf.json`
+
+### Run `bfshell`
+
+Keep the `bf_switchd` terminal open. In another terminal, run:
+
+```console
+./tools/cmd.py bfshell suites/pna/simple_l2_forwarding
+```
 
 ### Clean up (optional)
 
