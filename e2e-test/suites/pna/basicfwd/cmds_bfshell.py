@@ -16,19 +16,7 @@ for port_id in range(4):
         MTU=1500
     )
 
-# Add entries
-
-from netaddr import IPAddress
-
-control = tdi.main.pipe.MainControl
-table = control.forwarding
-table.add_with_mark_and_forward(
-    dst_addr=IPAddress('192.168.1.101'),
-    marker=0x01,
-    port=1
-)
-table.add_with_mark_and_forward(
-    dst_addr=IPAddress('192.168.1.102'),
-    marker=0x02,
-    port=2
-)
+# TODO: Replace the following hack with something better.
+foo = "fini"
+bar = "shed"
+print(foo + bar)

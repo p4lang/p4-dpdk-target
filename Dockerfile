@@ -19,7 +19,6 @@ ENV SDE_INSTALL=${SDE}/install
 ENV LD_LIBRARY_PATH=${SDE_INSTALL}/lib:${SDE_INSTALL}/lib64:${SDE_INSTALL}/lib/x86_64-linux-gnu/
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib64
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-ENV PATH=${SDE_INSTALL}/bin:${PATH}
 
 # Copy repo files in
 ARG REPO_NAME=p4-dpdk-target

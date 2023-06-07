@@ -7,13 +7,8 @@ header eth_h {
     bit<16> ether_type;
 }
 
-header custom_h {
-    bit<32> marker;
-}
-
 struct header_t {
     eth_h eth;
-    custom_h custom;
 }
 
 struct metadata_t {}
@@ -26,7 +21,6 @@ parser MainParser(
 ) {
     state start {
         pkt.extract(hdr.eth);
-        pkt.extract(hdr.custom);
         transition accept;
     }
 }
@@ -46,31 +40,13 @@ control MainControl(
     in pna_main_input_metadata_t istd,
     inout pna_main_output_metadata_t ostd
 ) {
-    action mark_and_forward(
-        bit<32> marker,
-        PortId_t port
-    ) {
-        hdr.custom.marker = marker;
-        send_to_port(port);
-    }
-
-    action drop() {
-        drop_packet();
-    }
-
-    table forwarding {
-        key = {
-            hdr.eth.dst_addr: exact;
-        }
-        actions = {
-            mark_and_forward;
-            drop;
-        }
-        const default_action = drop();
-    }
-
     apply {
-        forwarding.apply();
+        switch (istd.input_port) {
+            (PortId_t) 0: { send_to_port((PortId_t) 1); }
+            (PortId_t) 1: { send_to_port((PortId_t) 0); }
+            (PortId_t) 2: { send_to_port((PortId_t) 3); }
+            (PortId_t) 3: { send_to_port((PortId_t) 2); }
+        }
     }
 }
 

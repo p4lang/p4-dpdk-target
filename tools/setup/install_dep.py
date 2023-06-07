@@ -140,7 +140,7 @@ if lp.pkgmgr == "dnf" or lp.pkgmgr == "yum":
 
 ## setup proxies for pip to run
 for item in pip_packages:
-    pip3_install_command = ["pip3", "install",  item]
+    pip3_install_command = ["pip3", "install", "--upgrade", item]
     #pip_install_command = ["pip", "install",  item]
     #pip2_install_command = ["pip2", "install",  item]
     print (execute_system_command (pip3_install_command)[0])
