@@ -122,7 +122,7 @@ int dal_table_adt_ent_add(u32 sess_hdl,
 		goto error;
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_add(ctl, mat_ctx->name,
+	status = rte_swx_ctl_pipeline_table_entry_add(ctl, mat_ctx->target_table_name,
 						      entry);
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");
