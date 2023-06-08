@@ -3,13 +3,12 @@
 import time
 import unittest
 
-from scapy.all import IP, UDP, AsyncSniffer, Ether, sendp
+from scapy.all import IP, UDP, AsyncSniffer, Ether, raw, sendp
 
 
 class ScapyTestCase(unittest.TestCase):
-    WAIT_TIME = 2
+    WAIT_TIME = 1
 
-    # TODO: Make the following test pass.
     def test_one_packet_received_at_expected_port(self):
         sniffer = AsyncSniffer(iface="TAP1", count=8)
         sniffer.start()
@@ -23,7 +22,7 @@ class ScapyTestCase(unittest.TestCase):
 
         self.assertEqual(len(pkts_recvd), 1)
         pkt_recvd = pkts_recvd[0]
-        self.assertEqual(pkt_recvd, pkt_sent)
+        self.assertEqual(raw(pkt_recvd), raw(pkt_sent))
 
     def test_no_packet_received_at_other_ports(self):
         sniffer = AsyncSniffer(iface=["TAP2", "TAP3"], count=8)
