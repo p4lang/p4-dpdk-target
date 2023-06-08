@@ -20,7 +20,17 @@ def bf_prepare(test_dir, bin_name):
     return bin_path, log_dir, sde_env
 
 
-def bf_run(cmd, log_dir, sde_env, in_background):
+def bf_run(cmd, log_dir, sde_env, in_background, with_sudo=False):
+    if with_sudo:
+        # Passing environment variables this way is necessary. See
+        # https://github.com/Yi-Tseng/p4-dpdk-target-notes#start-the-switch
+        sudo = [
+            "sudo",
+            "-E",
+            f"PATH={sde_env['PATH']}",
+            f"LD_LIBRARY_PATH={sde_env['LD_LIBRARY_PATH']}",
+        ]
+        cmd = sudo + cmd
     log_cmd(cmd)
     stdout = None
     if in_background:

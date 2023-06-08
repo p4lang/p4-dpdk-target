@@ -49,7 +49,7 @@ def run_bf_switchd(test_dir, in_background=False):
     cmd = [bin_path]
     cmd += ["--install-dir", sde_env["SDE_INSTALL"]]
     cmd += ["--conf-file", conf_path.resolve()]
-    return util.bf_run(cmd, log_dir, sde_env, in_background)
+    return util.bf_run(cmd, log_dir, sde_env, in_background, with_sudo=True)
 
 
 if __name__ == "__main__":

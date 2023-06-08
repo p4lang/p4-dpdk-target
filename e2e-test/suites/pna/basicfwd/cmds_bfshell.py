@@ -1,7 +1,6 @@
 tdi_python
 
 # Add ports
-
 for port_id in range(4):
     tdi.port.port.add(
         DEV_PORT=port_id,
@@ -15,6 +14,9 @@ for port_id in range(4):
         PORT_NAME=f"TAP{port_id}",
         MTU=1500
     )
+
+# Enable TDI program
+tdi.main.enable()
 
 # TODO: Replace the following hack with something better.
 foo = "fini"
