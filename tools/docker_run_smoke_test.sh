@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# Run the smoke test in a container.
 
 IMAGE_NAME=p4lang/p4-dpdk-target
 CONTAINER_NAME=p4-dpdk-target

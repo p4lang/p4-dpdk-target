@@ -5,9 +5,9 @@ THIS_DIR = Path(__file__).resolve().parent
 # Test suite path conventions
 
 SUITE_MAIN_P4 = "main.p4"
-SUITE_BF_SWITCHD_CONF = "bf_switchd_conf.json"
 SUITE_CMDS_BFSHELL = "cmds_bfshell.py"
 SUITE_CMDS_SHELL = "cmds_shell.sh"
+SUITE_CONF_BF_SWITCHD = "conf_bf_switchd.json"
 SUITE_TEST = "test.py"
 
 SUITE_P4C_GEN = "p4c_gen"
@@ -19,4 +19,4 @@ SUITE_SPEC = SUITE_P4C_GEN + "/config.spec"
 
 SUITE_LOG = "log"
 
-SUITE_PATH_GENERATED = [SUITE_BF_SWITCHD_CONF, SUITE_P4C_GEN, SUITE_LOG]
+SUITE_PATH_GENERATED = [SUITE_CONF_BF_SWITCHD, SUITE_P4C_GEN, SUITE_LOG]

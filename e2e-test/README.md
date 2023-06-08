@@ -13,14 +13,18 @@ suites/
             Log files generated during testing.
         (generated) p4c_gen/
             P4 compiler outputs generated from main.p4.
-        (generated) bf_switchd_config.json:
-            Config file needed by the bf_switchd binary.
         cmds_bfshell.py:
-            Commands to run with bfshell.
+            Commands to run with bfshell before testing script.
         cmds_shell.sh:
-            Commands to run with normal shell.
+            Commands to run with normal shell before testing script.
+        (generated) conf_bf_switchd.json:
+            Config file needed by the bf_switchd binary.
         main.p4:
             The P4 pipeline code.
+        README.md:
+            A description of the test.
+        test.py:
+            The packet testing script.
 
 tools/
     Tools used to run the tests.
@@ -28,31 +32,35 @@ tools/
 
 ## Testing environement
 
-You can either build P4 DPDK target locally or build a Docker image.
+You can either build P4 DPDK target locally following the README at the root of this repo, or build a Docker image. Below we introduce the Docker approach.
 
-To build the Docker image, at the root of this repo, do:
+All commands in this section are expected to be executed from the root of this repo.
+
+### Docker image building
 
 ```console
 ./tools/docker_build.sh
 ```
 
-Then you can run `bash` in this container:
+### Convenient Docker scripts
+
+To run a `bash` in a new container:
 
 ```console
 ./tools/docker_run_bash.sh
 ```
 
-Or run another `bash` in the same running container:
+To run a new `bash` in the same running container:
 
 ```console
 ./tools/docker_exec_bash.sh
 ```
 
-The last command is useful to provide multiple terminals in the same container.
+The last script is useful for providing multiple terminal shells in the same container.
 
 ## Simple automated smoke test
 
-To run the smoke test in a Docker container, at the **root of this repo**, do:
+To run the smoke test in a container, at the **root of this repo**, do:
 
 ```console
 ./tools/docker_run_smoke_test.sh
@@ -66,9 +74,9 @@ To run it locally, at **this directory**, do:
 
 ## Manual testing workflow
 
-In the previous section, all testing steps are executed with a single script. If for some reason (e.g. debugging) you would like to execute these steps separately, the details are explained in this section.
+In the previous section, all testing steps are executed with a single script. If for some reason (e.g. debugging) you would like to execute these steps separately, the details are described in this section.
 
-Note that all commands in this section are executed from **this directory**.
+All commands in this section are expected to be executed from this directory.
 
 ### Compile P4 code
 
@@ -91,7 +99,7 @@ In terminal 1, do:
 The following paths will be generated:
 
 - `suites/pna/simple_l2_forwarding/log/bf_switchd/`
-- `suites/pna/simple_l2_forwarding/bf_switchd_conf.json`
+- `suites/pna/simple_l2_forwarding/conf_bf_switchd.json`
 
 ### Run `bfshell`
 

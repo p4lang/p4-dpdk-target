@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# Run a bash in a new container.
 
 IMAGE_NAME=p4lang/p4-dpdk-target
 CONTAINER_NAME=p4-dpdk-target

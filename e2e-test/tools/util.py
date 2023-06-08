@@ -1,13 +1,9 @@
 import logging
 import os
 import shutil
+from functools import lru_cache
 from pathlib import Path
 from subprocess import Popen, run
-
-
-def args_to_str(args):
-    args = [arg.as_posix() if isinstance(arg, Path) else arg for arg in args]
-    return " ".join(args)
 
 
 def assert_exists(path):
@@ -26,11 +22,15 @@ def bf_prepare(test_dir, bin_name):
 
 
 def bf_run(cmd, log_dir, sde_env, in_background, with_sudo=False):
-    cmd = args_to_str(cmd)
     if with_sudo:
         # Passing environment variables this way is necessary. See
         # https://github.com/Yi-Tseng/p4-dpdk-target-notes#start-the-switch
-        sudo = "sudo -E PATH=$PATH LD_LIBRARY_PATH=$LD_LIBRARY_PATH "
+        sudo = [
+            "sudo",
+            "-E",
+            "PATH=" + sde_env["PATH"],
+            "LD_LIBRARY_PATH=" + sde_env["LD_LIBRARY_PATH"],
+        ]
         cmd = sudo + cmd
     log_cmd(cmd)
     stdout = None
@@ -40,7 +40,6 @@ def bf_run(cmd, log_dir, sde_env, in_background, with_sudo=False):
         # Set bufsize to 0 because we need to check stdout in real time later
         p = Popen(
             cmd,
-            shell=True,
             bufsize=0,
             stdout=stdout.open("w"),
             stderr=stderr.open("w"),
@@ -48,11 +47,12 @@ def bf_run(cmd, log_dir, sde_env, in_background, with_sudo=False):
             env=sde_env,
         )
     else:
-        p = run(cmd, shell=True, cwd=log_dir, env=sde_env, check=True)
+        p = run(cmd, cwd=log_dir, env=sde_env, check=True)
     logging.info(f"PID: {p.pid}")
     return p, stdout
 
 
+@lru_cache(maxsize=None)
 def get_sde_env():
     sde_env = {}
     sde_env.update(os.environ)
@@ -72,8 +72,9 @@ def get_sde_env():
 
 def log_cmd(cmd):
     if isinstance(cmd, list):
-        cmd = args_to_str(cmd)
-    logging.info(f"Run command:\n{cmd}")
+        cmd = [arg.as_posix() if isinstance(arg, Path) else arg for arg in cmd]
+        cmd = " ".join(cmd)
+    logging.info(f"Run command:\n    {cmd}\n")
 
 
 def remove_file_or_dir(path):

@@ -24,7 +24,7 @@ def run_bf_switchd(test_dir, in_background=False):
     util.assert_exists(test_dir)
 
     # Generate bf_switchd conf file
-    conf_template_path = config.THIS_DIR / "template" / config.SUITE_BF_SWITCHD_CONF
+    conf_template_path = config.THIS_DIR / "template" / config.SUITE_CONF_BF_SWITCHD
     conf_template = string.Template(conf_template_path.read_text())
     # These paths have to be absolute,
     # or they will be interpreted as relative to $SDE_INSTALL.
@@ -34,7 +34,7 @@ def run_bf_switchd(test_dir, in_background=False):
         context=test_dir / config.SUITE_CONTEXT,
         config=test_dir / config.SUITE_SPEC,
     )
-    conf_path = test_dir / config.SUITE_BF_SWITCHD_CONF
+    conf_path = test_dir / config.SUITE_CONF_BF_SWITCHD
     conf_path.write_text(conf)
 
     # Configure hugepages for DPDK
