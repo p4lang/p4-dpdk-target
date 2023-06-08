@@ -40,13 +40,27 @@ control MainControl(
     in pna_main_input_metadata_t istd,
     inout pna_main_output_metadata_t ostd
 ) {
-    apply {
-        switch (istd.input_port) {
-            (PortId_t) 0: { send_to_port((PortId_t) 1); }
-            (PortId_t) 1: { send_to_port((PortId_t) 0); }
-            (PortId_t) 2: { send_to_port((PortId_t) 3); }
-            (PortId_t) 3: { send_to_port((PortId_t) 2); }
+    action forward(PortId_t output_port) {
+        send_to_port(output_port);
+    }
+
+    action drop() {
+        drop_packet();
+    }
+
+    table forwarding {
+        key = {
+            istd.input_port: exact;
         }
+        actions = {
+            forward;
+            drop;
+        }
+        const default_action = drop();
+    }
+
+    apply {
+        forwarding.apply();
     }
 }
 
