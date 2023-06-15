@@ -306,7 +306,7 @@ dal_cnt_read_flow_direct_counter_set(void *dal_data, void *res_data,
         }
 
         if (ctx_obj->num_externs_tables == 0) {
-                LOG_ERROR("[%s]:externs object/entry table empty", __func__);
+                LOG_TRACE("[%s]:externs object/entry table empty", __func__);
                 return BF_SUCCESS;
         }
 
@@ -325,6 +325,16 @@ dal_cnt_read_flow_direct_counter_set(void *dal_data, void *res_data,
                           ctx_obj->externs_tables_name[itr]);
                 return BF_OBJECT_NOT_FOUND;
         }
+
+		if(itr == ctx_obj->num_externs_tables) {
+			LOG_TRACE("Table doesn't have any externs");
+			return BF_SUCCESS;
+		}
+
+		if(externs_entry->type != EXTERNS_COUNTER) {
+			LOG_TRACE("Not a Counter extern");
+			return BF_SUCCESS;
+		}
 
         switch (externs_entry->attr_type) {
         case EXTERNS_ATTR_TYPE_BYTES:

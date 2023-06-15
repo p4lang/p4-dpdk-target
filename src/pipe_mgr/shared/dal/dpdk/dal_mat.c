@@ -155,7 +155,7 @@ int dal_table_ent_add(u32 sess_hdl,
 		}
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_add(pipe->ctl, mat_ctx->name
+	status = rte_swx_ctl_pipeline_table_entry_add(pipe->ctl, mat_ctx->target_table_name
 						      , entry);
 
 	if (status) {
