@@ -114,7 +114,11 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		snprintf(buffer, sizeof(buffer), "gcc -c -O3 -fpic "
 			 "-Wno-deprecated-declarations -o %s %s -I %s",
 			 o_filepath, c_filepath, i_filepath);
+		LOG_TRACE("%s line:%d Running command: %s\n",
+			  __func__, __LINE__, buffer);
 		status = system(buffer);
+		LOG_TRACE("%s line:%d Returned status: %d\n",
+			  __func__, __LINE__, status);
 		if (status) {
 			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
 				  __func__, __LINE__, o_filepath);
@@ -124,16 +128,15 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer), "gcc -shared %s -o %s ",
 			 o_filepath, so_filepath);
+		LOG_TRACE("%s line:%d Running command: %s\n",
+			  __func__, __LINE__, buffer);
 		status = system(buffer);
+		LOG_TRACE("%s line:%d Returned status: %d\n",
+			  __func__, __LINE__, status);
 		if (status) {
-			// TODO: Using LOG_WARN instead of LOG_ERROR, and commenting out
-			// return below is a hack to make e2e-test pass. What I observed
-			// is that so_filepath is actually generated, but somehow status
-			// is -1, leading to this error handling branch. Should try to fix
-			// this issue in a better way.
-			LOG_WARN("%s line:%d  Cannot generate %s file\n",
+			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
 				  __func__, __LINE__, so_filepath);
-			// return BF_INTERNAL_ERROR;
+			return BF_INTERNAL_ERROR;
 		}
 
 		fd = fopen(IOSPEC_FILE_PATH, "r");
