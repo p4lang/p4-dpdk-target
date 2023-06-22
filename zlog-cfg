@@ -23,7 +23,7 @@ BF_LLD.ERROR >stdout;console_format
 BF_LLD.DEBUG "p4_driver.log", 5M * 5 ;file_format
 
 BF_PIPE.ERROR >stdout;console_format
-BF_PIPE.DEBUG "p4_driver.log", 5M * 5 ;file_format
+BF_PIPE.ERROR "p4_driver.log", 5M * 5 ;file_format
 
 BF_DVM.ERROR >stdout;console_format
 BF_DVM.DEBUG "p4_driver.log", 5M * 5 ;file_format
@@ -41,7 +41,7 @@ BF_PM.ERROR >stdout;console_format
 BF_PM.DEBUG "p4_driver.log", 5M * 5 ;file_format
 
 BF_BFRT.ERROR >stdout;console_format
-BF_BFRT.DEBUG "p4_driver.log", 5M * 5 ;file_format
+BF_BFRT.ERROR "p4_driver.log", 5M * 5 ;file_format
 
 KRNLMON.ERROR >stdout;console_format
 KRNLMON.DEBUG "krnlmon.log", 5M * 5 ;file_format

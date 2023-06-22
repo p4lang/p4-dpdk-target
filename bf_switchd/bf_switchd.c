@@ -1565,15 +1565,6 @@ static int bf_switchd_sys_init(void) {
     return ret;
   }
 
-  /* For performance set defaut log level to error for pipe and pkt modules */
-  bf_sys_log_level_set(BF_MOD_PIPE, BF_LOG_DEST_FILE, BF_LOG_ERR);
-  bf_sys_trace_level_set(BF_MOD_PIPE, BF_LOG_ERR);
-
-#ifdef BFRT_ENABLED
-  bf_sys_log_level_set(BF_MOD_BFRT, BF_LOG_DEST_FILE, BF_LOG_ERR);
-  bf_sys_trace_level_set(BF_MOD_BFRT, BF_LOG_ERR);
-#endif
-
   return 0;
 }
 
