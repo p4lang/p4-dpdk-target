@@ -114,11 +114,8 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		snprintf(buffer, sizeof(buffer), "gcc -c -O3 -fpic "
 			 "-Wno-deprecated-declarations -o %s %s -I %s",
 			 o_filepath, c_filepath, i_filepath);
-		LOG_TRACE("%s line:%d Running command: %s\n",
-			  __func__, __LINE__, buffer);
+		LOG_TRACE("Running command: %s\n", buffer);
 		status = system(buffer);
-		LOG_TRACE("%s line:%d Returned status: %d\n",
-			  __func__, __LINE__, status);
 		if (status) {
 			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
 				  __func__, __LINE__, o_filepath);
@@ -126,18 +123,25 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		}
 
 		memset(buffer, 0, sizeof(buffer));
-		snprintf(buffer, sizeof(buffer), "gcc -shared %s -o %s ",
+		snprintf(buffer, sizeof(buffer), "gcc -shared %s -o %s",
 			 o_filepath, so_filepath);
-		LOG_TRACE("%s line:%d Running command: %s\n",
-			  __func__, __LINE__, buffer);
+		LOG_TRACE("Running command: %s\n", buffer);
 		status = system(buffer);
-		LOG_TRACE("%s line:%d Returned status: %d\n",
-			  __func__, __LINE__, status);
 		if (status) {
+			LOG_ERROR("%s line:%d  Command (%s) failed with exit code: %d\n",
+				  __func__, __LINE__, buffer, status);
+		}
+		// TODO: Ideally, we should check whether status is 0 below. But
+		// sometimes the returned status code is -1, even when the .so file is
+		// generated properly. Checking file existence is a temporary
+		// workaround. Need to further investigate and solve this issue.
+		fd = fopen(so_filepath, "r");
+		if (!fd) {
 			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
 				  __func__, __LINE__, so_filepath);
 			return BF_INTERNAL_ERROR;
 		}
+		fclose(fd);
 
 		fd = fopen(IOSPEC_FILE_PATH, "r");
 		if (!fd) {
