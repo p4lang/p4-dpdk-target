@@ -440,6 +440,12 @@ class CIntfTdiRt(CIntfTdi):
         sts = self.get_driver().tdi_target_get_value(target, self.target_type_cls.target_type_map(target_type_str="direction"), byref(direction));
         return dev_id.value, pipe_id.value, direction.value
 
+def enable(self):
+    logging.debug("enable the pipeline")
+    # This call will stay the same (call old c_frontend libdriver.so) not call libtdi.so
+    self._cintf.get_driver().bf_rt_enable_pipeline(self._cintf.get_dev_id())
+
+
 class TdiRtCli(TdiCli):
     # Fixed Tables created at child Nodes of the root 'tdi' Node.
     fixed_nodes=["port", "mirror", "fixed"]
@@ -459,6 +465,9 @@ class TdiRtCli(TdiCli):
         dev_node.transaction_commit = cintf._commit_transaction
         dev_node.transaction_abort = cintf._abort_transaction
         dev_node.p4_programs_list = []
+
+        dev_node.enable = enable.__get__(dev_node)
+        dev_node._commands["enable"] = getattr(dev_node, "enable")
 
 def start_tdi_rt(in_fd, out_fd, install_dir, dev_id_list, udf=None, interactive=False):
     global install_directory
