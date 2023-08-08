@@ -117,6 +117,15 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		LOG_TRACE("Running command: %s\n", buffer);
 		status = system(buffer);
 		if (status) {
+			LOG_ERROR("%s line:%d  Command (%s) failed with exit code: %d, with errno: %d\n",
+				  __func__, __LINE__, buffer, status, errno);
+		}
+		// TODO: Ideally, we should check whether status is 0 below. But
+		// sometimes the returned status code is -1, even when the .o file is
+		// generated properly. Checking file existence is a temporary
+		// workaround. Need to further investigate and solve this issue.
+		fd = fopen(o_filepath, "r");
+		if (!fd) {
 			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
 				  __func__, __LINE__, o_filepath);
 			return BF_INTERNAL_ERROR;
@@ -128,13 +137,11 @@ int dal_enable_pipeline(bf_dev_id_t dev_id,
 		LOG_TRACE("Running command: %s\n", buffer);
 		status = system(buffer);
 		if (status) {
-			LOG_ERROR("%s line:%d  Command (%s) failed with exit code: %d\n",
-				  __func__, __LINE__, buffer, status);
+			LOG_ERROR("%s line:%d  Command (%s) failed with exit code: %d, with errno: %d\n",
+				  __func__, __LINE__, buffer, status, errno);
 		}
 		// TODO: Ideally, we should check whether status is 0 below. But
-		// sometimes the returned status code is -1, even when the .so file is
-		// generated properly. Checking file existence is a temporary
-		// workaround. Need to further investigate and solve this issue.
+		// sometimes we have the same issue like the one above for the .so
 		fd = fopen(so_filepath, "r");
 		if (!fd) {
 			LOG_ERROR("%s line:%d  Cannot generate %s file\n",
