@@ -16,7 +16,7 @@ for port_id in range(4):
     )
 
 # Enable TDI program
-tdi.main.enable()
+tdi.enable()
 
 # Add entries
 control = tdi.main.pipe.MainControl
