@@ -1,6 +1,6 @@
 # Adding Table Entries to P4 DPDK Using Native Control Plane API
 
-This guide demonstrates how to add table entries to P4 DPDK using its native control plane API. We'll implement a simple P4 program with two tables, create a control plane program to add entries to these tables, and test the setup with packet traffic.
+This guide demonstrates how to add table entries to P4 DPDK using its native control plane API. We'll implement a simple P4 program with two tables, create a control plane program to add entries to these tables, and test the setup with packet traffic
 
 ## Table of Contents
 - [P4 Program](#p4-program)
