@@ -6,8 +6,12 @@ This guide demonstrates how to add table entries to P4 DPDK using its native con
 - [P4 Program](#p4-program)
 - [Control Plane Program](#control-plane-program)
 - [Setup and Compilation](#setup-and-compilation)
+- [Installing P4RT (P4 Runtime)](#installing-p4rt-p4-runtime)
+- [Configure DPDK](#configure-dpdk)
+- [Running the Example](#running-the-example)
 - [Testing with Scapy](#testing-with-scapy)
 - [Troubleshooting](#troubleshooting)
+- [Complete Example Walkthrough](#complete-example-walkthrough)
 
 ## P4 Program
 
@@ -15,7 +19,7 @@ First, let's create a simple P4 program (`mac_modifier.p4`) with two tables:
 1. An exact match table that modifies the source MAC address
 2. A ternary match table that modifies the destination MAC address
 
-Use the mac_modifier.p4 given in the P4-DPDK-starting-guide directory
+Use the mac_modifier.p4 given in the examples/mac_modifier directory.
 
 This P4 program defines:
 - An Ethernet and IPv4 header structure
@@ -28,8 +32,7 @@ This P4 program defines:
 
 Now, let's create a control plane program (`table_manager.c`) to add entries to our tables using the P4 Runtime API:
 
-Use the control plane program table_manager.c given in the same directory 
-
+Use the control plane program given in the e2e-test/p4rt directory.
 
 This control plane program:
 1. Initializes the DPDK environment
@@ -46,47 +49,19 @@ This control plane program:
 ## Setup and Compilation
 
 Let's create a Makefile to build our P4 program and control plane program:
+Use the makefile provided in the e2e-test/p4rt directory 
 
-```makefile
-# Makefile for P4 DPDK MAC Modifier example
-
-# Define variables
-P4C = p4c-dpdk
-P4_SRC = mac_modifier.p4
-P4_JSON = mac_modifier.json
-P4_CLI = mac_modifier_cli.txt
-P4_DPDK_TARGET = mac_modifier.spec
-
-CC = gcc
-CFLAGS = -Wall -Werror
-LDFLAGS = -lrte_eal -lrte_mempool -lrte_mbuf -lrte_ethdev -lp4rt
-CONTROL_SRC = table_manager.c
-CONTROL_BIN = table_manager
-
-# Default target
-all: p4_compile control_compile
-
-# Compile P4 program
-p4_compile:
-	$(P4C) --arch psa --target dpdk -o $(P4_DPDK_TARGET) $(P4_SRC)
-
-# Compile control plane program
-control_compile:
-	$(CC) $(CFLAGS) -o $(CONTROL_BIN) $(CONTROL_SRC) $(LDFLAGS)
-
-# Clean generated files
-clean:
-	rm -f $(P4_JSON) $(P4_DPDK_TARGET) $(CONTROL_BIN)
-
-.PHONY: all p4_compile control_compile clean
-```
 
 ### Setup Instructions
 
 1. **Install Prerequisites**:
    ```bash
    sudo apt-get update
-   sudo apt-get install -y build-essential cmake python3-pip
+   sudo apt-get install -y build-essential cmake python3-pip pkg-config \
+       libpcap-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+       libboost-dev libboost-program-options-dev libboost-system-dev \
+       libboost-filesystem-dev libboost-thread-dev libboost-test-dev \
+       libjudy-dev libgmp-dev libreadline-dev
    pip3 install scapy
    ```
 
@@ -125,23 +100,135 @@ clean:
    sudo make install
    ```
 
-5. **Create Project Directory**:
-   ```bash
-   mkdir -p ~/p4_dpdk_example
-   cd ~/p4_dpdk_example
-   ```
+## Installing P4RT (P4 Runtime)
 
-6. **Create the P4 and Control Plane Files**:
-   - Save the P4 program as `mac_modifier.p4`
-   - Save the control plane program as `table_manager.c`
-   - Save the Makefile as `Makefile`
+P4RT is the control plane API that allows you to manage P4 tables programmatically. Follow these steps to install it:
 
-7. **Compile the Programs**:
-   ```bash
-   make
-   ```
+### 1. Install Protocol Buffers
 
-### Configure DPDK
+P4RT requires Protocol Buffers (protobuf) version 3.6.1 or later:
+
+```bash
+cd ~/
+git clone https://github.com/protocolbuffers/protobuf.git
+cd protobuf
+git checkout v3.18.0
+./autogen.sh
+./configure
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+### 2. Install gRPC
+
+P4RT uses gRPC for communication:
+
+```bash
+cd ~/
+git clone https://github.com/grpc/grpc.git
+cd grpc
+git checkout v1.42.0
+git submodule update --init --recursive
+mkdir -p cmake/build
+cd cmake/build
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DgRPC_INSTALL=ON \
+      -DgRPC_BUILD_TESTS=OFF \
+      -DgRPC_PROTOBUF_PROVIDER=package \
+      -DgRPC_ZLIB_PROVIDER=package \
+      -DgRPC_CARES_PROVIDER=package \
+      -DgRPC_SSL_PROVIDER=package \
+      ../..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+### 3. Install P4Runtime
+
+Clone and install the P4Runtime library:
+
+```bash
+cd ~/
+git clone https://github.com/p4lang/p4runtime.git
+cd p4runtime
+git checkout v1.3.0
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+### 4. Install PI (P4 Interface)
+
+P4 Interface is needed for P4Runtime implementation:
+
+```bash
+cd ~/
+git clone https://github.com/p4lang/PI.git
+cd PI
+git checkout v0.9.0
+git submodule update --init --recursive
+./autogen.sh
+./configure --with-proto --with-p4runtime --without-bmv2 --without-cli
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+### 5. Install the P4RT DPDK library
+
+Now install the specific P4RT DPDK library:
+
+```bash
+cd ~/
+git clone https://github.com/p4lang/p4rt-dpdk.git
+cd p4rt-dpdk
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+### 6. Verify P4RT Installation
+
+Verify that the P4RT library is correctly installed:
+
+```bash
+pkg-config --modversion libp4rt
+```
+
+This command should return the version of the installed P4RT library. If it fails, ensure that the PKG_CONFIG_PATH environment variable includes the path to the P4RT .pc file:
+
+```bash
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
+```
+
+### 7. Create Project Directory
+
+```bash
+mkdir -p ~/p4_dpdk_example
+cd ~/p4_dpdk_example
+```
+
+### 8. Create the P4 and Control Plane Files
+
+- Save the P4 program as `mac_modifier.p4`
+- Save the control plane program as `table_manager.c`
+- Save the Makefile as `Makefile`
+
+### 9. Compile the Programs
+
+```bash
+make
+```
+
+## Configure DPDK
 
 1. **Set Up Hugepages**:
    ```bash
@@ -179,110 +266,7 @@ clean:
 
 ## Testing with Scapy
 
-Create a Python script (`test_packets.py`) to send and receive test packets:
-
-```python
-#!/usr/bin/env python3
-from scapy.all import *
-import time
-
-def send_receive_test_packets():
-    # Create a test packet for exact match table
-    exact_pkt = Ether(
-        dst="00:11:22:33:44:55",  # Matches exact table entry
-        src="AA:BB:CC:DD:EE:FF"   # Matches exact table entry
-    ) / IP(
-        src="192.168.2.1",        # Doesn't match ternary table
-        dst="172.16.0.1",         # Doesn't match ternary table
-        proto=6                   # TCP - matches exact table entry
-    ) / TCP()
-
-    # Create a test packet for ternary match table
-    ternary_pkt = Ether(
-        dst="11:11:11:11:11:11",  # Doesn't match exact table
-        src="22:22:22:22:22:22"   # Doesn't match exact table
-    ) / IP(
-        src="192.168.1.10",       # Matches ternary table entry (192.168.1.0/24)
-        dst="10.1.2.3",           # Matches ternary table entry (10.0.0.0/8)
-        proto=17                  # UDP - matches ternary table entry
-    ) / UDP()
-
-    # Create a test packet that doesn't match any table
-    nomatch_pkt = Ether(
-        dst="33:33:33:33:33:33",
-        src="44:44:44:44:44:44"
-    ) / IP(
-        src="172.16.1.1",
-        dst="172.16.2.1",
-        proto=1                   # ICMP
-    ) / ICMP()
-
-    # Send and sniff on interface veth0
-    print("Sending exact match test packet...")
-    sendp(exact_pkt, iface="veth0", verbose=0)
-    time.sleep(1)
-    
-    print("Sending ternary match test packet...")
-    sendp(ternary_pkt, iface="veth0", verbose=0)
-    time.sleep(1)
-    
-    print("Sending non-matching test packet...")
-    sendp(nomatch_pkt, iface="veth0", verbose=0)
-    time.sleep(1)
-    
-    # Capture packets on veth1
-    print("Capturing packets on veth1...")
-    pkts = sniff(iface="veth1", count=3, timeout=5)
-    
-    # Analyze the received packets
-    for i, pkt in enumerate(pkts):
-        print(f"\nReceived packet {i+1}:")
-        if i == 0:
-            # This should be the exact match packet with modified source MAC
-            print(f"Source MAC: {pkt[Ether].src}")
-            print(f"Destination MAC: {pkt[Ether].dst}")
-            if pkt[Ether].src == "11:22:33:44:55:66":
-                print("SUCCESS: Source MAC was modified by exact match table!")
-            else:
-                print(f"FAILURE: Source MAC was not modified as expected. Got {pkt[Ether].src}, expected 11:22:33:44:55:66")
-        
-        elif i == 1:
-            # This should be the ternary match packet with modified destination MAC
-            print(f"Source MAC: {pkt[Ether].src}")
-            print(f"Destination MAC: {pkt[Ether].dst}")
-            if pkt[Ether].dst == "66:55:44:33:22:11":
-                print("SUCCESS: Destination MAC was modified by ternary match table!")
-            else:
-                print(f"FAILURE: Destination MAC was not modified as expected. Got {pkt[Ether].dst}, expected 66:55:44:33:22:11")
-        
-        elif i == 2:
-            # This should be the non-matching packet with unchanged MACs
-            print(f"Source MAC: {pkt[Ether].src}")
-            print(f"Destination MAC: {pkt[Ether].dst}")
-            if pkt[Ether].src == "44:44:44:44:44:44" and pkt[Ether].dst == "33:33:33:33:33:33":
-                print("SUCCESS: Non-matching packet passed through unchanged!")
-            else:
-                print(f"FAILURE: Non-matching packet was modified unexpectedly.")
-                print(f"Got src={pkt[Ether].src}, dst={pkt[Ether].dst}")
-                print(f"Expected src=44:44:44:44:44:44, dst=33:33:33:33:33:33")
-
-if __name__ == "__main__":
-    # Set up veth interfaces if they don't exist
-    try:
-        # Check if veth0 exists
-        subprocess.check_call(["ip", "link", "show", "veth0"], 
-                             stdout=subprocess.DEVNULL, 
-                             stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        # Create veth pair
-        print("Creating veth interfaces...")
-        subprocess.call(["sudo", "ip", "link", "add", "veth0", "type", "veth", "peer", "name", "veth1"])
-        subprocess.call(["sudo", "ip", "link", "set", "dev", "veth0", "up"])
-        subprocess.call(["sudo", "ip", "link", "set", "dev", "veth1", "up"])
-    
-    # Run the test
-    send_receive_test_packets()
-```
+Create a Python script (`test_packets.py`) to send and receive test packets. Use test_packets.py provided in the e2e-test/p4rt directory.
 
 Make the script executable:
 ```bash
@@ -325,7 +309,21 @@ If you encounter issues, check the following:
    - Check table entry formats (especially for ternary entries)
    - Enable debug logging with `--log-level=debug`
 
-4. **Common Issues and Solutions**:
+4. **P4RT Installation Issues**:
+   - Missing Libraries: If you encounter errors about missing libraries during compilation, use `ldd` to check which libraries are missing:
+     ```bash
+     ldd ./table_manager
+     ```
+   - Library Path: If the linker cannot find libraries at runtime, update the LD_LIBRARY_PATH:
+     ```bash
+     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+     ```
+   - Include Paths: If you see header file not found errors, you may need to add additional include paths in your Makefile:
+     ```makefile
+     CFLAGS += -I/usr/local/include/p4rt
+     ```
+
+5. **Common Issues and Solutions**:
 
    - **Issue**: Table entries not applying
      **Solution**: Verify field names match exactly with the P4 program
@@ -340,16 +338,9 @@ If you encounter issues, check the following:
      **Solution**: Make sure the P4 DPDK service is running and listening on the expected socket
 
    - **Issue**: Ternary matches not working
-     **Solution**: Double-check mask values and ensure priorities are set
-     **Solution**: Check interface configuration and ensure packets are being sent on the correct interface
-
-   - **Issue**: Control plane connection errors
-     **Solution**: Make sure the P4 DPDK service is running and listening on the expected socket
-
-   - **Issue**: Ternary matches not working
      **Solution**: Double-check mask values and ensure priorities are set correctly
 
-5. **Debugging Commands**:
+6. **Debugging Commands**:
    ```bash
    # Check P4 DPDK process status
    ps aux | grep dpdk-p4-switch
@@ -371,6 +362,18 @@ Let's walk through the whole process step by step:
 ### 1. Setup Environment
 
 ```bash
+# Install all prerequisites
+sudo apt-get update
+sudo apt-get install -y build-essential cmake python3-pip pkg-config \
+    libpcap-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+    libboost-dev libboost-program-options-dev libboost-system-dev \
+    libboost-filesystem-dev libboost-thread-dev libboost-test-dev \
+    libjudy-dev libgmp-dev libreadline-dev
+pip3 install scapy
+
+# Install DPDK, P4C, P4 DPDK Runtime, and P4RT
+# (Follow instructions from previous sections)
+
 # Create project directory
 mkdir -p ~/p4_dpdk_example
 cd ~/p4_dpdk_example
@@ -460,9 +463,10 @@ When making changes to the P4 program, remember to recompile and restart the P4 
 ## Conclusion
 
 This guide has demonstrated how to:
-1. Create a P4 program with exact and ternary match tables
-2. Implement a control plane program to add table entries
-3. Set up a P4 DPDK environment
-4. Test the implementation with real packet traffic
+1. Set up the complete environment including P4RT
+2. Create a P4 program with exact and ternary match tables
+3. Implement a control plane program to add table entries
+4. Set up a P4 DPDK environment
+5. Test the implementation with real packet traffic
 
-By following these steps, you've created a functioning P4 DPDK data plane with a native control plane. This serves as a foundation for more complex networking applications using P4 DPDK.
+By following these steps, you've created a functioning P4 DPDK data plane with a native control plane using P4RT. This serves as a foundation for more complex networking applications using P4 DPDK.
