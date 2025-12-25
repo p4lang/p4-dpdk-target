@@ -136,6 +136,12 @@ Note:- Make sure that your yum repository proxy and environment proxies are set 
     make -j
     make install
 ```
+
+#### Building from install.sh file
+You can directly build p4-dpdk by running the following command 
+```bash
+./install.sh
+```
 #### Artifacts installed
 
 Here're the artifacts that get installed for p4-driver.
