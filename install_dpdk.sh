@@ -15,7 +15,7 @@ mkdir -p "$SDE_INSTALL"
 # ------------------------------------------------------------
 # 1. System dependencies
 # ------------------------------------------------------------
-echo "[1/9] Installing system dependencies..."
+echo "[1/8] Installing system dependencies..."
 
 sudo apt update
 sudo apt install -y \
@@ -33,7 +33,7 @@ sudo apt install -y \
 # ------------------------------------------------------------
 # 2. Hugepages (required for DPDK)
 # ------------------------------------------------------------
-echo "[2/9] Configuring hugepages..."
+echo "[2/8] Configuring hugepages..."
 
 sudo sysctl -w vm.nr_hugepages=1024 || true
 sudo mkdir -p /mnt/huge || true
@@ -42,7 +42,7 @@ mount | grep hugetlbfs || sudo mount -t hugetlbfs nodev /mnt/huge || true
 # ------------------------------------------------------------
 # 3. Python virtual environment for build tools
 # ------------------------------------------------------------
-echo "[3/9] Creating Python virtual environment..."
+echo "[3/8] Creating Python virtual environment..."
 
 cd "$SDE"
 python3 -m venv venv
@@ -68,18 +68,11 @@ git clone --depth=1 https://github.com/p4lang/target-utils utils
 git clone --depth=1 https://github.com/p4lang/target-syslibs syslibs
 git clone --depth=1 https://github.com/p4lang/p4-dpdk-target p4-dpdk-target
 
-# ------------------------------------------------------------
-# 5. Install dependencies via helper script
-# ------------------------------------------------------------
-echo "[5/9] Running install_dep.py..."
-
-cd "$SDE/p4-dpdk-target/tools/setup"
-python3 install_dep.py
 
 # ------------------------------------------------------------
-# 6. Build target-utils
+# 5. Build target-utils
 # ------------------------------------------------------------
-echo "[6/9] Building target-utils..."
+echo "[5/8] Building target-utils..."
 
 cd "$SDE/utils"
 mkdir -p build
@@ -95,9 +88,9 @@ make -j$(nproc)
 make install
 
 # ------------------------------------------------------------
-# 7. Build target-syslibs
+# 6. Build target-syslibs
 # ------------------------------------------------------------
-echo "[7/9] Building target-syslibs..."
+echo "[6/8] Building target-syslibs..."
 
 cd "$SDE/syslibs"
 mkdir -p build
@@ -108,9 +101,9 @@ make -j$(nproc)
 make install
 
 # ------------------------------------------------------------
-# 8. Build p4-dpdk-target
+# 7. Build p4-dpdk-target
 # ------------------------------------------------------------
-echo "[8/9] Building p4-dpdk-target..."
+echo "[7/8] Building p4-dpdk-target..."
 
 cd "$SDE/p4-dpdk-target"
 
@@ -121,9 +114,9 @@ make -j$(nproc)
 make install
 
 # ------------------------------------------------------------
-# 9. Runtime environment setup
+# 8. Runtime environment setup
 # ------------------------------------------------------------
-echo "[9/9] Setting runtime environment variables..."
+echo "[8/8] Setting runtime environment variables..."
 
 cat <<EOF
 
