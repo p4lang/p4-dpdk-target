@@ -116,11 +116,6 @@ To set environment variables for SDE, see below :-
 ```
 Ensure SDE, SDE_INSTALL and LD_LIBRARY_PATH environment variables are set correctly
 
-#### Installing P4-DPDK directly from installation script
-To directly install p4-dpdk you can run this command :-
-```bash
-    ./install_dpdk.sh
-```
 
 #### Install dependent packages
 To Install the dependencies for p4-driver on the platform Fedora 33, see below:-
@@ -143,11 +138,6 @@ Note:- Make sure that your yum repository proxy and environment proxies are set 
     make install
 ```
 
-#### Building from install.sh file
-You can directly build p4-dpdk by running the following command 
-```bash
-./install_dpdk.sh
-```
 #### Artifacts installed
 
 Here're the artifacts that get installed for p4-driver.
