@@ -117,6 +117,8 @@ To set environment variables for SDE, see below :-
 Ensure SDE, SDE_INSTALL and LD_LIBRARY_PATH environment variables are set correctly
 
 #### Installing P4-DPDK directly from the Installation script
+To install P4-DPDK you can run the below command it will install `P4-DPDK` and all other necessary libraries required to run `P4-DPDK` or you can follow steps below this section to install it manually
+
 ```bash
 ./install_dpdk.sh
 ```
