@@ -128,7 +128,7 @@ class PortFpIdxInfoTableKey : public TableKey {
                        const uint8_t *value,
                        const size_t &size);
 
-  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const override final
+  tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const override final;
 
   tdi_status_t getValue(const tdi_id_t &field_id,
                        const size_t &size,
@@ -150,7 +150,7 @@ class PortStrInfoTableKey : public TableKey {
       : TableKey(tbl_obj){};
   ~PortStrInfoTableKey() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const std::string &value) override final
+  tdi_status_t setValue(const tdi_id_t &field_id, const std::string &value) override final;
 
   tdi_status_t getValue(const tdi_id_t &field_id, std::string *value) const override final;
 
