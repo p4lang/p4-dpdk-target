@@ -52,12 +52,14 @@ class PortCfgTableKey : public TableKey {
 
 class PortStatTableKey : public TableKey {
  public:
+  using tdi::TableKey::getValue;
+  using tdi::TableKey::setValue;
   PortStatTableKey(const Table *tbl_obj)
       : TableKey(tbl_obj), dev_port_(){};
 
   ~PortStatTableKey() = default;
 
-  tdi_status_t setValue(const tdi_id_t &field_id, const tdi::KeyFieldValue &field_value) override final;
+   tdi_status_t setValue(const tdi_id_t &field_id,const tdi::KeyFieldValue &value) override;
   //tdi_status_t setValue(const tdi_id_t &field_id, const uint64_t &value);
 
   tdi_status_t setValue(const tdi_id_t &field_id,
@@ -65,7 +67,7 @@ class PortStatTableKey : public TableKey {
                        const size_t &size);
 
   tdi_status_t getValue(const tdi_id_t &field_id,
-                        KeyFieldValue *field_value) const override final;
+                        KeyFieldValue *field_value) const override;
 
   tdi_status_t getValue(const tdi_id_t &field_id, uint64_t *value) const;
 
@@ -85,6 +87,8 @@ class PortStatTableKey : public TableKey {
 
 class PortHdlInfoTableKey : public TableKey {
  public:
+  using tdi::TableKey::getValue;
+  using tdi::TableKey::setValue;
   PortHdlInfoTableKey(Table *tbl_obj)
       : TableKey(tbl_obj), conn_id_(), chnl_id_(){};
 
@@ -118,6 +122,8 @@ class PortHdlInfoTableKey : public TableKey {
 
 class PortFpIdxInfoTableKey : public TableKey {
  public:
+  using tdi::TableKey::getValue;
+  using tdi::TableKey::setValue;
   PortFpIdxInfoTableKey(Table *tbl_obj)
       : TableKey(tbl_obj), fp_idx_(){};
   ~PortFpIdxInfoTableKey() = default;
@@ -146,6 +152,8 @@ class PortFpIdxInfoTableKey : public TableKey {
 
 class PortStrInfoTableKey : public TableKey {
  public:
+  using tdi::TableKey::getValue;
+  using tdi::TableKey::setValue;
   PortStrInfoTableKey(Table *tbl_obj)
       : TableKey(tbl_obj){};
   ~PortStrInfoTableKey() = default;
