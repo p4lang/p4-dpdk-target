@@ -101,7 +101,23 @@ they take artifacts associated with P4 as inputs.
 The building of drivers produces a set of libraries that need to be
 loaded (or linked to) the application.
 
-Note: SDE is the top level directory with this p4-dpdk-target, syslibs and utils repo cloned in next step
+You can install and build in two ways:
+
+1. Using the Installation script
+2. Manually
+
+**Note:** `SDE` is the top-level directory containing the `p4-dpdk-target`, `syslibs`, and `utils` repositories (cloned in the next step).
+
+## Installation via Script
+
+To install P4-DPDK using the provided script, run:
+
+```bash
+./install_p4_dpdk.sh
+```
+The script installs P4-DPDK and prompts you to configure hugepages and the required permissions to access them.
+
+## Manual Installation
 
 #### Create install directory under SDE
 ```
@@ -116,13 +132,14 @@ To set environment variables for SDE, see below :-
 ```
 Ensure SDE, SDE_INSTALL and LD_LIBRARY_PATH environment variables are set correctly
 
-#### Installing P4-DPDK directly from the Installation script
-To install P4-DPDK you can run the below command it will install `P4-DPDK` and all other necessary libraries required to run `P4-DPDK` or you can follow steps below this section to install it manually
-
+#### Install dependent packages
+To Install the dependencies for p4-driver on the platform Fedora 33, see below:-
+Note:- Make sure that your yum repository proxy and environment proxies are set properly and you have sudo access.
 ```bash
-./install_dpdk.sh
+pip3 install distro (dependency)
+cd p4-dpdk-target/tools/setup
+python3 install_dep.py
 ```
-
 #### Building P4 DPDK target
  ```
     cd $SDE/p4-dpdk-target
