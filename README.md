@@ -101,7 +101,7 @@ they take artifacts associated with P4 as inputs.
 The building of drivers produces a set of libraries that need to be
 loaded (or linked to) the application.
 
-You can install adn build in two ways:
+You can install and build in two ways:
 
 1. Using the Installation script
 2. Manually
