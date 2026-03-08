@@ -22,7 +22,6 @@ check_and_install() {
     # Check if command exists (for executables)
     if ! command -v "$cmd" >/dev/null 2>&1; then
         echo -e "${YELLOW}$cmd not found.${NC}"
-        sudo apt update
         sudo apt install -y $pkgs
     fi
  }
@@ -33,7 +32,6 @@ check_and_install_pkgs() {
         echo -e "${GREEN}$pkgs is already installed.${NC}"
     else
         echo -e "${YELLOW}$pkgs not found. Installing...${NC}"
-        sudo apt update
         sudo apt install -y "$pkgs"
     fi
 }
@@ -64,6 +62,9 @@ mkdir -p "$SDE_INSTALL"
 # 0. Check Dependencies (install if missing)
 # ------------------------------------------------------------
 print_step "0/5 Checking dependencies..."
+
+sudo apt-get update -y && sudo apt-get upgrade -y
+
 # Install Wireshark and tshark on Ubuntu system without having to
 # answer _any_ questions interactively, except perhaps providing your
 # password when prompted by 'sudo'.
@@ -74,7 +75,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y install wireshark tshark
 install_deps_ubuntu_2404
 
 if [[ "$IS_24_04" == "true" ]]; then
-    sudo apt update
     sudo apt install -y libedit-dev pkg-config
 fi
 
@@ -99,7 +99,7 @@ cd $SDE
 # ------------------------------------------------------------
 print_step "2/5 Installing system dependencies..."
 
-sudo apt update && sudo apt upgrade && sudo apt install -y python3-venv python3-full
+sudo apt-get install -y python3-venv python3-full
 python3 -m venv "$SDE/.venv"
 source "$SDE/.venv/bin/activate"
 
