@@ -37,7 +37,7 @@ jobs:
              make 
              make install
 
-  build_p4dpdk_ubuntu_24_04:
+  build_p4dpdk_ubuntu_24:
     timeout-minutes: 30
     runs-on: ubuntu-24.04
     steps:
