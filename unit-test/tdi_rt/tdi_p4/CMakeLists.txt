@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Anand Sunkad
+#
+# SPDX-License-Identifier: Apache-2.0
+
 cmake_minimum_required(VERSION 2.6)
 
 include_directories(${CMAKE_SOURCE_DIR}/../src/tdi_rt/

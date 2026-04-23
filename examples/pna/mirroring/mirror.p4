@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 Ruchit Gupta
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef MIRROR_VALUELOOKUP_DEMO_P4
 #define MIRROR_VALUELOOKUP_DEMO_P4
 

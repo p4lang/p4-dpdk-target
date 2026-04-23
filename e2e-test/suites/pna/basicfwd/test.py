@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
 import time
 import unittest
 

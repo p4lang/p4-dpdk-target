@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 tdi_python
 
 # Add ports

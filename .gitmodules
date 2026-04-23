@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 [submodule "src/lld/dpdk/dpdk_src"]
 	path = src/lld/dpdk/dpdk_src
 	url = https://github.com/DPDK/dpdk.git

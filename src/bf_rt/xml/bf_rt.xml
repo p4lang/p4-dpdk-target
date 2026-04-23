@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2021 James Choi
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <CLISH_MODULE xmlns="http://clish.sourceforge.net/XMLSchema"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://clish.sourceforge.net/XMLSchema
