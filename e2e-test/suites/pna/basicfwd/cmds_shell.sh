@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Set up TAP ports
 for port in {0..3}; do
     sudo ip link set "TAP$port" up

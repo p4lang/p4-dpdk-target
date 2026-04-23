@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2021 James Choi
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef _P4_SDE_OSDEP_UTILS_H
 #define _P4_SDE_OSDEP_UTILS_H
 

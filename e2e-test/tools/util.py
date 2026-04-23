@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import logging
 import os
 import shutil

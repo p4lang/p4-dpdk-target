@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 Riyaz Ahmad
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 ## [v22.07] - 2022-07-27
 
 ### Added

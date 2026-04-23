@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 KDIR := /lib/modules/$(shell uname -r)/build

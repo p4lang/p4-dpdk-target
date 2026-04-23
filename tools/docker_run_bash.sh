@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 #
 # Run a bash in a new container.
 

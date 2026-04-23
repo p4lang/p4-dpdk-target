@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Weiqian Dai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 cmake_minimum_required(VERSION 3.5)
 project(tdi_examples)
 include(CMakePrintHelpers)

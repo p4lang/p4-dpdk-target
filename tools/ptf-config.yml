@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Vishnu Swaroop Kumar Sarma, Duddu
+#
+# SPDX-License-Identifier: Apache-2.0
+
 id: 001
 name: simple_l2l3_lpm
 p4_file: "NAT_SDE_examples/DPDK/simple_l2l3_lpm.p4"

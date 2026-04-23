@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
