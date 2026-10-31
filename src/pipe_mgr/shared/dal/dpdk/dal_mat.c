@@ -124,7 +124,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	if (act_data_spec->pipe_action_datatype_bmap ==
 			PIPE_SEL_GRP_HDL_TYPE) {
 		/* encode the action set_group_id and group id */
-		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->name, pipe,
+		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->target_table_name, pipe,
 				act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_group_id"
@@ -134,7 +134,7 @@ int dal_table_ent_add(u32 sess_hdl,
 	} else if (act_data_spec->pipe_action_datatype_bmap ==
 			PIPE_ACTION_DATA_HDL_TYPE) {
 		/* encode the action set_member_id*/
-		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->name, pipe,
+		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->target_table_name, pipe,
 				act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_member_id"
@@ -254,7 +254,7 @@ int dal_table_default_ent_add(u32 sess_hdl,
 
 	if (act_data_spec->pipe_action_datatype_bmap == PIPE_SEL_GRP_HDL_TYPE) {
 		/* encode the action set_group_id and group id */
-		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->name, pipe,
+		status = pipe_mgr_dpdk_encode_sel_action(mat_ctx->target_table_name, pipe,
 							 act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_group_id"
@@ -264,7 +264,7 @@ int dal_table_default_ent_add(u32 sess_hdl,
 	} else if (act_data_spec->pipe_action_datatype_bmap ==
 		   PIPE_ACTION_DATA_HDL_TYPE) {
 		/* encode the action set_member_id*/
-		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->name, pipe,
+		status = pipe_mgr_dpdk_encode_member_id(mat_ctx->target_table_name, pipe,
 							act_data_spec, entry);
 		if (status) {
 			LOG_ERROR("dpdk table entry action set_member_id"
@@ -286,7 +286,7 @@ int dal_table_default_ent_add(u32 sess_hdl,
 	}
 
 	status = rte_swx_ctl_pipeline_table_default_entry_add(pipe->ctl,
-							      mat_ctx->name,
+							      mat_ctx->target_table_name,
 							      entry);
 
 	if (status) {
@@ -364,7 +364,7 @@ int dal_table_ent_del_by_match_spec(u32 sess_hdl,
 		goto exit;
 	}
 
-	status = rte_swx_ctl_pipeline_table_entry_delete(ctl, mat_ctx->name,
+	status = rte_swx_ctl_pipeline_table_entry_delete(ctl, mat_ctx->target_table_name,
 							 entry);
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");
