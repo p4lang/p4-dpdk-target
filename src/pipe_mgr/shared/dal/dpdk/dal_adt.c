@@ -238,7 +238,7 @@ int dal_table_adt_default_ent_add(u32 sess_hdl,
 		goto error;
 	}
 
-	status = rte_swx_ctl_pipeline_table_default_entry_add(ctl, mat_ctx->name
+	status = rte_swx_ctl_pipeline_table_default_entry_add(ctl, mat_ctx->target_table_name
 							      , entry);
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");
@@ -307,7 +307,7 @@ int dal_table_adt_ent_del
 	/*encode the match key*/
 	memcpy(&entry->key[0], (uint8_t *)&tbl_ent_hdl, sizeof(tbl_ent_hdl));
 
-	status = rte_swx_ctl_pipeline_table_entry_delete(ctl, mat_ctx->name,
+	status = rte_swx_ctl_pipeline_table_entry_delete(ctl, mat_ctx->target_table_name,
 			entry);
 	if (status) {
 		LOG_ERROR("rte_swx_ctl_pipeline_table_entry_add");

@@ -63,11 +63,11 @@ int dal_table_sel_ent_add_del(u32 sess_hdl,
 
 	if (!del_grp)
 		status =
-		rte_swx_ctl_pipeline_selector_group_add(ctl, mat_ctx->name,
+		rte_swx_ctl_pipeline_selector_group_add(ctl, mat_ctx->target_table_name,
 			tbl_ent_hdl);
 	else
 		status =
-		rte_swx_ctl_pipeline_selector_group_delete(ctl, mat_ctx->name,
+		rte_swx_ctl_pipeline_selector_group_delete(ctl, mat_ctx->target_table_name,
 			*tbl_ent_hdl);
 
 	if (status) {
@@ -133,12 +133,12 @@ int dal_table_sel_member_add_del(u32 sess_hdl,
 		if (!delete_members)
 			status =
 			rte_swx_ctl_pipeline_selector_group_member_add(ctl,
-					mat_ctx->name, sel_grp_hdl, mbrs[i],
+					mat_ctx->target_table_name, sel_grp_hdl, mbrs[i],
 					(uint32_t)1);
 		else
 			status =
 			rte_swx_ctl_pipeline_selector_group_member_delete(ctl,
-					mat_ctx->name, sel_grp_hdl, mbrs[i]);
+					mat_ctx->target_table_name, sel_grp_hdl, mbrs[i]);
 
 		if (status) {
 			if (!delete_members)
