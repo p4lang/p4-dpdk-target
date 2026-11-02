@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 LIBPATH := $(shell gcc --print-multiarch)
 LDFLAGS = -Wl,-rpath-link=$(prefix)/lib64 -Wl,-rpath-link=$(libdir)
 LDFLAGS += -Wl,-rpath-link=$(prefix)/lib/$(LIBPATH)

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 Anand Sunkad
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* -*- P4_16 -*- */
 
 #include <core.p4>

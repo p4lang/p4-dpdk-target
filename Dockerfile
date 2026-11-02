@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Share args between stages.
 # See https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact.
 # They should be consistent with tools/setup/p4sde_env_setup.sh.

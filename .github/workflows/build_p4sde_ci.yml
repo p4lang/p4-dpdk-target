@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Aman Sinha
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: "P4SDE CI Build pipeline"
 
 on:

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 Weiqian Dai
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <getopt.h>
 #include <unistd.h>
 

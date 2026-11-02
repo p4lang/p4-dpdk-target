@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Vishnu Swaroop Kumar Sarma, Duddu
+#
+# SPDX-License-Identifier: Apache-2.0
+
 all:
 	mkdir -p tdi/third-party/googletest/build
 	mkdir -p tdi/build

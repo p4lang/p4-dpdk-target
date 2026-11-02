@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 Riyaz Ahmad
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <port_mgr/bf_port_if.h>
 #include <bf_rt/bf_rt_common.h>
 

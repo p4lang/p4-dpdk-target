@@ -1,8 +1,9 @@
-/*****************************************************************************
- * Copyright(c) 2021 Intel Corporation
+/*
+ * Copyright (C) 2021 Intel Corporation
+ * SPDX-FileCopyrightText: 2021 Intel Corporation
  *
- * For licensing information, see the file ‘LICENSE’ in the root folder
- *****************************************************************************/
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 /*!
  * @file port_mgr_dpdk.c

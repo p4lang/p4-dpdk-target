@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Bili Dong
+#
+# SPDX-License-Identifier: Apache-2.0
+
 log/
 p4c_gen/
 conf_bf_switchd.json

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 if have_doxygen
 doc-local:
 	@$(DOXYGEN) Doxyfile

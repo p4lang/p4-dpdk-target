@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 export libdir
 all:
 	$(shell ./apply_patch.sh > /dev/null 2>&1)

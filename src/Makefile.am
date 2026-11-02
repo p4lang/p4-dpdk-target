@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 noinst_LTLIBRARIES =
 lib_LTLIBRARIES =
 SUBDIRS =

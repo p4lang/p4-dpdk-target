@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2022 Riyaz Ahmad
+
+SPDX-License-Identifier: Apache-2.0
+-->
 
 # P4 DPDK Target Components
 

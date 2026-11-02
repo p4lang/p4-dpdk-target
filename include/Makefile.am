@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 James Choi
+#
+# SPDX-License-Identifier: Apache-2.0
+
 libdrivers_includedir = $(includedir)
 nobase_libdrivers_include_HEADERS = pipe_mgr/pipe_mgr_intf.h
 nobase_libdrivers_include_HEADERS += pipe_mgr/pipe_mgr_err.h

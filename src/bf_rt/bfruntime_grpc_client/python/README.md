@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 James Choi
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 bfruntime gRPC python client Library (bfruntime-pylib)
 ====================================
 

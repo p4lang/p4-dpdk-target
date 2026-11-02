@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 Bili Dong
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # P4 DPDK Target End-to-End Testing
 
 ## Directory structure

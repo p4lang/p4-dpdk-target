@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Bili Dong
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <core.p4>
 #include <pna.p4>
 

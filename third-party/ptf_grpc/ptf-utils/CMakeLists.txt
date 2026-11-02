@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022 Riyaz Ahmad
+#
+# SPDX-License-Identifier: Apache-2.0
+
 if (NOT PYTHON_EXECUTABLE)
   set(PYTHON_EXECUTABLE python)
 endif()
